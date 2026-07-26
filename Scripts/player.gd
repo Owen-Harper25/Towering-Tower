@@ -15,29 +15,22 @@ func _ready() -> void:
 		camera.enabled = false
 		camera.process_mode = Node.PROCESS_MODE_DISABLED
 
-func _physics_process(_delta):
-	#var min_x = -67
-	#var max_x = 68
-	#var min_y = -58
-	#var max_y = 71
-	
-	#global_position.x = clamp(global_position.x, min_x, max_x)
-	#global_position.y = clamp(global_position.y, min_y, max_y)
-	var input_dir: Vector2 = Vector2.ZERO
-	
-	input_dir.x = Input.get_axis("Left", "Right")
-	input_dir.y = Input.get_axis("Up", "Down")
+func _physics_process(_delta: float) -> void:
+	if is_multiplayer_authority():
+		var input_dir: Vector2 = Vector2.ZERO
+		input_dir.x = Input.get_axis("Left", "Right")
+		input_dir.y = Input.get_axis("Up", "Down")
 
-	if input_dir != Vector2.ZERO:
-		velocity = input_dir.normalized() * speed
-		sprite.play("move")
-		
-		if input_dir.x < 0:
-			sprite.flip_h = true
-		elif input_dir.x > 0:
-			sprite.flip_h = false
-	else:
-		velocity = Vector2.ZERO
-		sprite.play("Idle")
+		if input_dir != Vector2.ZERO:
+			velocity = input_dir.normalized() * speed
+			sprite.play("move")
+			
+			if input_dir.x < 0:
+				sprite.flip_h = true
+			elif input_dir.x > 0:
+				sprite.flip_h = false
+		else:
+			velocity = Vector2.ZERO
+			sprite.play("Idle")
 
-	move_and_slide()
+		move_and_slide()

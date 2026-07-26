@@ -3,11 +3,13 @@ extends Node2D
 const PLAYER = preload("uid://dflfyebeka06d")
 
 var players: Array[CharacterBody2D]
+@onready var players_container: Node2D = $Arena/Players
 
 func _ready() -> void:
 	Networking.host_created.connect(on_host_created)
 	multiplayer.peer_connected.connect(spawn_player)
-
+	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	
 func on_host_created() -> void:
 	spawn_player(multiplayer.get_unique_id())
 	
@@ -41,3 +43,14 @@ func _on_host_pressed() -> void:
 func _on_multiplayer_spawner_spawned(node: Node) -> void:
 	if node is CharacterBody2D:
 		initialize_player(node)
+		
+func _on_peer_disconnected(id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
+	var player_node = players_container.get_node_or_null(str(id))
+	if player_node:
+		if players.has(player_node):
+			players.erase(player_node)
+			
+		player_node.queue_free()

@@ -75,12 +75,15 @@ func _on_peer_disconnected(id: int) -> void:
 	if not multiplayer.is_server():
 		return
 
-	var player_node = players_container.get_node_or_null(str(id))
+	# Search level_container or players_container for node named str(id)
+	var player_node = level_container.get_node_or_null(str(id))
+	if not player_node and current_level:
+		player_node = current_level.get_node_or_null(str(id))
+
 	if player_node:
 		if players.has(player_node):
 			players.erase(player_node)
-			
-		player_node.queue_free()
+		player_node.queue_free() # MultiplayerSpawner will replicate this deletion to clients!
 		
 func on_song_fin():
 	current_loop_count += 1

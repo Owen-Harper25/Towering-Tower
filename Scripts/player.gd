@@ -10,6 +10,7 @@ signal player_died()
 		player_name = value
 		if character_name:
 			character_name.text = value
+var net_position: Vector2 = Vector2.ZERO
 
 # --- Movement & Roll Configuration ---
 @export_group("Movement Settings")
@@ -98,7 +99,12 @@ func handle_movement_and_actions() -> void:
 	# Shooting Input
 	if Input.is_action_just_pressed("Shoot"):
 		shoot()
-
+		
+func _process(delta: float) -> void:
+	if not is_multiplayer_authority():
+		# Smoothly interpolate position for non-local players
+		global_position = global_position.lerp(net_position, 15.0 * delta)
+	
 # --- Dodge Roll System ---
 func start_dodge_roll(dir: Vector2) -> void:
 	is_rolling = true

@@ -162,33 +162,35 @@ offset_bottom = 16.0
 wait_time = 5.0
 one_shot = true
 
-[node name="Audio" type="Node2D" parent="." unique_id=506695460]
+[node name="Music" type="Node2D" parent="." unique_id=506695460]
 
-[node name="Battle1" type="AudioStreamPlayer2D" parent="Audio" unique_id=296510013]
+[node name="Battle1" type="AudioStreamPlayer2D" parent="Music" unique_id=296510013]
 stream = ExtResource("3_d1ilt")
 
-[node name="Boss 2 Fin" type="AudioStreamPlayer2D" parent="Audio" unique_id=134335270]
+[node name="Boss 2 Fin" type="AudioStreamPlayer2D" parent="Music" unique_id=134335270]
 stream = ExtResource("4_6iyac")
 
-[node name="Boss 3" type="AudioStreamPlayer2D" parent="Audio" unique_id=306654453]
+[node name="Boss 3" type="AudioStreamPlayer2D" parent="Music" unique_id=306654453]
 stream = ExtResource("5_fdnlq")
 
-[node name="Dungeon" type="AudioStreamPlayer2D" parent="Audio" unique_id=450816281]
+[node name="Dungeon" type="AudioStreamPlayer2D" parent="Music" unique_id=450816281]
 stream = ExtResource("6_jkdf5")
 
-[node name="Town" type="AudioStreamPlayer2D" parent="Audio" unique_id=1595563514]
+[node name="Town" type="AudioStreamPlayer2D" parent="Music" unique_id=1595563514]
 stream = ExtResource("7_wsu2k")
 
-[node name="Town 2" type="AudioStreamPlayer2D" parent="Audio" unique_id=695435391]
+[node name="Town 2" type="AudioStreamPlayer2D" parent="Music" unique_id=695435391]
 stream = ExtResource("8_k12tt")
 
-[node name="Shoot" type="AudioStreamPlayer2D" parent="Audio" unique_id=1444954294]
+[node name="SFX" type="Node2D" parent="." unique_id=896389301]
+
+[node name="Shoot" type="AudioStreamPlayer2D" parent="SFX" unique_id=1444954294]
 stream = ExtResource("12_jkdf5")
 
-[node name="Hurt" type="AudioStreamPlayer2D" parent="Audio" unique_id=46939422]
+[node name="Hurt" type="AudioStreamPlayer2D" parent="SFX" unique_id=46939422]
 stream = ExtResource("13_wsu2k")
 
-[node name="Menu" type="AudioStreamPlayer2D" parent="Audio" unique_id=69628919]
+[node name="Menu" type="AudioStreamPlayer2D" parent="SFX" unique_id=69628919]
 stream = ExtResource("14_k12tt")
 
 [connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]

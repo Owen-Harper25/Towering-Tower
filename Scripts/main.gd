@@ -24,11 +24,12 @@ func _ready() -> void:
 	multiplayer.peer_connected.connect(spawn_player)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	menu_canvas_layer.show()
-	#for i in background_songs:
-		#if i is AudioStreamPlayer2D or i is AudioStreamPlayer:
-			#i.finished.connect(on_song_fin)
-	#break_timer.timeout.connect(play_next_random_song)
-	#play_next_random_song()
+	background_songs = $Music.get_children()
+	for i in background_songs:
+		if i is AudioStreamPlayer2D or i is AudioStreamPlayer:
+			i.finished.connect(on_song_fin)
+	break_timer.timeout.connect(play_next_random_song)
+	play_next_random_song()
 	
 func on_host_created() -> void:
 	spawn_player(multiplayer.get_unique_id())
@@ -102,6 +103,7 @@ func fade_out_and_next():
 		var wait_time = randf_range(3.0, 5.0)
 		break_timer.start(wait_time)
 	)
+	
 func play_next_random_song():
 	var next_song = randi() % background_songs.size()
 	while next_song == current_song_index and background_songs.size() > 1:

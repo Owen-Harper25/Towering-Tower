@@ -20,9 +20,9 @@ signal player_revived()
 @export var roll_speed: float = 220.0
 @export var roll_duration: float = 0.45
 @export var roll_iframe_duration: float = 0.35
-@onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/Audio/Shoot")
-@onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/Audio/Hurt")
-@onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/Audio/Menu")
+@onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Shoot")
+@onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Hurt")
+@onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
 
 # --- Health & Revive Settings ---
 @export_group("Combat Settings")
@@ -106,7 +106,7 @@ func handle_movement_and_actions() -> void:
 		shoot()
 
 func handle_crawling_movement() -> void:
-	var input_dir := Vector2(
+	input_dir = Vector2(
 		Input.get_axis("Left", "Right"),
 		Input.get_axis("Up", "Down")
 	).normalized()

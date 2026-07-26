@@ -68,6 +68,7 @@ script = ExtResource("1_bo1nx")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=617876542]
 _spawnable_scenes = PackedStringArray("uid://dflfyebeka06d")
+spawn_path = NodePath("../Level Container")
 
 [node name="Level Container" type="Node" parent="." unique_id=1586504625]
 

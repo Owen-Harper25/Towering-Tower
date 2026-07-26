@@ -15,6 +15,7 @@ signal player_revived()
 
 # --- Movement & Roll Configuration ---
 @export_group("Movement Settings")
+@export var input_dir: Vector2 = Vector2.ZERO
 @export var speed: float = 120.0
 @export var roll_speed: float = 220.0
 @export var roll_duration: float = 0.45
@@ -88,7 +89,7 @@ func _physics_process(_delta: float) -> void:
 
 # --- Movement & Input Handling ---
 func handle_movement_and_actions() -> void:
-	var input_dir := Vector2(
+	input_dir = Vector2(
 		Input.get_axis("Left", "Right"),
 		Input.get_axis("Up", "Down")
 	).normalized()

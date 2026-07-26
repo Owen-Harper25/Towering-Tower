@@ -100,10 +100,10 @@ func handle_movement_and_actions() -> void:
 	if Input.is_action_just_pressed("Shoot"):
 		shoot()
 		
-func _process(delta: float) -> void:
-	if not is_multiplayer_authority():
-		# Smoothly interpolate position for non-local players
-		global_position = global_position.lerp(net_position, 15.0 * delta)
+#func _process(delta: float) -> void:
+	#if not is_multiplayer_authority():
+		## Smoothly interpolate position for non-local players
+		#global_position = global_position.lerp(net_position, 15.0 * delta)
 	
 # --- Dodge Roll System ---
 func start_dodge_roll(dir: Vector2) -> void:

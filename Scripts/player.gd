@@ -90,7 +90,7 @@ func handle_movement_and_actions() -> void:
 
 	# Dodge Roll Trigger
 	if Input.is_action_just_pressed("DodgeRoll") and input_dir != Vector2.ZERO:
-		start_dodge_roll(input_dir)
+		rpc("start_dodge_roll_rpc", input_dir)
 		return
 
 	# Standard Movement
@@ -106,22 +106,25 @@ func handle_movement_and_actions() -> void:
 		#global_position = global_position.lerp(net_position, 15.0 * delta)
 	
 # --- Dodge Roll System ---
-func start_dodge_roll(dir: Vector2) -> void:
+# Replace start_dodge_roll call in handle_movement_and_actions with:
+
+
+@rpc("any_peer", "call_local", "reliable")
+func start_dodge_roll_rpc(dir: Vector2) -> void:
 	is_rolling = true
 	is_invulnerable = true
 	roll_direction = dir
-	menusfx.play()
-	# Play dodge animation locally / broadcast
+	if menusfx: menusfx.play()
+	
 	if sprite.sprite_frames.has_animation("roll"):
 		sprite.play("roll")
 
-	# Invincibility frame timer (invincible for the first portion of the roll)
 	var iframe_timer = get_tree().create_timer(roll_iframe_duration)
 	iframe_timer.timeout.connect(func(): is_invulnerable = false)
 	
-	# Roll finish timer
 	var roll_timer = get_tree().create_timer(roll_duration)
 	roll_timer.timeout.connect(func(): is_rolling = false)
+	
 
 func handle_roll_physics() -> void:
 	velocity = roll_direction * roll_speed

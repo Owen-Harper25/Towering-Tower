@@ -122,6 +122,9 @@ _data = {
 properties/0/path = NodePath(".:position")
 properties/0/spawn = true
 properties/0/replication_mode = 1
+properties/1/path = NodePath(".:player_name")
+properties/1/spawn = true
+properties/1/replication_mode = 1
 
 [sub_resource type="LabelSettings" id="LabelSettings_rup26"]
 font_size = 8
@@ -156,6 +159,7 @@ visible = false
 shape = SubResource("CircleShape2D_6t5aa")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=103922134]
+process_mode = 3
 libraries/ = SubResource("AnimationLibrary_vgqql")
 
 [node name="InteractingComponent" parent="." unique_id=410509540 instance=ExtResource("3_6t5aa")]

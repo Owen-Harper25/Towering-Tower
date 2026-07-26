@@ -61,6 +61,7 @@ Interact={
 
 textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"
+renderer/rendering_method="gl_compatibility"
 environment/defaults/default_clear_color=Color(0, 0.3019608, 0.58431375, 1)
 
 [steam]

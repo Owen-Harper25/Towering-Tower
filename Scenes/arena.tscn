@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://uat077b45f80" path="res://Assets/clouds.png" id="1_csrox"]
 [ext_resource type="Texture2D" uid="uid://drk74brvrwway" path="res://Assets/Ground.png" id="1_nnts3"]
+[ext_resource type="Texture2D" uid="uid://bj0a18g86cxly" path="res://Assets/Cloud 2.png" id="3_1v1nj"]
 [ext_resource type="Texture2D" uid="uid://s3phw8uykxrv" path="res://Assets/Tower.png" id="6_iyva0"]
 
 [node name="Arena" type="Node2D" unique_id=101048953]
@@ -41,6 +42,18 @@ repeat_times = 3
 modulate = Color(1, 1, 1, 0.49411765)
 texture_filter = 2
 texture = ExtResource("1_csrox")
+
+[node name="Parallax2D3" type="Parallax2D" parent="." unique_id=1608863645]
+scroll_scale = Vector2(0.1, 0.1)
+scroll_offset = Vector2(843, 444)
+repeat_size = Vector2(450, 200)
+autoscroll = Vector2(2, 1)
+repeat_times = 3
+
+[node name="Sprite2D" type="Sprite2D" parent="Parallax2D3" unique_id=1892248760]
+modulate = Color(1, 1, 1, 0.49411765)
+texture_filter = 2
+texture = ExtResource("3_1v1nj")
 
 [node name="Tower" type="Sprite2D" parent="." unique_id=770358675]
 position = Vector2(240, 599)

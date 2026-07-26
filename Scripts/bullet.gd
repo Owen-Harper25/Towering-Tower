@@ -20,20 +20,23 @@ func _physics_process(delta: float) -> void:
 	var direction = Vector2.RIGHT.rotated(rotation)
 	position += direction * speed * delta
 
+# Inside bullet.gd body entered handler
 func _on_body_entered(body: Node2D) -> void:
-	# Ignore colliding with the player who fired this bullet
-	if body.name == str(shooter_id):
+	# Ignore self-damage
+	if "name" in body and body.name.to_int() == shooter_id:
 		return
 
-	# Handle hitting another CharacterBody2D / Player
+	if body.has_method("receive_revive_hit_rpc") and body.get("is_downed"):
+		# Revive damage value (e.g., 10 revive HP per hit)
+		body.rpc("receive_revive_hit_rpc", 10.0)
+		queue_free()
+		return
+
+	# Standard enemy/player damage logic
 	if body.has_method("take_damage"):
-		body.take_damage(damage)
-		queue_free()
-		return
-
-	# Hit a tilemap, wall, or solid obstacle
-	if body is TileMapLayer or body is TileMap or body is StaticBody2D:
-		queue_free()
+		body.take_damage(1)
+		
+	queue_free()
 
 func _on_area_entered(area: Area2D) -> void:
 	# Optional: Destroy bullet if it hits another bullet or hit_box area

@@ -17,9 +17,9 @@ signal player_died()
 @export var roll_speed: float = 220.0
 @export var roll_duration: float = 0.45
 @export var roll_iframe_duration: float = 0.35
-@onready var shootsfx: AudioStreamPlayer2D = $Audio/Shoot
-@onready var hurtsfx: AudioStreamPlayer2D = $Audio/Hurt
-@onready var menusfx: AudioStreamPlayer2D = $Audio/Menu
+@onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/Audio/Shoot")
+@onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/Audio/Hurt")
+@onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/Audio/Menu")
 
 # --- Health Settings ---
 @export_group("Combat Settings")

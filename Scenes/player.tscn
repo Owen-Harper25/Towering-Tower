@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cccgncb0n6rqn" path="res://Scripts/player.gd" id="1_cvnsp"]
 [ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_v0iea"]
+[ext_resource type="PackedScene" uid="uid://dektnuev5o6ji" path="res://Scenes/bullet.tscn" id="2_vgqql"]
 [ext_resource type="PackedScene" uid="uid://b220qk7byb8a3" path="res://Scenes/interacting_component.tscn" id="3_6t5aa"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_cvnsp"]
@@ -136,9 +137,9 @@ z_index = 1
 collision_layer = 3
 collision_mask = 3
 script = ExtResource("1_cvnsp")
+bullet_scene = ExtResource("2_vgqql")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1663558308]
-visible = false
 shape = SubResource("CircleShape2D_cvnsp")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1529855106]
@@ -180,3 +181,8 @@ text = "Player"
 label_settings = SubResource("LabelSettings_rup26")
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="WeaponPivot" type="Node2D" parent="." unique_id=69733009]
+
+[node name="Muzzle" type="Marker2D" parent="WeaponPivot" unique_id=1414953790]
+position = Vector2(10, 0)

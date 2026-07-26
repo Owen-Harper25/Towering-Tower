@@ -62,7 +62,7 @@ func sync_name(new_name: String) -> void:
 	player_name = new_name
 
 func _physics_process(_delta: float) -> void:
-	# ONLY the authority handles inputs, physics, and actions
+	# ONLY the client controlling this character computes physics and movement
 	if is_multiplayer_authority():
 		if current_health <= 0:
 			return
@@ -72,9 +72,9 @@ func _physics_process(_delta: float) -> void:
 		else:
 			handle_roll_physics()
 
-		move_and_slide()
+		move_and_slide() # <-- ONLY call this if authority!
 
-	# Visuals update locally on ALL clients based on synced state/velocity
+	# Non-authoritative clients do NOT touch position/velocity here!
 	update_animations()
 	update_weapon_aim()
 

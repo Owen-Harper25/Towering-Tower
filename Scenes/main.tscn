@@ -5,6 +5,7 @@
 [ext_resource type="AudioStream" uid="uid://db0veie5u342a" path="res://Music/Battle1.wav" id="3_d1ilt"]
 [ext_resource type="AudioStream" uid="uid://butew5t5wbb46" path="res://Music/Boss2Fin.wav" id="4_6iyac"]
 [ext_resource type="AudioStream" uid="uid://co4mxdgflyn1e" path="res://Music/Boss3.wav" id="5_fdnlq"]
+[ext_resource type="Script" uid="uid://doya0c7pawqh2" path="res://Scenes/main_menu.gd" id="6_6iyac"]
 [ext_resource type="AudioStream" uid="uid://dtnid3cuec148" path="res://Music/Dungeon1.wav" id="6_jkdf5"]
 [ext_resource type="AudioStream" uid="uid://b3oxnsqlfluca" path="res://Music/Town.wav" id="7_wsu2k"]
 [ext_resource type="AudioStream" uid="uid://dacrglmnohv0j" path="res://Music/TownV2.wav" id="8_k12tt"]
@@ -68,20 +69,16 @@ script = ExtResource("1_bo1nx")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=617876542]
 _spawnable_scenes = PackedStringArray("uid://dflfyebeka06d")
-spawn_path = NodePath("../Arena/Players")
+spawn_path = NodePath("../Level Container/Arena/Players")
 
-[node name="Arena" parent="." unique_id=101048953 instance=ExtResource("2_8gbba")]
+[node name="Level Container" type="Node" parent="." unique_id=1586504625]
 
-[node name="Players" type="Node2D" parent="Arena" unique_id=1241850615]
+[node name="Arena" parent="Level Container" unique_id=101048953 instance=ExtResource("2_8gbba")]
+
+[node name="Players" type="Node2D" parent="Level Container/Arena" unique_id=1241850615]
 z_index = 2
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1588451858]
-
-[node name="Host" type="Button" parent="CanvasLayer" unique_id=1862198767]
-z_index = 3
-offset_right = 8.0
-offset_bottom = 8.0
-text = "HOST"
 
 [node name="Song Text" type="Node2D" parent="CanvasLayer" unique_id=119636281]
 modulate = Color(0, 0, 0, 1)
@@ -100,11 +97,64 @@ horizontal_alignment = 2
 [node name="SongName Anim" type="AnimationPlayer" parent="CanvasLayer/Song Text/Song Queue" unique_id=734132737]
 libraries/ = SubResource("AnimationLibrary_ee4r6")
 
-[node name="Control" type="Control" parent="." unique_id=1271701623]
+[node name="Main Menu" type="Control" parent="CanvasLayer" unique_id=1271701623]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+script = ExtResource("6_6iyac")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="CanvasLayer/Main Menu" unique_id=1659967411]
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Main Menu/CanvasLayer" unique_id=276399594]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Main Menu/CanvasLayer" unique_id=1123588819]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer" unique_id=2124020845]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=1052928402]
+layout_mode = 2
+text = "TOWERING TOWER"
+
+[node name="Control" type="Control" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=190391549]
+layout_mode = 2
+
+[node name="Solo" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=196850137]
+layout_mode = 2
+text = "Run it Solo"
+
+[node name="Host" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=1862198767]
+z_index = 3
+layout_mode = 2
+text = "HOST"
+
+[node name="Settings" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=1317155958]
+layout_mode = 2
+text = "Settings"
+
+[node name="Quit" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=713589748]
+layout_mode = 2
+text = "Quit"
+
+[node name="SettingsMenu" type="Control" parent="CanvasLayer/Main Menu/CanvasLayer" unique_id=680086221]
+custom_maximum_size = Vector2(100, 100)
+layout_mode = 3
+anchor_right = 1.0020001
+anchor_bottom = 0.148
+offset_right = 0.03994751
+offset_bottom = 0.040000916
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HSlider" type="HSlider" parent="CanvasLayer/Main Menu/CanvasLayer/SettingsMenu" unique_id=1481876825]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 16.0
 
 [node name="Timers" type="Node" parent="." unique_id=878555962]
 
@@ -133,6 +183,6 @@ stream = ExtResource("7_wsu2k")
 stream = ExtResource("8_k12tt")
 
 [connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
-[connection signal="pressed" from="CanvasLayer/Host" to="." method="_on_host_pressed"]
+[connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer/Host" to="." method="_on_host_pressed"]
 
-[editable path="Arena"]
+[editable path="Level Container/Arena"]

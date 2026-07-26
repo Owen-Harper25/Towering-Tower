@@ -132,16 +132,20 @@ func shoot() -> void:
 	var spawn_pos = muzzle.global_position if muzzle else global_position
 	var fire_angle = aim_direction.angle()
 	
-	# Spawn bullet over network using RPC
-	rpc("spawn_bullet_rpc", spawn_pos, fire_angle)
+	# Pass multiplayer.get_unique_id() so bullets know who fired them
+	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id())
 
 @rpc("any_peer", "call_local", "reliable")
-func spawn_bullet_rpc(spawn_pos: Vector2, angle: float) -> void:
+func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int) -> void:
 	if bullet_scene:
-		var bullet = bullet_scene.instantiate() as Node2D
+		var bullet = bullet_scene.instantiate() as Area2D
 		bullet.global_position = spawn_pos
 		bullet.rotation = angle
-		# Assumes bullet script sets ownership/damage or handles its own motion
+		
+		# Assign shooter_id so the bullet ignores collisions with the shooter
+		if "shooter_id" in bullet:
+			bullet.shooter_id = shooter
+			
 		get_parent().add_child(bullet)
 
 # --- Health & Damage System ---

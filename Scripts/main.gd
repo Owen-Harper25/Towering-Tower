@@ -6,7 +6,6 @@ var players: Array[CharacterBody2D]
 
 func _ready() -> void:
 	Networking.host_created.connect(on_host_created)
-	# Connect peer signal once in _ready
 	multiplayer.peer_connected.connect(spawn_player)
 
 func on_host_created() -> void:

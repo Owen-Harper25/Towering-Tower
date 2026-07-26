@@ -164,6 +164,8 @@ libraries/ = SubResource("AnimationLibrary_vgqql")
 replication_config = SubResource("SceneReplicationConfig_6t5aa")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1378376637]
+process_callback = 0
+limit_enabled = false
 
 [node name="CharacterName" type="Label" parent="." unique_id=1250768786]
 offset_left = -25.0

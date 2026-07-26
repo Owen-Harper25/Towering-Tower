@@ -33,19 +33,28 @@ func set_player_name(username: String) -> void:
 	character_name.text = username
 
 func _physics_process(_delta: float) -> void:
+	# 1. INPUT & MOVEMENT LOGIC (Only runs for the player controlling this character)
 	if is_multiplayer_authority():
 		var input_dir: Vector2 = Vector2.ZERO
 		input_dir.x = Input.get_axis("Left", "Right")
 		input_dir.y = Input.get_axis("Up", "Down")
+		
 		if input_dir != Vector2.ZERO:
 			velocity = input_dir.normalized() * speed
-			sprite.play("move")
-			
-			if input_dir.x < 0:
-				sprite.flip_h = true
-			elif input_dir.x > 0:
-				sprite.flip_h = false
 		else:
 			velocity = Vector2.ZERO
-			sprite.play("Idle")
+			
 		move_and_slide()
+
+	# 2. VISUAL & ANIMATION LOGIC (Runs for EVERY client, using velocity!)
+	update_animations()
+
+func update_animations() -> void:
+	if velocity.length() > 0:
+		sprite.play("move")
+		if velocity.x < 0:
+			sprite.flip_h = true
+		elif velocity.x > 0:
+			sprite.flip_h = false
+	else:
+		sprite.play("Idle")

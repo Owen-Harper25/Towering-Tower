@@ -7,7 +7,7 @@ const PLAYER = preload("uid://dflfyebeka06d")
 @onready var main_menu: Control = $"CanvasLayer/Main Menu"
 @onready var menu_canvas_layer: CanvasLayer = $"CanvasLayer/Main Menu/CanvasLayer"
 var players: Array[CharacterBody2D]
-@onready var players_container: Node2D = $"Level Container/Arena/Players"
+@onready var players_container: Node2D = $"Level Container/Players"
 @onready var song_queue: Label = $"CanvasLayer/Song Text/Song Queue"
 @onready var song_name_anim: AnimationPlayer = $"CanvasLayer/Song Text/Song Queue/SongName Anim"
 var background_songs = []
@@ -20,9 +20,9 @@ var current_level: Node = null
 
 func _ready() -> void:
 	Networking.host_created.connect(on_host_created)
+	Networking.client_joined.connect(on_client_joined) # <-- Add this connection
 	multiplayer.peer_connected.connect(spawn_player)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-	background_songs = $Audio.get_children()
 	menu_canvas_layer.show()
 	#for i in background_songs:
 		#if i is AudioStreamPlayer2D or i is AudioStreamPlayer:
@@ -171,3 +171,7 @@ func sync_level_change(level_path: String) -> void:
 	var next_level_scene = load(level_path) as PackedScene
 	if next_level_scene:
 		load_level(next_level_scene)
+
+func on_client_joined() -> void:
+	menu_canvas_layer.hide()
+	load_level(default_level_scene)

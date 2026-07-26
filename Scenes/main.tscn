@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://cqow47bch5ocs"]
 
 [ext_resource type="Script" uid="uid://bs2qeucwtife5" path="res://Scripts/main.gd" id="1_bo1nx"]
-[ext_resource type="PackedScene" uid="uid://c1y0se7c08qwa" path="res://Scenes/arena.tscn" id="2_8gbba"]
 [ext_resource type="AudioStream" uid="uid://db0veie5u342a" path="res://Music/Battle1.wav" id="3_d1ilt"]
 [ext_resource type="AudioStream" uid="uid://butew5t5wbb46" path="res://Music/Boss2Fin.wav" id="4_6iyac"]
 [ext_resource type="AudioStream" uid="uid://co4mxdgflyn1e" path="res://Music/Boss3.wav" id="5_fdnlq"]
@@ -69,14 +68,10 @@ script = ExtResource("1_bo1nx")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=617876542]
 _spawnable_scenes = PackedStringArray("uid://dflfyebeka06d")
-spawn_path = NodePath("../Level Container/Arena/Players")
 
 [node name="Level Container" type="Node" parent="." unique_id=1586504625]
 
-[node name="Arena" parent="Level Container" unique_id=101048953 instance=ExtResource("2_8gbba")]
-
-[node name="Players" type="Node2D" parent="Level Container/Arena" unique_id=1241850615]
-z_index = 2
+[node name="Players" type="Node2D" parent="Level Container" unique_id=779350464]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1588451858]
 
@@ -184,5 +179,3 @@ stream = ExtResource("8_k12tt")
 
 [connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
 [connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer/Host" to="." method="_on_host_pressed"]
-
-[editable path="Level Container/Arena"]

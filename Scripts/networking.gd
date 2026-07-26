@@ -1,6 +1,7 @@
 extends Node
 
 signal host_created()
+signal client_joined()
 
 const LOBBY_TYPE := Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY
 const MAX_MEMBERS := 4
@@ -39,6 +40,8 @@ func on_lobby_joined(lobby_id: int, _permissions: int, _locked: bool, response: 
 		peer.server_relay = true
 		peer.create_client(Steam.getLobbyOwner(lobby_id))
 		multiplayer.multiplayer_peer = peer
+		
+		client_joined.emit() # <-- Add this line!
 		
 func on_join_requested(lobby_id: int, _steam_id: int) -> void:
 	Steam.joinLobby(lobby_id)

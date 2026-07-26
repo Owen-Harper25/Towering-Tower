@@ -32,8 +32,8 @@ signal player_died()
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var camera: Camera2D = $Camera2D
 @onready var character_name: Label = $CharacterName
-@onready var weapon_pivot: Node2D = $WeaponPivot # Add a Node2D pivot at player center
-@onready var muzzle: Node2D = $WeaponPivot/Muzzle # Add a Marker2D child for bullet spawn point
+@onready var weapon_pivot: Node2D = $WeaponPivot
+@onready var muzzle: Node2D = $WeaponPivot/Muzzle
 
 # --- Internal State ---
 var current_health: int

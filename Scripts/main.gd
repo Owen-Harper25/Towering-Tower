@@ -37,16 +37,15 @@ func spawn_player(peer_id: int) -> void:
 	if not multiplayer.is_server():
 		return
 
+	# Make sure current_level is loaded BEFORE spawning players
+	if not current_level:
+		load_level(default_level_scene)
+
 	var new_player := PLAYER.instantiate() as CharacterBody2D
 	new_player.name = str(peer_id)
 	
-	# Add player to level's player container or main level container
-	var players_node = current_level.get_node_or_null("Players") if current_level else level_container
-	if players_node:
-		players_node.add_child(new_player, true)
-	else:
-		level_container.add_child(new_player, true)
-		
+	# Node must be added directly to the container set in MultiplayerSpawner.spawn_path!
+	level_container.add_child(new_player, true)
 	initialize_player(new_player)
 	
 func initialize_player(player: CharacterBody2D) -> void:

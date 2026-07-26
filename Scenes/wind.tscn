@@ -54,6 +54,5 @@ lifetime = 5.0
 preprocess = 2.0
 randomness = 1.0
 visibility_rect = Rect2(-2000, -2000, 4000, 4000)
-trail_enabled = true
 trail_lifetime = 0.6
 process_material = SubResource("ParticleProcessMaterial_yltcr")

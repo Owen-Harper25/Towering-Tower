@@ -1,5 +1,4 @@
 extends CharacterBody2D
-@onready var animated_sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
 
 # --- Signals ---
 signal health_changed(new_health: int, max_health: int)
@@ -91,7 +90,6 @@ func handle_movement_and_actions() -> void:
 	# Dodge Roll Trigger
 	if Input.is_action_just_pressed("DodgeRoll") and input_dir != Vector2.ZERO:
 		start_dodge_roll(input_dir)
-		#animated_sprite_2d.visible = false
 		return
 
 	# Standard Movement

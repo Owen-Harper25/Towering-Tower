@@ -195,11 +195,14 @@ func update_animations() -> void:
 	if current_health <= 0 or is_rolling:
 		return
 
-	if velocity.length() > 0:
-		sprite.play("move")
-		if velocity.x < 0:
-			sprite.flip_h = true
-		elif velocity.x > 0:
-			sprite.flip_h = false
+	# Use velocity OR current movement vector
+	if velocity.length() > 0.1:
+		if sprite.animation != "move":
+			sprite.play("move")
+		
+		# Flip based on movement or aiming direction
+		if velocity.x != 0:
+			sprite.flip_h = (velocity.x < 0)
 	else:
-		sprite.play("Idle")
+		if sprite.animation != "Idle":
+			sprite.play("Idle")

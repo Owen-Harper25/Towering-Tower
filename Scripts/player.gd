@@ -1,4 +1,5 @@
 extends CharacterBody2D
+@onready var animated_sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
 
 # --- Signals ---
 signal health_changed(new_health: int, max_health: int)
@@ -90,6 +91,7 @@ func handle_movement_and_actions() -> void:
 	# Dodge Roll Trigger
 	if Input.is_action_just_pressed("DodgeRoll") and input_dir != Vector2.ZERO:
 		start_dodge_roll(input_dir)
+		#animated_sprite_2d.visible = false
 		return
 
 	# Standard Movement
@@ -112,7 +114,7 @@ func start_dodge_roll(dir: Vector2) -> void:
 	# Invincibility frame timer (invincible for the first portion of the roll)
 	var iframe_timer = get_tree().create_timer(roll_iframe_duration)
 	iframe_timer.timeout.connect(func(): is_invulnerable = false)
-
+	
 	# Roll finish timer
 	var roll_timer = get_tree().create_timer(roll_duration)
 	roll_timer.timeout.connect(func(): is_rolling = false)

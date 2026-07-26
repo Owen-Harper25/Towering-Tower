@@ -142,16 +142,9 @@ bullet_scene = ExtResource("2_vgqql")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1663558308]
 shape = SubResource("CircleShape2D_cvnsp")
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1529855106]
-visible = false
-texture = ExtResource("1_v0iea")
-region_enabled = true
-region_rect = Rect2(18, 0, 12, 16)
-
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1678787369]
 sprite_frames = SubResource("SpriteFrames_8erm5")
 animation = &"Idle"
-frame_progress = 0.5126096
 
 [node name="Area2D" type="Area2D" parent="." unique_id=340752829]
 visible = false

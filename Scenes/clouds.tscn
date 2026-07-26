@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://cy6x353if2fdi"]
+
+[ext_resource type="Texture2D" uid="uid://uat077b45f80" path="res://Assets/clouds.png" id="1_ntjbq"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_hmje7"]
+blend_mode = 1
+particles_animation = true
+particles_anim_h_frames = 5
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ntjbq"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(1, 200, 1)
+gravity = Vector3(15, -2, 0)
+scale_max = 3.0
+anim_offset_max = 1.0
+
+[node name="Clouds" type="GPUParticles2D" unique_id=278013009]
+modulate = Color(1, 1, 1, 0.13333334)
+material = SubResource("CanvasItemMaterial_hmje7")
+position = Vector2(-279, 0)
+emitting = false
+amount = 100
+texture = ExtResource("1_ntjbq")
+lifetime = 10.49
+process_material = SubResource("ParticleProcessMaterial_ntjbq")

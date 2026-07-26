@@ -15,6 +15,10 @@ run/main_scene="res://Scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="uid://byy0tqicyhkdq"
+
 [autoload]
 
 Networking="*uid://c7tyosrvmyyfx"
@@ -72,7 +76,7 @@ Shoot={
 textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
-environment/defaults/default_clear_color=Color(0, 0.3019608, 0.58431375, 1)
+environment/defaults/default_clear_color=Color(0.4225441, 0.24509707, 0.24567711, 1)
 
 [steam]
 

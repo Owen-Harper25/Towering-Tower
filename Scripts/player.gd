@@ -188,20 +188,18 @@ func enter_downed_state_rpc() -> void:
 	is_downed = true
 	down_count += 1
 	
-	# Scaling Revive HP requirements (1st down = 30 hit points, 2nd down = 60, 3rd+ = 120)
 	match down_count:
-		1:
-			revive_hp_max = 30.0
-		2:
-			revive_hp_max = 60.0
-		_:
-			revive_hp_max = 120.0
+		1: revive_hp_max = 30.0
+		2: revive_hp_max = 60.0
+		_: revive_hp_max = 120.0
 			
 	revive_hp_current = revive_hp_max
 	player_downed.emit()
 	
 	if sprite.sprite_frames.has_animation("downed"):
 		sprite.play("downed")
+
+	queue_redraw() # <-- ADD THIS LINE
 
 # Called when an ally attacks a downed player to revive them
 @rpc("any_peer", "call_local", "reliable")
@@ -210,10 +208,10 @@ func receive_revive_hit_rpc(amount: float) -> void:
 		return
 
 	revive_hp_current -= amount
-	
-	# Flashing visual feedback when struck by ally
+	queue_redraw() # <-- ADD THIS LINE to update progress ring
+
 	var tween = create_tween()
-	tween.tween_property(sprite, "modulate", Color(0.3, 1.0, 0.3), 0.05) # Green flash
+	tween.tween_property(sprite, "modulate", Color(0.3, 1.0, 0.3), 0.05)
 	tween.tween_property(sprite, "modulate", Color.WHITE, 0.05)
 
 	if revive_hp_current <= 0:
@@ -221,12 +219,14 @@ func receive_revive_hit_rpc(amount: float) -> void:
 
 func revive_player() -> void:
 	is_downed = false
-	current_health = int(max_health * 0.5) # Revive with 50% max HP
+	current_health = int(max_health * 0.5)
 	health_changed.emit(current_health, max_health)
 	player_revived.emit()
 	
 	if sprite.sprite_frames.has_animation("Idle"):
 		sprite.play("Idle")
+
+	queue_redraw() # <-- ADD THIS LINE to erase the circle
 
 func start_invulnerability(duration: float) -> void:
 	is_invulnerable = true
@@ -257,3 +257,25 @@ func update_animations() -> void:
 	else:
 		if sprite.animation != "Idle":
 			sprite.play("Idle")
+
+func _draw() -> void:
+	if not is_downed or revive_hp_max <= 0:
+		return
+
+	var radius := 24.0
+	var thickness := 3.0
+	var background_color := Color(0.2, 0.2, 0.2, 0.6)
+	var fill_color := Color(0.2, 0.8, 1.0, 0.9) # Bright cyan/blue like Nightreign
+
+	# 1. Draw background circle outline
+	draw_arc(Vector2.ZERO, radius, 0, TAU, 32, background_color, thickness)
+
+	# 2. Calculate remaining revive percentage (Fills up as revive_hp_current decreases to 0)
+	var progress := 1.0 - (revive_hp_current / revive_hp_max)
+	progress = clamp(progress, 0.0, 1.0)
+
+	if progress > 0.0:
+		# Draw filled arc counter-clockwise from top (-90 degrees / -PI / 2.0)
+		var start_angle: float = -PI / 2.0
+		var end_angle: float = start_angle + (progress * TAU)
+		draw_arc(Vector2.ZERO, radius, start_angle, end_angle, 32, fill_color, thickness + 1.0)

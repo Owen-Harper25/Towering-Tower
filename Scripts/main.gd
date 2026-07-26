@@ -13,17 +13,28 @@ func on_host_created() -> void:
 	spawn_player(multiplayer.get_unique_id())
 	
 func spawn_player(peer_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
 	var new_player := PLAYER.instantiate() as CharacterBody2D
 	new_player.name = str(peer_id)
-	# Only add to $Arena/Players (matching MultiplayerSpawner path)
-	$Arena/Players.add_child(new_player)
+	
+	$Arena/Players.add_child(new_player, true)
+	
 	initialize_player(new_player)
 	
 func initialize_player(player: CharacterBody2D) -> void:
 	player.position = $SpawnPoint.position
+	
+	players = players.filter(func(p): return is_instance_valid(p))
+	
 	for other in players:
-		player.add_collision_exception_with(other)
-	players.append(player)
+		if is_instance_valid(other) and other != player:
+			player.add_collision_exception_with(other)
+			other.add_collision_exception_with(player)
+			
+	if not players.has(player):
+		players.append(player)
 
 func _on_host_pressed() -> void:
 	Networking.host_lobby()

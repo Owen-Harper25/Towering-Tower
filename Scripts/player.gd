@@ -14,6 +14,7 @@ var net_position: Vector2 = Vector2.ZERO
 
 # --- Movement & Roll Configuration ---
 @export_group("Movement Settings")
+@export var input_dir: Vector2 = Vector2.ZERO
 @export var speed: float = 120.0
 @export var roll_speed: float = 220.0
 @export var roll_duration: float = 0.45
@@ -202,14 +203,12 @@ func update_animations() -> void:
 	if current_health <= 0 or is_rolling:
 		return
 
-	# Use velocity OR current movement vector
-	if velocity.length() > 0.1:
+	if input_dir != Vector2.ZERO:
 		if sprite.animation != "move":
 			sprite.play("move")
-		
-		# Flip based on movement or aiming direction
-		if velocity.x != 0:
-			sprite.flip_h = (velocity.x < 0)
+
+		if input_dir.x != 0:
+			sprite.flip_h = (input_dir.x < 0)
 	else:
 		if sprite.animation != "Idle":
 			sprite.play("Idle")

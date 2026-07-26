@@ -25,6 +25,12 @@ offset_right = 8.0
 offset_bottom = 8.0
 text = "HOST"
 
+[node name="Control" type="Control" parent="." unique_id=1271701623]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
 [connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
 [connection signal="pressed" from="CanvasLayer/Host" to="." method="_on_host_pressed"]
 

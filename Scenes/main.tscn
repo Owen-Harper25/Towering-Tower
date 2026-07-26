@@ -2,6 +2,64 @@
 
 [ext_resource type="Script" uid="uid://bs2qeucwtife5" path="res://Scripts/main.gd" id="1_bo1nx"]
 [ext_resource type="PackedScene" uid="uid://c1y0se7c08qwa" path="res://Scenes/arena.tscn" id="2_8gbba"]
+[ext_resource type="AudioStream" uid="uid://db0veie5u342a" path="res://Music/Battle1.wav" id="3_d1ilt"]
+[ext_resource type="AudioStream" uid="uid://butew5t5wbb46" path="res://Music/Boss2Fin.wav" id="4_6iyac"]
+[ext_resource type="AudioStream" uid="uid://co4mxdgflyn1e" path="res://Music/Boss3.wav" id="5_fdnlq"]
+[ext_resource type="AudioStream" uid="uid://dtnid3cuec148" path="res://Music/Dungeon1.wav" id="6_jkdf5"]
+[ext_resource type="AudioStream" uid="uid://b3oxnsqlfluca" path="res://Music/Town.wav" id="7_wsu2k"]
+[ext_resource type="AudioStream" uid="uid://dacrglmnohv0j" path="res://Music/TownV2.wav" id="8_k12tt"]
+[ext_resource type="Shader" uid="uid://cl148no3864xf" path="res://Shaders/dissolve.gdshader" id="9_h1bgf"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="10_b3802"]
+[ext_resource type="FontFile" uid="uid://wmd0fjo3d7nj" path="res://Assets/GrapeSoda.ttf" id="11_fevyy"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hibaj"]
+resource_local_to_scene = true
+shader = ExtResource("9_h1bgf")
+shader_parameter/dissolve_value = 0.0
+shader_parameter/mix_ratio = 0.0
+shader_parameter/dissolve_noise = ExtResource("10_b3802")
+shader_parameter/dissolve_gradient = ExtResource("10_b3802")
+
+[sub_resource type="LabelSettings" id="LabelSettings_pdsj5"]
+font = ExtResource("11_fevyy")
+font_color = Color(0, 0, 0, 1)
+
+[sub_resource type="Animation" id="Animation_mk4b3"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("..:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_jwfaf"]
+resource_name = "new_song"
+length = 3.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("..:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.7, 1.41, 2.12, 2.5666666, 3, 3.0033333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(220, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(220, 0), Vector2(220, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ee4r6"]
+_data = {
+&"RESET": SubResource("Animation_mk4b3"),
+&"new_song": SubResource("Animation_jwfaf")
+}
 
 [node name="Main" type="Node2D" unique_id=672026216]
 script = ExtResource("1_bo1nx")
@@ -25,11 +83,54 @@ offset_right = 8.0
 offset_bottom = 8.0
 text = "HOST"
 
+[node name="Song Text" type="Node2D" parent="CanvasLayer" unique_id=119636281]
+modulate = Color(0, 0, 0, 1)
+self_modulate = Color(0, 0, 0, 1)
+material = SubResource("ShaderMaterial_hibaj")
+
+[node name="Song Queue" type="Label" parent="CanvasLayer/Song Text" unique_id=570858880]
+offset_left = 308.0
+offset_top = 249.0
+offset_right = 479.0
+offset_bottom = 272.0
+text = "AAA"
+label_settings = SubResource("LabelSettings_pdsj5")
+horizontal_alignment = 2
+
+[node name="SongName Anim" type="AnimationPlayer" parent="CanvasLayer/Song Text/Song Queue" unique_id=734132737]
+libraries/ = SubResource("AnimationLibrary_ee4r6")
+
 [node name="Control" type="Control" parent="." unique_id=1271701623]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+
+[node name="Timers" type="Node" parent="." unique_id=878555962]
+
+[node name="MusicBreakTimer" type="Timer" parent="Timers" unique_id=2102495894]
+wait_time = 5.0
+one_shot = true
+
+[node name="Audio" type="Node2D" parent="." unique_id=506695460]
+
+[node name="Battle1" type="AudioStreamPlayer2D" parent="Audio" unique_id=296510013]
+stream = ExtResource("3_d1ilt")
+
+[node name="Boss 2 Fin" type="AudioStreamPlayer2D" parent="Audio" unique_id=134335270]
+stream = ExtResource("4_6iyac")
+
+[node name="Boss 3" type="AudioStreamPlayer2D" parent="Audio" unique_id=306654453]
+stream = ExtResource("5_fdnlq")
+
+[node name="Dungeon" type="AudioStreamPlayer2D" parent="Audio" unique_id=450816281]
+stream = ExtResource("6_jkdf5")
+
+[node name="Town" type="AudioStreamPlayer2D" parent="Audio" unique_id=1595563514]
+stream = ExtResource("7_wsu2k")
+
+[node name="Town 2" type="AudioStreamPlayer2D" parent="Audio" unique_id=695435391]
+stream = ExtResource("8_k12tt")
 
 [connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
 [connection signal="pressed" from="CanvasLayer/Host" to="." method="_on_host_pressed"]

@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cy0wefh0kdpwv"]
+
+[ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_bllq5"]
+[ext_resource type="Shader" uid="uid://cl148no3864xf" path="res://Shaders/dissolve.gdshader" id="1_q6gcn"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="2_mok2j"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mok2j"]
+resource_local_to_scene = true
+shader = ExtResource("1_q6gcn")
+shader_parameter/dissolve_value = 1.0
+shader_parameter/mix_ratio = 0.0
+shader_parameter/dissolve_noise = ExtResource("2_mok2j")
+shader_parameter/dissolve_gradient = ExtResource("2_mok2j")
+
+[node name="w_flower" type="Sprite2D" unique_id=1609459473]
+material = SubResource("ShaderMaterial_mok2j")
+texture = ExtResource("1_bllq5")
+region_enabled = true
+region_rect = Rect2(112, 128, 16, 16)

@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://biaifugqgjeul"]
+
+[ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_eb72m"]
+[ext_resource type="Shader" uid="uid://cl148no3864xf" path="res://Shaders/dissolve.gdshader" id="1_uosok"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="2_c1w67"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_c1w67"]
+resource_local_to_scene = true
+shader = ExtResource("1_uosok")
+shader_parameter/dissolve_value = 1.0
+shader_parameter/mix_ratio = 0.0
+shader_parameter/dissolve_noise = ExtResource("2_c1w67")
+shader_parameter/dissolve_gradient = ExtResource("2_c1w67")
+
+[node name="grass_3" type="Sprite2D" unique_id=246943940]
+material = SubResource("ShaderMaterial_c1w67")
+texture = ExtResource("1_eb72m")
+region_enabled = true
+region_rect = Rect2(48, 144, 16, 16)

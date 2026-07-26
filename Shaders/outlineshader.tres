@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://e2isui1nvh72"]
+
+[ext_resource type="Shader" uid="uid://btwn6sqe5e1ig" path="res://Shaders/outlineshader.gdshader" id="1_m0wii"]
+
+[resource]
+resource_local_to_scene = true
+shader = ExtResource("1_m0wii")
+shader_parameter/outline_colour = Color(1, 1, 1, 1)
+shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_enabled = false

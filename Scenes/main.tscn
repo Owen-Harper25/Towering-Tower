@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://cqow47bch5ocs"]
+
+[ext_resource type="Script" uid="uid://bs2qeucwtife5" path="res://Scripts/main.gd" id="1_bo1nx"]
+[ext_resource type="PackedScene" uid="uid://c1y0se7c08qwa" path="res://Scenes/arena.tscn" id="2_8gbba"]
+
+[node name="Main" type="Node2D" unique_id=672026216]
+script = ExtResource("1_bo1nx")
+
+[node name="SpawnPoint" type="Node2D" parent="." unique_id=134882281]
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=617876542]
+_spawnable_scenes = PackedStringArray("uid://dflfyebeka06d")
+spawn_path = NodePath("../Arena/Players")
+
+[node name="Arena" parent="." unique_id=101048953 instance=ExtResource("2_8gbba")]
+
+[node name="Players" type="Node2D" parent="Arena" unique_id=1241850615]
+z_index = 2
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1588451858]
+
+[node name="Host" type="Button" parent="CanvasLayer" unique_id=1862198767]
+z_index = 3
+offset_right = 8.0
+offset_bottom = 8.0
+text = "HOST"
+
+[connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
+[connection signal="pressed" from="CanvasLayer/Host" to="." method="_on_host_pressed"]
+
+[editable path="Arena"]

@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://cqow47bch5ocs"]
+
+[ext_resource type="Script" uid="uid://bs2qeucwtife5" path="res://main.gd" id="1_ig7tw"]
+
+[node name="Main" type="Node2D" unique_id=672026216]
+script = ExtResource("1_ig7tw")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1588451858]
+
+[node name="Host" type="Button" parent="CanvasLayer" unique_id=1862198767]
+offset_right = 8.0
+offset_bottom = 8.0
+text = "HOST"
+
+[node name="SpawnPoint" type="Node2D" parent="." unique_id=134882281]
+position = Vector2(606, 321)
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=617876542]
+_spawnable_scenes = PackedStringArray("uid://dflfyebeka06d")
+spawn_path = NodePath("..")
+
+[connection signal="pressed" from="CanvasLayer/Host" to="." method="_on_host_pressed"]
+[connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]

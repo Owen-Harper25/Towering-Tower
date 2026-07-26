@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://miwmgl83f6ge"]
+
+[ext_resource type="Shader" uid="uid://drllfplk7dqch" path="res://Shaders/fire.gdshader" id="1_5ltu8"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="2_icfi2"]
+[ext_resource type="Texture2D" uid="uid://c5e841mtflrqw" path="res://Assets/icon.svg" id="2_x6ecg"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_icfi2"]
+shader = ExtResource("1_5ltu8")
+shader_parameter/inner_color = Color(0.9793076, 0.8132487, 0.27372485, 1)
+shader_parameter/outer_color = Color(0.9019608, 0.3529412, 0.13725491, 1)
+shader_parameter/inner_threshold = 0.36
+shader_parameter/outer_threshold = 0.1
+shader_parameter/soft_edge = 0.04
+shader_parameter/fire_radius = 0.4
+shader_parameter/noise_texture = ExtResource("2_icfi2")
+shader_parameter/multiplier = 1.0
+shader_parameter/stretch = Vector2(1, 1)
+shader_parameter/center = Vector2(0.5, 0.8)
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1758220688]
+material = SubResource("ShaderMaterial_icfi2")
+texture = ExtResource("2_x6ecg")

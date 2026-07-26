@@ -1,0 +1,342 @@
+[gd_scene format=3 uid="uid://du5lefvn0c2l5"]
+
+[ext_resource type="PackedScene" uid="uid://dflfyebeka06d" path="res://Scenes/player.tscn" id="1_1w1q6"]
+[ext_resource type="Script" uid="uid://c6lbks14kffll" path="res://Scripts/base.gd" id="1_6qyon"]
+[ext_resource type="PackedScene" uid="uid://22ev0gcjq2xu" path="res://Scenes/bird.tscn" id="2_6qyon"]
+[ext_resource type="PackedScene" uid="uid://bm15cj0doin8l" path="res://Scenes/bird_2.tscn" id="4_8nfiu"]
+[ext_resource type="PackedScene" uid="uid://bxnqgysvkwsam" path="res://Scenes/apple.tscn" id="4_jdayy"]
+[ext_resource type="PackedScene" uid="uid://dee1aotsbqypf" path="res://Scenes/banana.tscn" id="5_e4po7"]
+[ext_resource type="PackedScene" uid="uid://b2bjc8perkguq" path="res://Scenes/r_flower.tscn" id="6_1dbbu"]
+[ext_resource type="Shader" uid="uid://c0kk500ra8pvb" path="res://Shaders/balatro.gdshader" id="6_3v5je"]
+[ext_resource type="PackedScene" uid="uid://c83nsx860olcs" path="res://Scenes/shop_man.tscn" id="6_jwfaf"]
+[ext_resource type="PackedScene" uid="uid://miwmgl83f6ge" path="res://Scenes/fire.tscn" id="7_48and"]
+[ext_resource type="PackedScene" uid="uid://cy0wefh0kdpwv" path="res://Scenes/w_flower.tscn" id="7_h12cx"]
+[ext_resource type="Script" uid="uid://bdug541xlp3ka" path="res://Scripts/bg.gd" id="7_qutmk"]
+[ext_resource type="PackedScene" uid="uid://ctbiwwtmfrnen" path="res://Scenes/b_flower.tscn" id="8_gsh4k"]
+[ext_resource type="Shader" uid="uid://cfi7r3duqkknh" path="res://Shaders/snow.gdshader" id="8_u35dc"]
+[ext_resource type="Script" uid="uid://bappu3xm7e1jh" path="res://Scripts/ground.gd" id="8_yoopj"]
+[ext_resource type="PackedScene" uid="uid://df2spxlit5njl" path="res://Scenes/grass_1.tscn" id="9_sqgr6"]
+[ext_resource type="PackedScene" uid="uid://j6t73np6oia6" path="res://Scenes/grass_2.tscn" id="10_84im8"]
+[ext_resource type="PackedScene" uid="uid://dwfspxrxw75tq" path="res://Scenes/wind.tscn" id="10_omojh"]
+[ext_resource type="PackedScene" uid="uid://biaifugqgjeul" path="res://Scenes/grass_3.tscn" id="11_nxg6o"]
+[ext_resource type="PackedScene" uid="uid://sfba4gebnd34" path="res://Scenes/snow.tscn" id="11_yoopj"]
+[ext_resource type="Shader" uid="uid://b6x5wiip75e5q" path="res://Shaders/Post_Processing.gdshader" id="14_jlfiv"]
+[ext_resource type="PackedScene" uid="uid://cjb3mulatxf4l" path="res://Scenes/leaf1.tscn" id="15_kgqh3"]
+[ext_resource type="LabelSettings" uid="uid://dfceu0f1yj4eo" path="res://Assets/basic.tres" id="17_84im8"]
+[ext_resource type="FontFile" uid="uid://wmd0fjo3d7nj" path="res://Assets/GrapeSoda.ttf" id="18_nxg6o"]
+[ext_resource type="AudioStream" uid="uid://db0veie5u342a" path="res://Music/Battle1.wav" id="24_jwfaf"]
+[ext_resource type="AudioStream" uid="uid://butew5t5wbb46" path="res://Music/Boss2Fin.wav" id="26_mk4b3"]
+[ext_resource type="AudioStream" uid="uid://co4mxdgflyn1e" path="res://Music/Boss3.wav" id="27_oic0x"]
+[ext_resource type="AudioStream" uid="uid://dtnid3cuec148" path="res://Music/Dungeon1.wav" id="29_r1nhc"]
+[ext_resource type="AudioStream" uid="uid://b3oxnsqlfluca" path="res://Music/Town.wav" id="32_ub7xs"]
+[ext_resource type="AudioStream" uid="uid://dacrglmnohv0j" path="res://Music/TownV2.wav" id="33_bm33o"]
+[ext_resource type="Shader" uid="uid://cl148no3864xf" path="res://Shaders/dissolve.gdshader" id="34_717g3"]
+[ext_resource type="Texture2D" uid="uid://c2sc0bb5b1ple" path="res://Assets/Save.png" id="34_mk4b3"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="35_mk4b3"]
+[ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="36_oic0x"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qutmk"]
+shader = ExtResource("6_3v5je")
+shader_parameter/time_val = 1.0
+shader_parameter/spin_time = 0.0
+shader_parameter/colour_1 = Color(1, 1, 1, 1)
+shader_parameter/colour_2 = Color(0.84989154, 0.90896416, 0.99999994, 1)
+shader_parameter/colour_3 = Color(0.9224137, 0.8946511, 0.9136008, 1)
+shader_parameter/contrast = 1.0
+shader_parameter/spin_amount = 1.05
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jlfiv"]
+shader = ExtResource("8_u35dc")
+
+[sub_resource type="LabelSettings" id="LabelSettings_5fymt"]
+font = ExtResource("18_nxg6o")
+font_color = Color(0, 0, 0, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kgqh3"]
+shader = ExtResource("14_jlfiv")
+shader_parameter/color_shift = Vector3(1, 1, 1)
+shader_parameter/vibrancy = 1.0
+shader_parameter/brightness = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mk4b3"]
+resource_local_to_scene = true
+shader = ExtResource("34_717g3")
+shader_parameter/dissolve_value = 0.0
+shader_parameter/mix_ratio = 0.0
+shader_parameter/dissolve_noise = ExtResource("35_mk4b3")
+shader_parameter/dissolve_gradient = ExtResource("35_mk4b3")
+
+[sub_resource type="LabelSettings" id="LabelSettings_mk4b3"]
+font = ExtResource("18_nxg6o")
+font_color = Color(0, 0, 0, 1)
+
+[sub_resource type="Animation" id="Animation_mk4b3"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("..:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_jwfaf"]
+resource_name = "new_song"
+length = 3.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("..:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.7, 1.41, 2.12, 2.5666666, 3, 3.0033333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(220, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(220, 0), Vector2(220, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_717g3"]
+_data = {
+&"RESET": SubResource("Animation_mk4b3"),
+&"new_song": SubResource("Animation_jwfaf")
+}
+
+[sub_resource type="LabelSettings" id="LabelSettings_uobbh"]
+line_spacing = -10.0
+font = ExtResource("18_nxg6o")
+font_color = Color(0, 0, 0, 1)
+
+[node name="Base" type="Node2D" unique_id=766984849]
+script = ExtResource("1_6qyon")
+crow_scene = ExtResource("2_6qyon")
+robin_scene = ExtResource("4_8nfiu")
+apple_scene = ExtResource("4_jdayy")
+banana_scene = ExtResource("5_e4po7")
+shop_man_scene = ExtResource("6_jwfaf")
+flower_scenes = Array[PackedScene]([ExtResource("6_1dbbu"), ExtResource("7_h12cx"), ExtResource("8_gsh4k")])
+grass_scenes = Array[PackedScene]([ExtResource("9_sqgr6"), ExtResource("10_84im8"), ExtResource("11_nxg6o")])
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=690992399]
+material = SubResource("ShaderMaterial_qutmk")
+offset_left = -147.0
+offset_top = -146.0
+offset_right = 147.0
+offset_bottom = 145.0
+script = ExtResource("7_qutmk")
+metadata/_edit_lock_ = true
+
+[node name="ColorRect4" type="ColorRect" parent="." unique_id=453181246]
+offset_left = -75.0
+offset_top = -69.0
+offset_right = 76.0
+offset_bottom = 82.0
+color = Color(0, 0, 0, 1)
+metadata/_edit_lock_ = true
+
+[node name="BaseLayer" type="ColorRect" parent="." unique_id=354560789]
+offset_left = -72.0
+offset_top = -66.0
+offset_right = 73.0
+offset_bottom = 79.0
+color = Color(0, 0, 0, 1)
+metadata/_edit_lock_ = true
+
+[node name="TopLayer" type="ColorRect" parent="." unique_id=1793874843]
+material = SubResource("ShaderMaterial_jlfiv")
+offset_left = -72.0
+offset_top = -66.0
+offset_right = 73.0
+offset_bottom = 79.0
+script = ExtResource("8_yoopj")
+metadata/_edit_lock_ = true
+
+[node name="Player" parent="." unique_id=700136896 instance=ExtResource("1_1w1q6")]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=39320197]
+
+[node name="Apple" parent="." unique_id=766830735 instance=ExtResource("4_jdayy")]
+position = Vector2(41, -37)
+
+[node name="Label" type="Label" parent="." unique_id=181176256]
+offset_left = -75.0
+offset_top = -85.0
+offset_right = -35.0
+offset_bottom = -62.0
+text = "GET"
+label_settings = ExtResource("17_84im8")
+
+[node name="Type" type="Label" parent="." unique_id=736040979]
+offset_left = -33.0
+offset_top = -85.0
+offset_right = 29.0
+offset_bottom = -61.0
+text = "APPLE"
+label_settings = SubResource("LabelSettings_5fymt")
+
+[node name="Count" type="Label" parent="." unique_id=118688668]
+offset_left = 36.0
+offset_top = -84.0
+offset_right = 76.0
+offset_bottom = -61.0
+text = "0"
+label_settings = ExtResource("17_84im8")
+horizontal_alignment = 2
+
+[node name="Sprite2D" parent="." unique_id=1758220688 instance=ExtResource("7_48and")]
+visible = false
+position = Vector2(33, -84)
+scale = Vector2(0.18750003, 0.18750003)
+
+[node name="Wind" parent="." unique_id=1475721513 instance=ExtResource("10_omojh")]
+z_index = 1
+position = Vector2(0, 0)
+
+[node name="Snow" parent="." unique_id=543874855 instance=ExtResource("11_yoopj")]
+z_index = 1
+position = Vector2(-24.000002, -158)
+scale = Vector2(0.34012136, 0.46564972)
+
+[node name="Leaf" parent="." unique_id=1393598444 instance=ExtResource("15_kgqh3")]
+position = Vector2(-69, -106)
+scale = Vector2(0.51127505, 1.1310012)
+
+[node name="Timers" type="Node" parent="." unique_id=917568734]
+
+[node name="Bird_Timer" type="Timer" parent="Timers" unique_id=619820230]
+one_shot = true
+
+[node name="Seasons_Timer" type="Timer" parent="Timers" unique_id=1347892029]
+
+[node name="Event_Timer" type="Timer" parent="Timers" unique_id=468902117]
+
+[node name="MusicBreakTimer" type="Timer" parent="Timers" unique_id=1453260056]
+wait_time = 5.0
+one_shot = true
+
+[node name="Shop_Timer" type="Timer" parent="Timers" unique_id=302540039]
+
+[node name="Post Processing" type="ColorRect" parent="." unique_id=1346033536]
+top_level = true
+z_index = 10
+material = SubResource("ShaderMaterial_kgqh3")
+offset_left = -147.0
+offset_top = -146.0
+offset_right = 147.0
+offset_bottom = 145.0
+mouse_filter = 2
+metadata/_edit_lock_ = true
+
+[node name="Button" type="Button" parent="." unique_id=2026338525]
+offset_left = 76.0
+offset_top = -55.0
+offset_right = 93.0
+offset_bottom = -47.0
+
+[node name="Button2" type="Button" parent="." unique_id=990850118]
+offset_left = 76.0
+offset_top = -33.0
+offset_right = 93.0
+offset_bottom = -25.0
+
+[node name="Audio" type="Node2D" parent="." unique_id=1002894695]
+
+[node name="Battle1" type="AudioStreamPlayer2D" parent="Audio" unique_id=1843147456]
+stream = ExtResource("24_jwfaf")
+
+[node name="Boss 2 Fin" type="AudioStreamPlayer2D" parent="Audio" unique_id=1612609613]
+stream = ExtResource("26_mk4b3")
+
+[node name="Boss 3" type="AudioStreamPlayer2D" parent="Audio" unique_id=30592412]
+stream = ExtResource("27_oic0x")
+
+[node name="Dungeon" type="AudioStreamPlayer2D" parent="Audio" unique_id=1438825666]
+stream = ExtResource("29_r1nhc")
+
+[node name="Town" type="AudioStreamPlayer2D" parent="Audio" unique_id=1765694575]
+stream = ExtResource("32_ub7xs")
+
+[node name="Town 2" type="AudioStreamPlayer2D" parent="Audio" unique_id=823935602]
+stream = ExtResource("33_bm33o")
+
+[node name="Song Text" type="Node2D" parent="." unique_id=1587082337]
+modulate = Color(0, 0, 0, 1)
+self_modulate = Color(0, 0, 0, 1)
+material = SubResource("ShaderMaterial_mk4b3")
+
+[node name="Song Queue" type="Label" parent="Song Text" unique_id=941255714]
+offset_left = -75.0
+offset_top = 81.0
+offset_right = 96.0
+offset_bottom = 104.0
+text = "AAA"
+label_settings = SubResource("LabelSettings_mk4b3")
+horizontal_alignment = 2
+
+[node name="SongName Anim" type="AnimationPlayer" parent="Song Text/Song Queue" unique_id=1777857136]
+libraries/ = SubResource("AnimationLibrary_717g3")
+
+[node name="Volume Img" type="Sprite2D" parent="." unique_id=2052072145]
+position = Vector2(85, 77)
+texture = ExtResource("36_oic0x")
+region_enabled = true
+region_rect = Rect2(16, 112, 16, 16)
+
+[node name="Volume Img2" type="Sprite2D" parent="." unique_id=867111034]
+visible = false
+position = Vector2(85, 77)
+texture = ExtResource("36_oic0x")
+region_enabled = true
+region_rect = Rect2(32, 112, 16, 16)
+
+[node name="Mute" type="Button" parent="." unique_id=601366448]
+offset_left = 81.0
+offset_top = 73.0
+offset_right = 89.0
+offset_bottom = 81.0
+flat = true
+
+[node name="Label2" type="Label" parent="." unique_id=1894003304]
+offset_left = 78.0
+offset_top = -51.0
+offset_right = 118.0
+offset_bottom = -28.0
+text = "So
+ng"
+label_settings = SubResource("LabelSettings_uobbh")
+
+[node name="Label3" type="Label" parent="." unique_id=55692975]
+offset_left = 75.0
+offset_top = -73.0
+offset_right = 115.0
+offset_bottom = -50.0
+text = "Sea
+son"
+label_settings = SubResource("LabelSettings_uobbh")
+
+[node name="Button3" type="Button" parent="." unique_id=1296316351]
+offset_left = 80.0
+offset_top = -22.0
+offset_right = 88.0
+offset_bottom = -14.0
+
+[node name="Save" type="Button" parent="." unique_id=993905113]
+offset_left = -96.0
+offset_top = 72.0
+offset_right = -72.0
+offset_bottom = 96.0
+icon = ExtResource("34_mk4b3")
+flat = true
+
+[connection signal="timeout" from="Timers/Bird_Timer" to="." method="_on_bird_timer_timeout"]
+[connection signal="timeout" from="Timers/Shop_Timer" to="." method="_on_shop_timer_timeout"]
+[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]
+[connection signal="pressed" from="Button2" to="." method="_on_button_2_pressed"]
+[connection signal="pressed" from="Mute" to="." method="_on_mute_pressed"]
+[connection signal="pressed" from="Button3" to="." method="_on_button_3_pressed"]
+[connection signal="pressed" from="Save" to="." method="_on_save_pressed"]

@@ -1,0 +1,162 @@
+[gd_scene format=3 uid="uid://bxnqgysvkwsam"]
+
+[ext_resource type="Script" uid="uid://d4anpqsd3h1b6" path="res://Scripts/apple.gd" id="1_ir1en"]
+[ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_v3gsn"]
+[ext_resource type="AudioStream" uid="uid://b0x8tchbrlo6m" path="res://SFX/bite 1.mp3" id="3_lyte0"]
+[ext_resource type="AudioStream" uid="uid://cifqylu0n7njn" path="res://SFX/bite 2.mp3" id="4_mxla6"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ir1en"]
+
+[sub_resource type="Animation" id="Animation_8gwai"]
+resource_name = "Collected"
+length = 0.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:visible")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.03333334),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D3:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.03333334, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+
+[sub_resource type="Animation" id="Animation_lyte0"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:visible")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D3:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Sprite2D:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0.5)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Sprite2D:scale")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 0.9375)]
+}
+
+[sub_resource type="Animation" id="Animation_mxla6"]
+resource_name = "idle"
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0.5), Vector2(0, -0.49999994), Vector2(0, -1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 0.9375), Vector2(1, 1.0625001)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_mxla6"]
+_data = {
+&"Collected": SubResource("Animation_8gwai"),
+&"RESET": SubResource("Animation_lyte0"),
+&"idle": SubResource("Animation_mxla6")
+}
+
+[node name="Apple" type="Area2D" unique_id=766830735 groups=["fruit"]]
+z_index = 1
+script = ExtResource("1_ir1en")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=94549253]
+shape = SubResource("CircleShape2D_ir1en")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1591578543]
+position = Vector2(0, 0.5)
+scale = Vector2(1, 0.9375)
+texture = ExtResource("1_v3gsn")
+region_enabled = true
+region_rect = Rect2(48, 81, 16, 16)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=781245708]
+libraries/ = SubResource("AnimationLibrary_mxla6")
+autoplay = &"idle"
+
+[node name="Sprite2D2" type="Sprite2D" parent="." unique_id=583362034]
+visible = false
+texture = ExtResource("1_v3gsn")
+region_enabled = true
+region_rect = Rect2(48, 80, 16, 16)
+
+[node name="Sprite2D3" type="Sprite2D" parent="." unique_id=161657172]
+visible = false
+texture = ExtResource("1_v3gsn")
+region_enabled = true
+region_rect = Rect2(48, 96, 16, 16)
+
+[node name="Bite1" type="AudioStreamPlayer2D" parent="." unique_id=1245744480]
+position = Vector2(0, -1)
+stream = ExtResource("3_lyte0")
+
+[node name="Bite2" type="AudioStreamPlayer2D" parent="." unique_id=1254508240]
+position = Vector2(0, -1)
+stream = ExtResource("4_mxla6")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

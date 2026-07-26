@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://ccpa4irvwfn7y"]
+
+[ext_resource type="Script" uid="uid://6swqg2nj7uog" path="res://Scripts/coin.gd" id="1_0t63x"]
+[ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_d5gmh"]
+[ext_resource type="AudioStream" uid="uid://d1ylnpih45pyr" path="res://SFX/driken5482-retro-coin-4-236671.mp3" id="3_v7riw"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_0t63x"]
+
+[node name="Coin" type="Area2D" unique_id=1845311801]
+collision_layer = 0
+script = ExtResource("1_0t63x")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1494912361]
+shape = SubResource("CircleShape2D_0t63x")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1493544878]
+position = Vector2(0, -1)
+texture = ExtResource("1_d5gmh")
+region_enabled = true
+region_rect = Rect2(80, 16, 16, 16)
+
+[node name="Sprite2D2" type="Sprite2D" parent="." unique_id=1812467003]
+position = Vector2(0.5, -1.5)
+texture = ExtResource("1_d5gmh")
+region_enabled = true
+region_rect = Rect2(96, 16, 16, 16)
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=2099690914]
+stream = ExtResource("3_v7riw")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

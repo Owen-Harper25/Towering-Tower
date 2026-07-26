@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://df2spxlit5njl"]
+
+[ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_a2hs4"]
+[ext_resource type="Script" uid="uid://o0ydfqtrlmrw" path="res://Scripts/grass_2.gd" id="1_fysq7"]
+[ext_resource type="Shader" uid="uid://cl148no3864xf" path="res://Shaders/dissolve.gdshader" id="1_ib175"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="2_o8wsd"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fysq7"]
+shader = ExtResource("1_ib175")
+shader_parameter/dissolve_value = 1.0
+shader_parameter/mix_ratio = 0.0
+shader_parameter/dissolve_noise = ExtResource("2_o8wsd")
+shader_parameter/dissolve_gradient = ExtResource("2_o8wsd")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_o8wsd"]
+resource_local_to_scene = true
+shader = ExtResource("1_ib175")
+shader_parameter/dissolve_value = 1.0
+shader_parameter/mix_ratio = 0.0
+shader_parameter/dissolve_noise = ExtResource("2_o8wsd")
+shader_parameter/dissolve_gradient = ExtResource("2_o8wsd")
+
+[sub_resource type="Animation" id="Animation_o8wsd"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_fysq7"]
+resource_name = "idle"
+length = 10.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 4.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(1, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 4.0800004),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.125, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_84i5c"]
+_data = {
+&"RESET": SubResource("Animation_o8wsd"),
+&"idle": SubResource("Animation_fysq7")
+}
+
+[node name="Node2D" type="Node2D" unique_id=1359245506]
+material = SubResource("ShaderMaterial_fysq7")
+script = ExtResource("1_fysq7")
+
+[node name="Grass1" type="Sprite2D" parent="." unique_id=1034509108]
+material = SubResource("ShaderMaterial_o8wsd")
+use_parent_material = true
+texture = ExtResource("1_a2hs4")
+region_enabled = true
+region_rect = Rect2(16, 128, 16, 16)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1733714757]
+root_node = NodePath("../Grass1")
+libraries/ = SubResource("AnimationLibrary_84i5c")
+autoplay = &"idle"

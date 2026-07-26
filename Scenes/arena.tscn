@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://c1y0se7c08qwa"]
+
+[ext_resource type="Texture2D" uid="uid://b5ucqh4uymdsk" path="res://Assets/Sky5.png" id="1_csrox"]
+[ext_resource type="Texture2D" uid="uid://cgvksiffkq3b3" path="res://Assets/Sky4.png" id="2_g2joa"]
+[ext_resource type="Texture2D" uid="uid://dm6emxb1biiau" path="res://Assets/Sky3.png" id="3_cs8mb"]
+[ext_resource type="Texture2D" uid="uid://drlajhwixwfb8" path="res://Assets/Sky2.png" id="4_xrytr"]
+[ext_resource type="Texture2D" uid="uid://bqjjg52vlx8ip" path="res://Assets/Sky1.png" id="5_stc3i"]
+[ext_resource type="Texture2D" uid="uid://s3phw8uykxrv" path="res://Assets/Tower.png" id="6_iyva0"]
+[ext_resource type="PackedScene" uid="uid://dwfspxrxw75tq" path="res://Scenes/wind.tscn" id="7_g2joa"]
+
+[node name="Arena" type="Node2D" unique_id=101048953]
+
+[node name="Wind" parent="." unique_id=1475721513 instance=ExtResource("7_g2joa")]
+z_index = 4
+
+[node name="Parallax2D5" type="Parallax2D" parent="." unique_id=1612081459]
+scroll_scale = Vector2(0.3, 0.3)
+scroll_offset = Vector2(240, 135)
+
+[node name="Sky5" type="Sprite2D" parent="Parallax2D5" unique_id=591271198]
+texture = ExtResource("1_csrox")
+
+[node name="Parallax2D4" type="Parallax2D" parent="." unique_id=2116793897]
+scroll_scale = Vector2(0.3, 0.3)
+scroll_offset = Vector2(240, 135)
+
+[node name="Sky4" type="Sprite2D" parent="Parallax2D4" unique_id=12933204]
+texture = ExtResource("2_g2joa")
+
+[node name="Parallax2D3" type="Parallax2D" parent="." unique_id=484067688]
+scroll_scale = Vector2(0.4, 0.4)
+scroll_offset = Vector2(240, 135)
+
+[node name="Sky3" type="Sprite2D" parent="Parallax2D3" unique_id=1497030208]
+texture = ExtResource("3_cs8mb")
+
+[node name="Parallax2D2" type="Parallax2D" parent="." unique_id=1944778480]
+scroll_scale = Vector2(0.3, 0.3)
+scroll_offset = Vector2(240, 135)
+
+[node name="Sky2" type="Sprite2D" parent="Parallax2D2" unique_id=805414684]
+texture = ExtResource("4_xrytr")
+
+[node name="Parallax2D" type="Parallax2D" parent="." unique_id=1879206958]
+scroll_scale = Vector2(0.7, 0.7)
+scroll_offset = Vector2(240, 135)
+
+[node name="Sky1" type="Sprite2D" parent="Parallax2D" unique_id=1410922941]
+texture = ExtResource("5_stc3i")
+
+[node name="Tower" type="Sprite2D" parent="." unique_id=770358675]
+texture = ExtResource("6_iyva0")

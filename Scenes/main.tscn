@@ -11,6 +11,9 @@
 [ext_resource type="Shader" uid="uid://cl148no3864xf" path="res://Shaders/dissolve.gdshader" id="9_h1bgf"]
 [ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="10_b3802"]
 [ext_resource type="FontFile" uid="uid://wmd0fjo3d7nj" path="res://Assets/GrapeSoda.ttf" id="11_fevyy"]
+[ext_resource type="AudioStream" uid="uid://7icxns1wk1dd" path="res://SFX/select.wav" id="12_jkdf5"]
+[ext_resource type="AudioStream" uid="uid://0m8rve436877" path="res://SFX/kick.wav" id="13_wsu2k"]
+[ext_resource type="AudioStream" uid="uid://i7xo33jq15by" path="res://SFX/openMenu.wav" id="14_k12tt"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hibaj"]
 resource_local_to_scene = true
@@ -177,6 +180,15 @@ stream = ExtResource("7_wsu2k")
 
 [node name="Town 2" type="AudioStreamPlayer2D" parent="Audio" unique_id=695435391]
 stream = ExtResource("8_k12tt")
+
+[node name="Shoot" type="AudioStreamPlayer2D" parent="Audio" unique_id=1444954294]
+stream = ExtResource("12_jkdf5")
+
+[node name="Hurt" type="AudioStreamPlayer2D" parent="Audio" unique_id=46939422]
+stream = ExtResource("13_wsu2k")
+
+[node name="Menu" type="AudioStreamPlayer2D" parent="Audio" unique_id=69628919]
+stream = ExtResource("14_k12tt")
 
 [connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
 [connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer/Host" to="." method="_on_host_pressed"]

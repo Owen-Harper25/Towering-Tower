@@ -17,6 +17,9 @@ signal player_died()
 @export var roll_speed: float = 220.0
 @export var roll_duration: float = 0.45
 @export var roll_iframe_duration: float = 0.35
+@onready var shootsfx: AudioStreamPlayer2D = $Audio/Shoot
+@onready var hurtsfx: AudioStreamPlayer2D = $Audio/Hurt
+@onready var menusfx: AudioStreamPlayer2D = $Audio/Menu
 
 # --- Health Settings ---
 @export_group("Combat Settings")
@@ -101,7 +104,7 @@ func start_dodge_roll(dir: Vector2) -> void:
 	is_rolling = true
 	is_invulnerable = true
 	roll_direction = dir
-	
+	menusfx.play()
 	# Play dodge animation locally / broadcast
 	if sprite.sprite_frames.has_animation("roll"):
 		sprite.play("roll")
@@ -141,6 +144,7 @@ func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int) -> void:
 		var bullet = bullet_scene.instantiate() as Area2D
 		bullet.global_position = spawn_pos
 		bullet.rotation = angle
+		shootsfx.play()
 		
 		# Assign shooter_id so the bullet ignores collisions with the shooter
 		if "shooter_id" in bullet:
@@ -157,7 +161,7 @@ func take_damage(amount: int) -> void:
 	current_health -= amount
 	current_health = max(0, current_health)
 	health_changed.emit(current_health, max_health)
-
+	hurtsfx.play()
 	# Trigger Invincibility Frames
 	start_invulnerability(invincibility_duration)
 
@@ -179,6 +183,7 @@ func start_invulnerability(duration: float) -> void:
 
 func die() -> void:
 	velocity = Vector2.ZERO
+	menusfx.play()
 	player_died.emit()
 	if sprite.sprite_frames.has_animation("death"):
 		sprite.play("death")

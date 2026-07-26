@@ -1,4 +1,9 @@
 extends CharacterBody2D
+@export var player_name: String = "":
+	set(value):
+		player_name = value
+		if character_name:
+			character_name.text = value
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @export var speed: float = 100.0
@@ -13,15 +18,17 @@ func _ready() -> void:
 		camera.make_current()
 		camera.enabled = true
 		
-		# Get local Steam username and broadcast it to everyone
-		var my_steam_name := Steam.getPersonaName()
-		rpc("set_player_name", my_steam_name)
+		# Set the variable locally (which automatically updates the label)
+		player_name = Steam.getPersonaName()
+		# Tell authority to broadcast/sync it
+		rpc("sync_name", player_name)
 	else:
 		camera.enabled = false
 		camera.process_mode = Node.PROCESS_MODE_DISABLED
 
-# Reliable RPC so every client (and late joiners) gets the updated label name
-@rpc("call_local", "any_peer", "reliable")
+@rpc("any_peer", "call_local", "reliable")
+func sync_name(new_name: String) -> void:
+	player_name = new_name
 func set_player_name(username: String) -> void:
 	character_name.text = username
 

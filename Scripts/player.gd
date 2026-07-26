@@ -81,7 +81,7 @@ func _physics_process(_delta: float) -> void:
 
 # --- Movement & Input Handling ---
 func handle_movement_and_actions() -> void:
-	var input_dir := Vector2(
+	input_dir = Vector2(
 		Input.get_axis("Left", "Right"),
 		Input.get_axis("Up", "Down")
 	).normalized()

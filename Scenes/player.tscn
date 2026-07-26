@@ -124,7 +124,7 @@ properties/0/spawn = true
 properties/0/replication_mode = 1
 
 [sub_resource type="LabelSettings" id="LabelSettings_rup26"]
-font_size = 12
+font_size = 8
 outline_size = 3
 outline_color = Color(0.04755766, 0.047557645, 0.047557645, 1)
 
@@ -166,10 +166,10 @@ replication_config = SubResource("SceneReplicationConfig_6t5aa")
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1378376637]
 
 [node name="CharacterName" type="Label" parent="." unique_id=1250768786]
-offset_left = -24.0
-offset_top = -35.0
-offset_right = 25.0
-offset_bottom = -12.0
+offset_left = -25.0
+offset_top = -27.0
+offset_right = 24.0
+offset_bottom = -4.0
 text = "Player"
 label_settings = SubResource("LabelSettings_rup26")
 horizontal_alignment = 1

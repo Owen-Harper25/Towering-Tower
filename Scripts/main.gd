@@ -16,10 +16,10 @@ func spawn_player(peer_id: int) -> void:
 		return
 
 	var new_player := PLAYER.instantiate() as CharacterBody2D
+	
 	new_player.name = str(peer_id)
 	
 	$Arena/Players.add_child(new_player, true)
-	
 	initialize_player(new_player)
 	
 func initialize_player(player: CharacterBody2D) -> void:

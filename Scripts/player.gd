@@ -2,15 +2,18 @@ extends CharacterBody2D
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @export var speed: float = 100.0
-@onready var camera_2d: Camera2D = $Camera2D
+@onready var camera: Camera2D = $Camera2D
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
 
 func _ready() -> void:
-	camera_2d.make_current()
-	camera_2d.enabled = true
-	print("Camera Enabled")
+	if is_multiplayer_authority():
+		camera.make_current()
+		camera.enabled = true
+	else:
+		camera.enabled = false
+		camera.process_mode = Node.PROCESS_MODE_DISABLED
 
 func _physics_process(_delta):
 	#var min_x = -67

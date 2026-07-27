@@ -114,8 +114,9 @@ offset_right = 40.0
 offset_bottom = 40.0
 
 [node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Main Menu/CanvasLayer" unique_id=1123588819]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_top = 10.0
+offset_right = 190.0
+offset_bottom = 205.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer" unique_id=2124020845]
 layout_mode = 2
@@ -123,6 +124,8 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=1052928402]
 layout_mode = 2
 text = "TOWERING TOWER"
+label_settings = ExtResource("6_h1bgf")
+vertical_alignment = 2
 
 [node name="Control" type="Control" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=190391549]
 layout_mode = 2

@@ -55,6 +55,13 @@ var down_count: int = 0
 var revive_hp_current: float = 0.0
 var revive_hp_max: float = 0.0
 
+# --- Death Timer Settings ---
+@export var death_timer_max: float = 15.0      # Total time before player dies when downed
+@export var pause_on_hit_duration: float = 1.5 # Seconds timer pauses when hit by an ally
+
+var death_timer_current: float = 0.0
+var pause_timer: float = 0.0
+
 func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
 
@@ -84,25 +91,43 @@ func _ready() -> void:
 func sync_name(new_name: String) -> void:
 	player_name = new_name
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if is_multiplayer_authority():
 		if current_health <= 0 and not is_downed:
 			return
 
 		if is_downed:
 			handle_crawling_movement()
+			handle_death_timer(delta) # <-- Added timer handler
 		elif not is_rolling:
 			handle_movement_and_actions()
 		else:
 			handle_roll_physics()
 
-		# Store velocity into exported variable for network replication
 		sync_velocity = velocity
-
 		move_and_slide()
 
 	update_animations()
 	update_weapon_aim()
+
+func handle_death_timer(delta: float) -> void:
+	# Tick down pause timer first if player was recently hit
+	if pause_timer > 0.0:
+		pause_timer -= delta
+		return
+
+	# Countdown to death
+	death_timer_current -= delta
+	queue_redraw() # Redraw the inner ring fill
+
+	if death_timer_current <= 0.0:
+		rpc("player_fully_died_rpc")
+
+@rpc("any_peer", "call_local", "reliable")
+func player_fully_died_rpc() -> void:
+	is_downed = false
+	player_died.emit()
+	# Add any death despawn/spectate logic here
 
 # --- Movement & Input Handling ---
 func handle_movement_and_actions() -> void:
@@ -205,6 +230,8 @@ func take_damage(amount: int) -> void:
 func enter_downed_state_rpc() -> void:
 	is_downed = true
 	down_count += 1
+	death_timer_current = death_timer_max
+	pause_timer = 0.0
 	
 	match down_count:
 		1: revive_hp_max = 30.0
@@ -217,7 +244,7 @@ func enter_downed_state_rpc() -> void:
 	if sprite.sprite_frames.has_animation("downed"):
 		sprite.play("downed")
 
-	queue_redraw() # <-- ADD THIS LINE
+	queue_redraw()
 
 # Called when an ally attacks a downed player to revive them
 @rpc("any_peer", "call_local", "reliable")
@@ -226,7 +253,8 @@ func receive_revive_hit_rpc(amount: float) -> void:
 		return
 
 	revive_hp_current -= amount
-	queue_redraw() # <-- ADD THIS LINE to update progress ring
+	pause_timer = pause_on_hit_duration # Pause death timer on hit
+	queue_redraw()
 
 	var tween = create_tween()
 	tween.tween_property(sprite, "modulate", Color(0.3, 1.0, 0.3), 0.05)
@@ -244,7 +272,7 @@ func revive_player() -> void:
 	if sprite.sprite_frames.has_animation("Idle"):
 		sprite.play("Idle")
 
-	queue_redraw() # <-- ADD THIS LINE to erase the circle
+	queue_redraw()
 
 @rpc("any_peer", "call_local", "reliable")
 func start_invulnerability_rpc(duration: float) -> void:
@@ -286,21 +314,33 @@ func _draw() -> void:
 	if not is_downed or revive_hp_max <= 0:
 		return
 
-	var radius := 24.0
-	var thickness := 3.0
-	var background_color := Color(0.2, 0.2, 0.2, 0.6)
-	var fill_color := Color(0.2, 0.8, 1.0, 0.9) # Bright cyan/blue like Nightreign
+	# --- 1. Outer Ring: Revive Progress ---
+	var outer_radius := 24.0
+	var outer_thickness := 3.0
+	var outer_bg := Color(0.2, 0.2, 0.2, 0.6)
+	var outer_fill := Color(0.2, 0.8, 1.0, 0.9) # Cyan/blue
 
-	# 1. Draw background circle outline
-	draw_arc(Vector2.ZERO, radius, 0, TAU, 32, background_color, thickness)
+	draw_arc(Vector2.ZERO, outer_radius, 0, TAU, 32, outer_bg, outer_thickness)
 
-	# 2. Calculate remaining revive percentage (Fills up as revive_hp_current decreases to 0)
-	var progress := 1.0 - (revive_hp_current / revive_hp_max)
-	progress = clamp(progress, 0.0, 1.0)
-
-	if progress > 0.0:
-		# Draw filled arc counter-clockwise from top (-90 degrees / -PI / 2.0)
+	var revive_progress: float = clamp(1.0 - (revive_hp_current / revive_hp_max), 0.0, 1.0)
+	if revive_progress > 0.0:
 		var start_angle: float = -PI / 2.0
-		var end_angle: float = start_angle + (progress * TAU)
-		draw_arc(Vector2.ZERO, radius, start_angle, end_angle, 32, fill_color, thickness + 1.0)
+		var end_angle: float = start_angle + (revive_progress * TAU)
+		draw_arc(Vector2.ZERO, outer_radius, start_angle, end_angle, 32, outer_fill, outer_thickness + 1.0)
+
+	# --- 2. Inner Ring: Death Timer ---
+	var inner_radius := 16.0
+	var inner_thickness := 2.5
+	var inner_bg := Color(0.1, 0.1, 0.1, 0.5)
+	
+	# Color turns yellow while paused on hit, red while ticking down
+	var inner_fill := Color(1.0, 0.8, 0.2, 0.9) if pause_timer > 0 else Color(1.0, 0.25, 0.25, 0.9)
+
+	draw_arc(Vector2.ZERO, inner_radius, 0, TAU, 32, inner_bg, inner_thickness)
+
+	var death_progress: float = clamp(death_timer_current / death_timer_max, 0.0, 1.0)
+	if death_progress > 0.0:
+		var start_angle: float = -PI / 2.0
+		var end_angle: float = start_angle + (death_progress * TAU)
+		draw_arc(Vector2.ZERO, inner_radius, start_angle, end_angle, 32, inner_fill, inner_thickness)
 		

@@ -199,6 +199,7 @@ offset_bottom = 40.0
 layout_mode = 2
 
 [node name="LobbyListContainer" type="VBoxContainer" parent="CanvasLayer/Main Menu/CanvasLayer/Server Browser/LobbyBrowser/ScrollContainer" unique_id=793664177]
+z_index = 4
 layout_mode = 2
 
 [node name="LobbyBackButton" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/Server Browser" unique_id=261432508]

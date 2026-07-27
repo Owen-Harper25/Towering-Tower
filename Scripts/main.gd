@@ -98,6 +98,11 @@ func _on_lobby_match_list(lobbies: Array) -> void:
 
 # --- SERVER BROWSER BUTTON HANDLERS ---
 
+func _on_join_button_pressed() -> void:
+	if server_browser:
+		server_browser.show()
+	request_lobby_browser()
+
 func _on_refresh_button_pressed() -> void:
 	request_lobby_browser()
 
@@ -247,6 +252,3 @@ func _on_mute_pressed() -> void:
 	else:
 		background_songs[current_song_index].play()
 		music = true
-
-func _on_join_button_pressed() -> void:
-	$"CanvasLayer/Main Menu/CanvasLayer/Server Browser".visible = true

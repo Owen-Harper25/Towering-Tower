@@ -141,8 +141,12 @@ text = "Host"
 
 [node name="JoinButton" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=1131179892]
 layout_mode = 2
-text = "Join
+text = "Lobbies
 "
+
+[node name="Friends" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=836359319]
+layout_mode = 2
+text = "Friends List"
 
 [node name="Settings" type="Button" parent="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer" unique_id=1317155958]
 layout_mode = 2
@@ -275,5 +279,6 @@ theme_override_constants/separation = 1
 [connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer/Host" to="." method="_on_host_pressed"]
 [connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer/JoinButton" to="." method="_on_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer/JoinButton" to="." method="_on_join_button_pressed"]
+[connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/MarginContainer/VBoxContainer/Friends" to="." method="_on_friends_pressed"]
 [connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/Server Browser/LobbyBackButton" to="." method="_on_lobby_back_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/Main Menu/CanvasLayer/Server Browser/RefreshButton" to="." method="_on_refresh_button_pressed"]

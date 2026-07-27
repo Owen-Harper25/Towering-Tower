@@ -33,7 +33,7 @@ func _ready() -> void:
 	Networking.client_joined.connect(on_client_joined)
 	multiplayer.peer_connected.connect(spawn_player)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-	
+
 	# --- STEAM JOIN & INVITE CALLBACKS ---
 	if Steam:
 		Steam.join_requested.connect(_on_steam_join_requested)
@@ -252,3 +252,17 @@ func _on_mute_pressed() -> void:
 	else:
 		background_songs[current_song_index].play()
 		music = true
+
+func _on_friends_pressed() -> void:
+	if Steam:
+		Steam.activateGameOverlay("Friends")
+
+func join_friend_game(friend_steam_id: int) -> void:
+	# Query Steam for the lobby your friend is currently sitting in
+	var lobby_id: int = Steam.getFriendCoplayGame(friend_steam_id)
+	
+	if lobby_id != 0:
+		print("Found friend's lobby! Joining: ", lobby_id)
+		join_lobby_by_id(lobby_id)
+	else:
+		print("Friend is not currently in a joinable lobby.")

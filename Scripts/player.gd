@@ -126,6 +126,7 @@ func handle_death_timer(delta: float) -> void:
 @rpc("any_peer", "call_local", "reliable")
 func player_fully_died_rpc() -> void:
 	is_downed = false
+	sprite.play("death")
 	player_died.emit()
 	# Add any death despawn/spectate logic here
 

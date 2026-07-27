@@ -61,6 +61,9 @@ func request_lobby_browser() -> void:
 	# Apply distance and availability filters
 	Steam.addRequestLobbyListDistanceFilter(Steam.LOBBY_DISTANCE_FILTER_WORLDWIDE)
 	Steam.addRequestLobbyListFilterSlotsAvailable(1)
+	
+	# ONLY fetch lobbies created by your game build
+	Steam.addRequestLobbyListStringFilter("game", "ToweringTower", Steam.LOBBY_COMPARISON_EQUAL)
 
 	# Fetch list asynchronously
 	Steam.requestLobbyList()

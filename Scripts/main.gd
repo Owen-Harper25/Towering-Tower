@@ -20,9 +20,15 @@ var current_level: Node = null
 
 func _ready() -> void:
 	Networking.host_created.connect(on_host_created)
-	Networking.client_joined.connect(on_client_joined) # <-- Add this connection
+	Networking.client_joined.connect(on_client_joined)
 	multiplayer.peer_connected.connect(spawn_player)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	
+	# --- STEAM JOIN & INVITE CALLBACKS ---
+	# Automatically joins when clicking a friend's Steam Invite or "Join Game" in Steam Chat
+	if Steam:
+		Steam.join_requested.connect(_on_steam_join_requested)
+	
 	menu_canvas_layer.show()
 	background_songs = $Music.get_children()
 	for i in background_songs:
@@ -30,6 +36,38 @@ func _ready() -> void:
 			i.finished.connect(on_song_fin)
 	break_timer.timeout.connect(play_next_random_song)
 	play_next_random_song()
+
+# Called when a player clicks "Join" from Steam overlay or chat invite
+func _on_steam_join_requested(lobby_id: int, _friend_id: int) -> void:
+	print("Joining lobby via Steam invite: ", lobby_id)
+	join_lobby_by_id(lobby_id)
+
+# Helper function to join a target Steam lobby ID
+func join_lobby_by_id(lobby_id: int) -> void:
+	menu_canvas_layer.hide()
+	# Pass the lobby_id to your Networking manager to handle SteamSocket connection
+	if Networking.has_method("join_lobby"):
+		Networking.join_lobby(lobby_id)
+	load_level(default_level_scene)
+
+# Optional: Connect this to a "Friends" UI button to list active friends in-game
+func populate_friend_lobbies(friends_container: VBoxContainer) -> void:
+	for child in friends_container.get_children():
+		child.queue_free()
+
+	var friend_count: int = Steam.getFriendCount()
+	for i in range(friend_count):
+		var friend_id: int = Steam.getFriendByIndex(i, Steam.FRIEND_FLAG_IMMEDIATE)
+		var friend_name: String = Steam.getFriendPersonaName(friend_id)
+		var game_info: Dictionary = Steam.getFriendGamePlayed(friend_id)
+
+		if not game_info.is_empty():
+			var lobby_id = game_info.get("lobby_id", 0)
+			if lobby_id > 0:
+				var join_btn := Button.new()
+				join_btn.text = "Join " + friend_name
+				join_btn.pressed.connect(func(): join_lobby_by_id(lobby_id))
+				friends_container.add_child(join_btn)
 	
 func on_host_created() -> void:
 	spawn_player(multiplayer.get_unique_id())

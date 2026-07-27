@@ -12,7 +12,6 @@ signal player_revived()
 		player_name = value.to_upper()
 		if character_name:
 			character_name.text = player_name
-			# Hide label if this is the local player, show if it's a remote peer
 			character_name.visible = not is_multiplayer_authority()
 @onready var hud: CanvasLayer = get_node_or_null("/root/Main/HUD")
 
@@ -98,7 +97,7 @@ func _physics_process(delta: float) -> void:
 
 		if is_downed:
 			handle_crawling_movement()
-			handle_death_timer(delta) # <-- Added timer handler
+			handle_death_timer(delta)
 		elif not is_rolling:
 			handle_movement_and_actions()
 		else:
@@ -111,14 +110,13 @@ func _physics_process(delta: float) -> void:
 	update_weapon_aim()
 
 func handle_death_timer(delta: float) -> void:
-	# Tick down pause timer first if player was recently hit
 	if pause_timer > 0.0:
 		pause_timer -= delta
 		return
 
 	# Countdown to death
 	death_timer_current -= delta
-	queue_redraw() # Redraw the inner ring fill
+	queue_redraw()
 
 	if death_timer_current <= 0.0:
 		rpc("player_fully_died_rpc")
@@ -214,7 +212,7 @@ func take_damage(amount: int) -> void:
 		return
 
 	if is_downed:
-		return # Downed player doesn't take standard damage
+		return
 
 	current_health -= amount
 	current_health = max(0, current_health)

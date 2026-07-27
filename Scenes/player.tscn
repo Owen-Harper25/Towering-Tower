@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_v0iea"]
 [ext_resource type="PackedScene" uid="uid://dektnuev5o6ji" path="res://Scenes/bullet.tscn" id="2_vgqql"]
 [ext_resource type="PackedScene" uid="uid://b220qk7byb8a3" path="res://Scenes/interacting_component.tscn" id="3_6t5aa"]
-[ext_resource type="FontFile" uid="uid://wmd0fjo3d7nj" path="res://Assets/GrapeSoda.ttf" id="5_fkybt"]
+[ext_resource type="FontFile" uid="uid://c350m17mql3a6" path="res://Assets/Capital Bold - Normal.ttf" id="5_fkybt"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_cvnsp"]
 radius = 8.0

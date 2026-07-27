@@ -9,9 +9,12 @@ signal player_revived()
 # --- Network & Identity ---
 @export var player_name: String = "":
 	set(value):
-		player_name = value
+		player_name = value.to_upper()
 		if character_name:
-			character_name.text = value
+			character_name.text = player_name
+			# Hide label if this is the local player, show if it's a remote peer
+			character_name.visible = not is_multiplayer_authority()
+@onready var hud: CanvasLayer = get_node_or_null("/root/Main/HUD")
 
 # --- Movement & Roll Configuration ---
 @export_group("Movement Settings")
@@ -55,15 +58,25 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	current_health = max_health
-	
 	if is_multiplayer_authority():
 		camera.make_current()
 		camera.enabled = true
 		player_name = Steam.getPersonaName()
 		rpc("sync_name", player_name)
+		
+		if character_name:
+			character_name.visible = false
+
+		# Initialize HUD for local player
+		if hud:
+			hud.setup_hearts(max_health, current_health)
+			health_changed.connect(hud.update_hearts)
 	else:
 		camera.enabled = false
 		camera.process_mode = Node.PROCESS_MODE_DISABLED
+		
+		if character_name:
+			character_name.visible = true
 
 @rpc("any_peer", "call_local", "reliable")
 func sync_name(new_name: String) -> void:
@@ -279,3 +292,4 @@ func _draw() -> void:
 		var start_angle: float = -PI / 2.0
 		var end_angle: float = start_angle + (progress * TAU)
 		draw_arc(Vector2.ZERO, radius, start_angle, end_angle, 32, fill_color, thickness + 1.0)
+		

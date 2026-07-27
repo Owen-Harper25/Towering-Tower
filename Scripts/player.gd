@@ -91,13 +91,17 @@ func sync_name(new_name: String) -> void:
 	player_name = new_name
 
 func _physics_process(delta: float) -> void:
+	# --- RUN ON ALL PEERS ---
+	if is_downed:
+		handle_death_timer(delta) # Must run on remote peers so their local death timers tick down and redraw!
+
+	# --- RUN ONLY ON MULTIPLAYER AUTHORITY ---
 	if is_multiplayer_authority():
 		if current_health <= 0 and not is_downed:
 			return
 
 		if is_downed:
 			handle_crawling_movement()
-			handle_death_timer(delta)
 		elif not is_rolling:
 			handle_movement_and_actions()
 		else:
@@ -112,13 +116,15 @@ func _physics_process(delta: float) -> void:
 func handle_death_timer(delta: float) -> void:
 	if pause_timer > 0.0:
 		pause_timer -= delta
+		queue_redraw() # Redraw to transition color back when pause ends
 		return
 
-	# Countdown to death
+	# Countdown to death on all clients
 	death_timer_current -= delta
 	queue_redraw()
 
-	if death_timer_current <= 0.0:
+	# Authority determines exact moment of death
+	if is_multiplayer_authority() and death_timer_current <= 0.0:
 		rpc("player_fully_died_rpc")
 
 @rpc("any_peer", "call_local", "reliable")
@@ -252,15 +258,20 @@ func receive_revive_hit_rpc(amount: float) -> void:
 		return
 
 	revive_hp_current -= amount
-	pause_timer = pause_on_hit_duration # Pause death timer on hit
+	pause_timer = pause_on_hit_duration # Set pause timer locally across all clients
 	queue_redraw()
 
 	var tween = create_tween()
 	tween.tween_property(sprite, "modulate", Color(0.3, 1.0, 0.3), 0.05)
 	tween.tween_property(sprite, "modulate", Color.WHITE, 0.05)
 
-	if revive_hp_current <= 0:
-		revive_player()
+	# Authority validates when player gets fully revived
+	if is_multiplayer_authority() and revive_hp_current <= 0:
+		rpc("sync_revive_player_rpc")
+@rpc("any_peer", "call_local", "reliable")
+
+func sync_revive_player_rpc() -> void:
+	revive_player()
 
 func revive_player() -> void:
 	is_downed = false

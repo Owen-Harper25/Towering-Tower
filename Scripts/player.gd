@@ -191,7 +191,8 @@ func take_damage(amount: int) -> void:
 	health_changed.emit(current_health, max_health)
 	if hurtsfx: hurtsfx.play()
 	
-	start_invulnerability(invincibility_duration)
+	# RPC the invulnerability visually across all peers
+	rpc("start_invulnerability_rpc", invincibility_duration)
 
 	if current_health <= 0:
 		rpc("enter_downed_state_rpc")
@@ -241,14 +242,19 @@ func revive_player() -> void:
 
 	queue_redraw() # <-- ADD THIS LINE to erase the circle
 
-func start_invulnerability(duration: float) -> void:
+@rpc("any_peer", "call_local", "reliable")
+func start_invulnerability_rpc(duration: float) -> void:
 	is_invulnerable = true
+	
+	# Kill any existing tween on the sprite so multiple hits don't overlap awkwardly
 	var tween = create_tween().set_loops(int(duration / 0.1))
 	tween.tween_property(sprite, "modulate:a", 0.3, 0.05)
 	tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
 	
 	get_tree().create_timer(duration).timeout.connect(func():
 		is_invulnerable = false
+		if tween and tween.is_running():
+			tween.kill()
 		sprite.modulate.a = 1.0
 	)
 

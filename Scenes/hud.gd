@@ -16,7 +16,7 @@ func setup_hearts(max_health: int, current_health: int) -> void:
 
 	update_hearts(current_health)
 
-func update_hearts(current_health: int) -> void:
+func update_hearts(current_health: int, _max_health: int = 0) -> void:
 	var hearts = heart_container.get_children()
 	
 	for i in range(hearts.size()):

@@ -182,6 +182,9 @@ properties/4/replication_mode = 2
 properties/5/path = NodePath(".:is_downed")
 properties/5/spawn = true
 properties/5/replication_mode = 2
+properties/6/path = NodePath(".:sync_velocity")
+properties/6/spawn = true
+properties/6/replication_mode = 1
 
 [sub_resource type="LabelSettings" id="LabelSettings_rup26"]
 font = ExtResource("5_fkybt")

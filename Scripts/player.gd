@@ -16,6 +16,7 @@ signal player_revived()
 			character_name.visible = not is_multiplayer_authority()
 @onready var hud: CanvasLayer = get_node_or_null("/root/Main/HUD")
 
+
 # --- Movement & Roll Configuration ---
 @export_group("Movement Settings")
 @export var input_dir: Vector2 = Vector2.ZERO
@@ -26,6 +27,7 @@ signal player_revived()
 @onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Shoot")
 @onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Hurt")
 @onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
+@export var sync_velocity: Vector2 = Vector2.ZERO
 
 # --- Health & Revive Settings ---
 @export_group("Combat Settings")
@@ -87,13 +89,15 @@ func _physics_process(_delta: float) -> void:
 		if current_health <= 0 and not is_downed:
 			return
 
-		# Downed Movement (Slow Crawl)
 		if is_downed:
 			handle_crawling_movement()
 		elif not is_rolling:
 			handle_movement_and_actions()
 		else:
 			handle_roll_physics()
+
+		# Store velocity into exported variable for network replication
+		sync_velocity = velocity
 
 		move_and_slide()
 
@@ -268,11 +272,12 @@ func update_animations() -> void:
 	if is_rolling:
 		return
 
-	if velocity.length() > 0.1:
+	# Use sync_velocity so all remote peers see the correct walking/facing animation
+	if sync_velocity.length() > 0.1:
 		if sprite.animation != "move":
 			sprite.play("move")
-		if velocity.x != 0:
-			sprite.flip_h = (velocity.x < 0)
+		if sync_velocity.x != 0:
+			sprite.flip_h = (sync_velocity.x < 0)
 	else:
 		if sprite.animation != "Idle":
 			sprite.play("Idle")

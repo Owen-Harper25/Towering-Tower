@@ -45,3 +45,11 @@ func on_lobby_joined(lobby_id: int, _permissions: int, _locked: bool, response: 
 		
 func on_join_requested(lobby_id: int, _steam_id: int) -> void:
 	Steam.joinLobby(lobby_id)
+
+func _on_lobby_created(connect_res: int, lobby_id: int) -> void:
+	if connect_res == 1: # Success
+		var host_name: String = Steam.getPersonaName()
+		
+		# Set searchable metadata on the host lobby
+		Steam.setLobbyData(lobby_id, "name", host_name + "'s Tower")
+		Steam.setLobbyData(lobby_id, "game", "ToweringTower")

@@ -1,0 +1,6 @@
+[gd_resource type="LabelSettings" format=3 uid="uid://1e7sij4k8a8u"]
+
+[ext_resource type="FontFile" uid="uid://c350m17mql3a6" path="res://Assets/Capital Bold - Normal.ttf" id="1_dd45d"]
+
+[resource]
+font = ExtResource("1_dd45d")

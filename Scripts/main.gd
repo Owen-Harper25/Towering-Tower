@@ -2,20 +2,30 @@ extends Node2D
 
 const PLAYER = preload("uid://dflfyebeka06d")
 
-@export var default_level_scene: PackedScene = preload("res://Scenes/arena.tscn")
-@onready var level_container: Node = $"Level Container"
-@onready var main_menu: Control = $"CanvasLayer/Main Menu"
+# --- UI References (Matching Exact Scene Tree) ---
 @onready var menu_canvas_layer: CanvasLayer = $"CanvasLayer/Main Menu/CanvasLayer"
-var players: Array[CharacterBody2D]
-@onready var players_container: Node2D = $"Level Container/Players"
+@onready var main_menu: Control = $"CanvasLayer/Main Menu"
+@onready var server_browser: Control = $"CanvasLayer/Main Menu/CanvasLayer/Server Browser"
+@onready var lobby_list_container: VBoxContainer = $"CanvasLayer/Main Menu/CanvasLayer/Server Browser/LobbyBrowser/ScrollContainer/LobbyListContainer"
+@onready var refresh_button: Button = $"CanvasLayer/Main Menu/CanvasLayer/Server Browser/RefreshButton"
+@onready var back_button: Button = $"CanvasLayer/Main Menu/CanvasLayer/Server Browser/LobbyBackButton"
+
+# --- Audio & Display References ---
 @onready var song_queue: Label = $"CanvasLayer/Song Text/Song Queue"
 @onready var song_name_anim: AnimationPlayer = $"CanvasLayer/Song Text/Song Queue/SongName Anim"
+@onready var break_timer: Timer = $Timers/MusicBreakTimer
+
+# --- Level & Player References ---
+@export var default_level_scene: PackedScene = preload("res://Scenes/arena.tscn")
+@onready var level_container: Node = $"Level Container"
+@onready var players_container: Node2D = $"Level Container/Players"
+
+var players: Array[CharacterBody2D]
 var background_songs = []
 var current_song_index: int = 0
 var music: bool = false
 var current_loop_count: int = 0
 @export var loops_per_song: int = 2
-@onready var break_timer: Timer = $Timers/MusicBreakTimer
 var current_level: Node = null
 
 func _ready() -> void:
@@ -25,11 +35,13 @@ func _ready() -> void:
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	
 	# --- STEAM JOIN & INVITE CALLBACKS ---
-	# Automatically joins when clicking a friend's Steam Invite or "Join Game" in Steam Chat
 	if Steam:
 		Steam.join_requested.connect(_on_steam_join_requested)
+		Steam.lobby_match_list.connect(_on_lobby_match_list)
 	
 	menu_canvas_layer.show()
+	
+	# Setup Music System
 	background_songs = $Music.get_children()
 	for i in background_songs:
 		if i is AudioStreamPlayer2D or i is AudioStreamPlayer:
@@ -37,59 +49,93 @@ func _ready() -> void:
 	break_timer.timeout.connect(play_next_random_song)
 	play_next_random_song()
 
-# Called when a player clicks "Join" from Steam overlay or chat invite
+# --- STEAM LOBBY BROWSER SYSTEM ---
+
+func request_lobby_browser() -> void:
+	# Clear current list UI entries
+	for child in lobby_list_container.get_children():
+		child.queue_free()
+
+	print("Requesting active lobbies from Steam...")
+
+	# Apply distance and availability filters
+	Steam.addRequestLobbyListDistanceFilter(Steam.LOBBY_DISTANCE_FILTER_WORLDWIDE)
+	Steam.addRequestLobbyListFilterSlotsAvailable(1)
+
+	# Fetch list asynchronously
+	Steam.requestLobbyList()
+
+func _on_lobby_match_list(lobbies: Array) -> void:
+	# Clear container again to ensure fresh list
+	for child in lobby_list_container.get_children():
+		child.queue_free()
+
+	if lobbies.is_empty():
+		var no_lobbies_label := Label.new()
+		no_lobbies_label.text = "No public lobbies found."
+		lobby_list_container.add_child(no_lobbies_label)
+		return
+
+	for lobby_id in lobbies:
+		var lobby_name: String = Steam.getLobbyData(lobby_id, "name")
+		var member_count: int = Steam.getNumLobbyMembers(lobby_id)
+		var max_members: int = Steam.getLobbyMemberLimit(lobby_id)
+
+		if lobby_name == "":
+			lobby_name = "Lobby #" + str(lobby_id)
+
+		var lobby_button := Button.new()
+		lobby_button.text = "%s  |  Players: %d / %d" % [lobby_name, member_count, max_members]
+		
+		if member_count >= max_members:
+			lobby_button.disabled = true
+
+		lobby_button.pressed.connect(func(): join_lobby_by_id(lobby_id))
+		lobby_list_container.add_child(lobby_button)
+
+# --- SERVER BROWSER BUTTON HANDLERS ---
+
+func _on_refresh_button_pressed() -> void:
+	request_lobby_browser()
+
+func _on_lobby_back_button_pressed() -> void:
+	if server_browser:
+		server_browser.hide()
+
+# --- JOIN & NETWORKING HANDLERS ---
+
 func _on_steam_join_requested(lobby_id: int, _friend_id: int) -> void:
 	print("Joining lobby via Steam invite: ", lobby_id)
 	join_lobby_by_id(lobby_id)
 
-# Helper function to join a target Steam lobby ID
 func join_lobby_by_id(lobby_id: int) -> void:
 	menu_canvas_layer.hide()
-	# Pass the lobby_id to your Networking manager to handle SteamSocket connection
 	if Networking.has_method("join_lobby"):
 		Networking.join_lobby(lobby_id)
 	load_level(default_level_scene)
 
-# Optional: Connect this to a "Friends" UI button to list active friends in-game
-func populate_friend_lobbies(friends_container: VBoxContainer) -> void:
-	for child in friends_container.get_children():
-		child.queue_free()
-
-	var friend_count: int = Steam.getFriendCount()
-	for i in range(friend_count):
-		var friend_id: int = Steam.getFriendByIndex(i, Steam.FRIEND_FLAG_IMMEDIATE)
-		var friend_name: String = Steam.getFriendPersonaName(friend_id)
-		var game_info: Dictionary = Steam.getFriendGamePlayed(friend_id)
-
-		if not game_info.is_empty():
-			var lobby_id = game_info.get("lobby_id", 0)
-			if lobby_id > 0:
-				var join_btn := Button.new()
-				join_btn.text = "Join " + friend_name
-				join_btn.pressed.connect(func(): join_lobby_by_id(lobby_id))
-				friends_container.add_child(join_btn)
-	
 func on_host_created() -> void:
 	spawn_player(multiplayer.get_unique_id())
-	
+
+func on_client_joined() -> void:
+	menu_canvas_layer.hide()
+	load_level(default_level_scene)
+
 func spawn_player(peer_id: int) -> void:
 	if not multiplayer.is_server():
 		return
 
-	# Make sure current_level is loaded BEFORE spawning players
 	if not current_level:
 		load_level(default_level_scene)
 
 	var new_player := PLAYER.instantiate() as CharacterBody2D
 	new_player.name = str(peer_id)
 	
-	# Node must be added directly to the container set in MultiplayerSpawner.spawn_path!
 	level_container.add_child(new_player, true)
 	initialize_player(new_player)
-	
+
 func initialize_player(player: CharacterBody2D) -> void:
 	player.position = $SpawnPoint.position
-	
 	players = players.filter(func(p): return is_instance_valid(p))
 	
 	for other in players:
@@ -101,20 +147,25 @@ func initialize_player(player: CharacterBody2D) -> void:
 		players.append(player)
 
 func _on_host_pressed() -> void:
-	# Hide menu, host lobby via Steam, load level
 	menu_canvas_layer.hide()
 	Networking.host_lobby()
 	load_level(default_level_scene)
 
+func _on_solo_pressed() -> void:
+	menu_canvas_layer.hide()
+	var offline_peer = OfflineMultiplayerPeer.new()
+	multiplayer.multiplayer_peer = offline_peer
+	load_level(default_level_scene)
+	spawn_player(1)
+
 func _on_multiplayer_spawner_spawned(node: Node) -> void:
 	if node is CharacterBody2D:
 		initialize_player(node)
-		
+
 func _on_peer_disconnected(id: int) -> void:
 	if not multiplayer.is_server():
 		return
 
-	# Search level_container or players_container for node named str(id)
 	var player_node = level_container.get_node_or_null(str(id))
 	if not player_node and current_level:
 		player_node = current_level.get_node_or_null(str(id))
@@ -122,13 +173,38 @@ func _on_peer_disconnected(id: int) -> void:
 	if player_node:
 		if players.has(player_node):
 			players.erase(player_node)
-		player_node.queue_free() # MultiplayerSpawner will replicate this deletion to clients!
+		player_node.queue_free()
+
+# --- LEVEL SWITCHING SYSTEM ---
+
+func load_level(level_scene: PackedScene) -> void:
+	if current_level:
+		current_level.queue_free()
+		current_level = null
 		
+	current_level = level_scene.instantiate()
+	level_container.add_child(current_level)
+	
+	if current_level.has_node("SpawnPoint"):
+		$SpawnPoint.global_position = current_level.get_node("SpawnPoint").global_position
+
+func change_level_networked(new_level_path: String) -> void:
+	if not multiplayer.is_server():
+		return
+	rpc("sync_level_change", new_level_path)
+
+@rpc("call_local", "reliable")
+func sync_level_change(level_path: String) -> void:
+	var next_level_scene = load(level_path) as PackedScene
+	if next_level_scene:
+		load_level(next_level_scene)
+
+# --- MUSIC & MISC HANDLERS ---
+
 func on_song_fin():
 	current_loop_count += 1
 	if current_loop_count < loops_per_song:
 		background_songs[current_song_index].play()
-		print("Looping: ", background_songs[current_song_index].name, " (", current_loop_count + 1, "/", loops_per_song, ")")
 	else:
 		fade_out_and_next()
 
@@ -141,7 +217,7 @@ func fade_out_and_next():
 		var wait_time = randf_range(3.0, 5.0)
 		break_timer.start(wait_time)
 	)
-	
+
 func play_next_random_song():
 	var next_song = randi() % background_songs.size()
 	while next_song == current_song_index and background_songs.size() > 1:
@@ -154,66 +230,20 @@ func play_next_random_song():
 	song.volume_db = 0
 	song.play()
 	
-	print("Playing: ", song.name)
 	song_queue.text = "Now Playing: " + str(song.name)
 	song_name_anim.play("new_song")
+
 func _on_button_2_pressed() -> void:
 	background_songs[current_song_index].stop()
 	on_song_fin()
+
 func _on_mute_pressed() -> void:
-	#print(music)
-	if music == true:
+	if music:
 		music = false
 		background_songs[current_song_index].stop()
-		#volume_img_2.visible = true
-		#volume_img.visible = false
-		
-	elif not music == true:
+	else:
 		background_songs[current_song_index].play()
 		music = true
-		#volume_img_2.visible = false
-		#volume_img.visible = true
-# --- MENU BUTTON HANDLERS ---
 
-func _on_solo_pressed() -> void:
-	# Hide menu and start game in local offline mode
-	menu_canvas_layer.hide()
-	
-	# Create offline peer if not using Steam for solo
-	var offline_peer = OfflineMultiplayerPeer.new()
-	multiplayer.multiplayer_peer = offline_peer
-	
-	load_level(default_level_scene)
-	spawn_player(1) # Spawn local solo player (Peer ID 1)
-
-# --- LEVEL SWITCHING SYSTEM ---
-
-func load_level(level_scene: PackedScene) -> void:
-	# 1. Clear previous level if one exists
-	if current_level:
-		current_level.queue_free()
-		current_level = null
-		
-	# 2. Instantiate and attach new level scene
-	current_level = level_scene.instantiate()
-	level_container.add_child(current_level)
-	
-	# 3. Update spawn point reference if the level contains its own custom spawn point
-	if current_level.has_node("SpawnPoint"):
-		$SpawnPoint.global_position = current_level.get_node("SpawnPoint").global_position
-
-func change_level_networked(new_level_path: String) -> void:
-	if not multiplayer.is_server():
-		return
-		
-	rpc("sync_level_change", new_level_path)
-
-@rpc("call_local", "reliable")
-func sync_level_change(level_path: String) -> void:
-	var next_level_scene = load(level_path) as PackedScene
-	if next_level_scene:
-		load_level(next_level_scene)
-
-func on_client_joined() -> void:
-	menu_canvas_layer.hide()
-	load_level(default_level_scene)
+func _on_join_button_pressed() -> void:
+	$"CanvasLayer/Main Menu/CanvasLayer/Server Browser".visible = true

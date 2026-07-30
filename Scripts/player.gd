@@ -19,10 +19,13 @@ signal player_revived()
 # --- Movement & Roll Configuration ---
 @export_group("Movement Settings")
 @export var input_dir: Vector2 = Vector2.ZERO
-@export var speed: float = 120.0
-@export var roll_speed: float = 220.0
-@export var roll_duration: float = 0.45
-@export var roll_iframe_duration: float = 0.35
+@export var speed: float = 180.0
+@export var roll_speed: float = 330.0
+@export var roll_duration: float = 0.30
+@export var roll_iframe_duration: float = 0.28
+@export var fire_cooldown: float = 0.16
+@export var fall_recovery_time: float = 0.85
+@export var fall_dash_speed: float = 420.0
 @onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Shoot")
 @onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Hurt")
 @onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
@@ -47,6 +50,10 @@ var is_rolling: bool = false
 var is_invulnerable: bool = false
 var roll_direction: Vector2 = Vector2.DOWN
 var aim_direction: Vector2 = Vector2.RIGHT
+var next_shot_time := 0.0
+var arena_bounds := Rect2(28, 30, 424, 220)
+var is_falling := false
+var fall_time_remaining := 0.0
 
 # --- Downed & Revive State (Nightreign Style) ---
 @export var is_downed: bool = false
@@ -100,15 +107,20 @@ func _physics_process(delta: float) -> void:
 		if current_health <= 0 and not is_downed:
 			return
 
-		if is_downed:
+		if is_falling:
+			handle_falling(delta)
+		elif is_downed:
 			handle_crawling_movement()
 		elif not is_rolling:
 			handle_movement_and_actions()
 		else:
 			handle_roll_physics()
 
-		sync_velocity = velocity
-		move_and_slide()
+		if not is_falling:
+			sync_velocity = velocity
+			move_and_slide()
+			if not arena_bounds.has_point(global_position):
+				rpc("start_falling_rpc")
 
 	update_animations()
 	update_weapon_aim()
@@ -149,7 +161,7 @@ func handle_movement_and_actions() -> void:
 
 	velocity = input_dir * speed
 
-	if Input.is_action_just_pressed("Shoot"):
+	if Input.is_action_pressed("Shoot"):
 		shoot()
 
 func handle_crawling_movement() -> void:
@@ -160,6 +172,52 @@ func handle_crawling_movement() -> void:
 	
 	# Slow crawl movement speed
 	velocity = input_dir * (speed * 0.25)
+
+func handle_falling(delta: float) -> void:
+	fall_time_remaining -= delta
+	input_dir = Vector2(
+		Input.get_axis("Left", "Right"),
+		Input.get_axis("Up", "Down")
+	).normalized()
+	velocity = input_dir * speed
+	if Input.is_action_just_pressed("DodgeRoll") and input_dir != Vector2.ZERO:
+		velocity = input_dir * fall_dash_speed
+
+	move_and_slide()
+	sync_velocity = velocity
+	var fall_progress := 1.0 - fall_time_remaining / fall_recovery_time
+	sprite.scale = Vector2.ONE * lerpf(1.0, 0.45, clampf(fall_progress, 0.0, 1.0))
+	sprite.modulate.a = lerpf(1.0, 0.25, clampf(fall_progress, 0.0, 1.0))
+
+	if arena_bounds.has_point(global_position):
+		rpc("land_from_fall_rpc")
+	elif fall_time_remaining <= 0.0:
+		rpc("rescue_from_fall_rpc")
+
+@rpc("any_peer", "call_local", "reliable")
+func start_falling_rpc() -> void:
+	if is_falling or is_downed:
+		return
+	is_falling = true
+	is_rolling = false
+	fall_time_remaining = fall_recovery_time
+
+@rpc("any_peer", "call_local", "reliable")
+func land_from_fall_rpc() -> void:
+	is_falling = false
+	fall_time_remaining = 0.0
+	velocity = Vector2.ZERO
+	sprite.scale = Vector2.ONE
+	sprite.modulate.a = 1.0
+
+@rpc("any_peer", "call_local", "reliable")
+func rescue_from_fall_rpc() -> void:
+	land_from_fall_rpc()
+	global_position = arena_bounds.get_center()
+	if is_multiplayer_authority():
+		current_health = max(1, current_health - 2)
+		health_changed.emit(current_health, max_health)
+		rpc("start_invulnerability_rpc", invincibility_duration)
 
 # --- Dodge Roll System ---
 @rpc("any_peer", "call_local", "reliable")
@@ -194,13 +252,14 @@ func handle_roll_physics() -> void:
 # --- Weapon & Shooting System ---
 func update_weapon_aim() -> void:
 	if weapon_pivot:
-		weapon_pivot.visible = not is_downed
+		weapon_pivot.visible = not is_downed and not is_falling
 		var target_angle = aim_direction.angle() if is_multiplayer_authority() else velocity.angle()
 		weapon_pivot.rotation = target_angle
 
 func shoot() -> void:
-	if is_downed or not bullet_scene:
+	if is_downed or not bullet_scene or Time.get_ticks_msec() / 1000.0 < next_shot_time:
 		return
+	next_shot_time = Time.get_ticks_msec() / 1000.0 + fire_cooldown
 		
 	var spawn_pos = muzzle.global_position if muzzle else global_position
 	var fire_angle = aim_direction.angle()

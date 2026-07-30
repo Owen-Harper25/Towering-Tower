@@ -2,12 +2,15 @@ extends CharacterBody2D
 
 # --- Signals & Export Settings ---
 @export_group("Movement Settings")
-@export var speed: float = 80.0
+@export var speed: float = 110.0
 @export var stopping_distance: float = 120.0
 
 @export_group("Combat Settings")
 @export var max_health: int = 15
-@export var attack_cooldown: float = 1.5
+@export var attack_cooldown: float = 1.15
+@export_enum("Aimed", "Spread", "Ring") var shot_pattern := 1
+@export var projectile_count := 3
+@export var spread_angle := 0.28
 @export var bullet_scene: PackedScene
 @export var hit_sound: AudioStream
 
@@ -19,6 +22,7 @@ var target_player: CharacterBody2D = null
 var current_health: int
 var is_dying: bool = false
 var hit_sfx_player: AudioStreamPlayer2D
+var knockback_velocity := Vector2.ZERO
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(1)
@@ -45,7 +49,7 @@ func setup_shoot_timer() -> void:
 	shoot_timer.timeout.connect(_on_shoot_timer_timeout)
 	shoot_timer.start()
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority() or is_dying:
 		return
 
@@ -56,16 +60,40 @@ func _physics_process(_delta: float) -> void:
 		var direction = (target_player.global_position - global_position).normalized()
 
 		if distance > stopping_distance:
-			velocity = direction * speed
+			velocity = direction * speed + knockback_velocity
 		else:
 			velocity = Vector2.ZERO
 
 		if sprite:
 			sprite.flip_h = (direction.x < 0)
 	else:
-		velocity = Vector2.ZERO
+		velocity = knockback_velocity
 
 	move_and_slide()
+	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
+	if not get_arena_bounds().grow(24.0).has_point(global_position):
+		fall_into_clouds()
+
+func apply_knockback(force: Vector2) -> void:
+	if not is_dying:
+		knockback_velocity += force
+
+func fall_into_clouds() -> void:
+	if is_dying:
+		return
+	is_dying = true
+	velocity = Vector2.ZERO
+	var collision_shape := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision_shape:
+		collision_shape.set_deferred("disabled", true)
+	var tween := create_tween().set_parallel()
+	tween.tween_property(self, "scale", Vector2.ZERO, 0.45)
+	tween.tween_property(self, "modulate:a", 0.0, 0.45)
+	tween.finished.connect(queue_free)
+
+func get_arena_bounds() -> Rect2:
+	var bounds: Variant = get_meta("arena_bounds", Rect2(28, 30, 424, 220))
+	return bounds if bounds is Rect2 else Rect2(28, 30, 424, 220)
 
 func find_target_player() -> void:
 	if target_player and is_instance_valid(target_player):
@@ -90,8 +118,20 @@ func _on_shoot_timer_timeout() -> void:
 	if not target_player or not is_instance_valid(target_player):
 		return
 
-	var fire_dir = (target_player.global_position - global_position).normalized()
-	rpc("spawn_enemy_bullet_rpc", global_position, fire_dir.angle())
+	var target_angle := (target_player.global_position - global_position).angle()
+	match shot_pattern:
+		0:
+			spawn_pattern(target_angle, 1, 0.0)
+		1:
+			spawn_pattern(target_angle, projectile_count, spread_angle)
+		2:
+			for index in range(projectile_count):
+				rpc("spawn_enemy_bullet_rpc", global_position, TAU * float(index) / float(projectile_count))
+
+func spawn_pattern(target_angle: float, count: int, angle_step: float) -> void:
+	var start_angle := target_angle - angle_step * float(count - 1) * 0.5
+	for index in range(count):
+		rpc("spawn_enemy_bullet_rpc", global_position, start_angle + angle_step * index)
 
 @rpc("any_peer", "call_local", "reliable")
 func spawn_enemy_bullet_rpc(spawn_pos: Vector2, angle: float) -> void:

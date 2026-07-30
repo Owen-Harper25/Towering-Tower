@@ -31,14 +31,10 @@ var current_level: Node = null
 func _ready() -> void:
 	Networking.host_created.connect(on_host_created)
 	Networking.client_joined.connect(on_client_joined)
+	Networking.lobby_list_received.connect(_on_lobby_match_list)
 	multiplayer.peer_connected.connect(spawn_player)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 
-	# --- STEAM JOIN & INVITE CALLBACKS ---
-	if Steam:
-		Steam.join_requested.connect(_on_steam_join_requested)
-		Steam.lobby_match_list.connect(_on_lobby_match_list)
-	
 	menu_canvas_layer.show()
 	
 	# Setup Music System
@@ -58,15 +54,7 @@ func request_lobby_browser() -> void:
 
 	print("Requesting active lobbies from Steam...")
 
-	# Apply distance and availability filters
-	Steam.addRequestLobbyListDistanceFilter(Steam.LOBBY_DISTANCE_FILTER_WORLDWIDE)
-	Steam.addRequestLobbyListFilterSlotsAvailable(1)
-	
-	# ONLY fetch lobbies created by your game build
-	Steam.addRequestLobbyListStringFilter("game", "ToweringTower", Steam.LOBBY_COMPARISON_EQUAL)
-
-	# Fetch list asynchronously
-	Steam.requestLobbyList()
+	Networking.request_lobbies()
 
 func _on_lobby_match_list(lobbies: Array) -> void:
 	# Clear container again to ensure fresh list
@@ -112,15 +100,10 @@ func _on_lobby_back_button_pressed() -> void:
 
 # --- JOIN & NETWORKING HANDLERS ---
 
-func _on_steam_join_requested(lobby_id: int, _friend_id: int) -> void:
-	print("Joining lobby via Steam invite: ", lobby_id)
-	join_lobby_by_id(lobby_id)
-
 func join_lobby_by_id(lobby_id: int) -> void:
 	menu_canvas_layer.hide()
 	if Networking.has_method("join_lobby"):
 		Networking.join_lobby(lobby_id)
-	load_level(default_level_scene)
 
 func on_host_created() -> void:
 	spawn_player(multiplayer.get_unique_id())

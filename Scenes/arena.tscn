@@ -6,8 +6,10 @@
 [ext_resource type="PackedScene" uid="uid://b8dof7whv71kv" path="res://Scenes/sniper_bullet_enemy.tscn" id="5_kcpg1"]
 [ext_resource type="PackedScene" uid="uid://bwiskxejdg8w7" path="res://Scenes/standard_bullet_enemy.tscn" id="6_csrox"]
 [ext_resource type="Texture2D" uid="uid://s3phw8uykxrv" path="res://Assets/Tower.png" id="6_iyva0"]
+[ext_resource type="Script" path="res://Scripts/arena.gd" id="7_arena"]
 
 [node name="Arena" type="Node2D" unique_id=101048953]
+script = ExtResource("7_arena")
 
 [node name="Ground" type="Parallax2D" parent="." unique_id=395445077]
 scroll_scale = Vector2(0.05, 0.05)
@@ -61,8 +63,4 @@ texture = ExtResource("3_1v1nj")
 position = Vector2(240, 599)
 texture = ExtResource("6_iyva0")
 
-[node name="SniperBulletEnemy" parent="." unique_id=1668297099 instance=ExtResource("5_kcpg1")]
-position = Vector2(103, 82)
-
-[node name="StandardBulletEnemy" parent="." unique_id=1566023599 instance=ExtResource("6_csrox")]
-position = Vector2(177, 78)
+[node name="Enemies" type="Node2D" parent="."]

@@ -4,8 +4,8 @@
 [ext_resource type="AudioStream" uid="uid://db0veie5u342a" path="res://Music/Battle1.wav" id="3_d1ilt"]
 [ext_resource type="AudioStream" uid="uid://butew5t5wbb46" path="res://Music/Boss2Fin.wav" id="4_6iyac"]
 [ext_resource type="AudioStream" uid="uid://co4mxdgflyn1e" path="res://Music/Boss3.wav" id="5_fdnlq"]
-[ext_resource type="Script" uid="uid://doya0c7pawqh2" path="res://Scenes/main_menu.gd" id="6_6iyac"]
-[ext_resource type="LabelSettings" uid="uid://1e7sij4k8a8u" path="res://Scenes/Capital Bold.tres" id="6_h1bgf"]
+[ext_resource type="Script" uid="uid://doya0c7pawqh2" path="res://Scripts/main_menu.gd" id="6_6iyac"]
+[ext_resource type="LabelSettings" uid="uid://1e7sij4k8a8u" path="res://Assets/Capital Bold.tres" id="6_h1bgf"]
 [ext_resource type="AudioStream" uid="uid://dtnid3cuec148" path="res://Music/Dungeon1.wav" id="6_jkdf5"]
 [ext_resource type="AudioStream" uid="uid://b3oxnsqlfluca" path="res://Music/Town.wav" id="7_wsu2k"]
 [ext_resource type="AudioStream" uid="uid://dacrglmnohv0j" path="res://Music/TownV2.wav" id="8_k12tt"]
@@ -15,7 +15,7 @@
 [ext_resource type="AudioStream" uid="uid://7icxns1wk1dd" path="res://SFX/select.wav" id="12_jkdf5"]
 [ext_resource type="AudioStream" uid="uid://0m8rve436877" path="res://SFX/kick.wav" id="13_wsu2k"]
 [ext_resource type="AudioStream" uid="uid://i7xo33jq15by" path="res://SFX/openMenu.wav" id="14_k12tt"]
-[ext_resource type="Script" uid="uid://bv5n1x476g4ts" path="res://Scenes/hud.gd" id="15_wsu2k"]
+[ext_resource type="Script" uid="uid://bv5n1x476g4ts" path="res://Scripts/hud.gd" id="15_wsu2k"]
 [ext_resource type="PackedScene" uid="uid://cxv05nhe5atxk" path="res://Scenes/heart_gui.tscn" id="16_k12tt"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hibaj"]
@@ -73,8 +73,8 @@ script = ExtResource("1_bo1nx")
 [node name="SpawnPoint" type="Node2D" parent="." unique_id=134882281]
 position = Vector2(256, 175)
 
-[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=617876542]
-_spawnable_scenes = PackedStringArray("uid://dflfyebeka06d")
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=617876542 groups=["players"]]
+_spawnable_scenes = PackedStringArray("uid://dflfyebeka06d", "uid://bwiskxejdg8w7")
 spawn_path = NodePath("../Level Container")
 
 [node name="Level Container" type="Node" parent="." unique_id=1586504625]

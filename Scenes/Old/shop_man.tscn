@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://c83nsx860olcs"]
 
-[ext_resource type="Script" uid="uid://beue7sju7rtd6" path="res://Scripts/shop_man.gd" id="1_m0f1n"]
-[ext_resource type="Shader" path="res://Shaders/outlineshader.gdshader" id="2_m0f1n"]
+[ext_resource type="Script" uid="uid://beue7sju7rtd6" path="res://Scripts/Old/shop_man.gd" id="1_m0f1n"]
+[ext_resource type="Shader" uid="uid://btwn6sqe5e1ig" path="res://Shaders/outlineshader.gdshader" id="2_m0f1n"]
 [ext_resource type="Texture2D" uid="uid://cqadh4fllxamd" path="res://Assets/Shop Man.png" id="3_htrj0"]
-[ext_resource type="PackedScene" path="res://Scenes/interactable.tscn" id="3_sclad"]
+[ext_resource type="PackedScene" uid="uid://cyowr518ht03d" path="res://Scenes/interactable.tscn" id="3_sclad"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_m0f1n"]
 radius = 5.0990195

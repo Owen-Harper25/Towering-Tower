@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://ccpa4irvwfn7y"]
 
-[ext_resource type="Script" uid="uid://6swqg2nj7uog" path="res://Scripts/coin.gd" id="1_0t63x"]
+[ext_resource type="Script" uid="uid://6swqg2nj7uog" path="res://Scripts/Old/coin.gd" id="1_0t63x"]
 [ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_d5gmh"]
 [ext_resource type="AudioStream" uid="uid://d1ylnpih45pyr" path="res://SFX/driken5482-retro-coin-4-236671.mp3" id="3_v7riw"]
 

@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://204r5nyeg1ov"]
+
+[ext_resource type="Script" uid="uid://c0key7jnah2mb" path="res://Scripts/player_bullet.gd" id="1_3m2mg"]
+[ext_resource type="Texture2D" uid="uid://bkc3hlqctms7r" path="res://Assets/plus particle.png" id="2_jskx8"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rup26"]
+radius = 2.0
+
+[node name="PlayerBullet" type="Area2D" unique_id=1453827250]
+collision_layer = 4
+collision_mask = 18
+script = ExtResource("1_3m2mg")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1475609652]
+shape = SubResource("CircleShape2D_rup26")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=2053746416]
+modulate = Color(0, 0.4627451, 1, 1)
+texture = ExtResource("2_jskx8")

@@ -1,0 +1,152 @@
+extends CharacterBody2D
+
+# --- Signals & Export Settings ---
+@export_group("Movement Settings")
+@export var speed: float = 60.0             # Snipers move slower
+@export var preferred_distance: float = 300.0 # Stays far away from player
+
+@export_group("Combat Settings")
+@export var max_health: int = 8             # Fragile compared to standard enemy
+@export var attack_cooldown: float = 3.5    # Longer interval between shots
+@export var bullet_scene: PackedScene
+@export var hit_sound: AudioStream
+
+# --- Internal References ---
+# Change AnimatedSprite2D to Sprite2D (or Node2D)
+@onready var sprite: Sprite2D = $Sprite2D
+@onready var shoot_timer: Timer = get_node_or_null("ShootTimer")
+
+var target_player: CharacterBody2D = null
+var current_health: int
+var is_dying: bool = false
+var hit_sfx_player: AudioStreamPlayer2D
+
+func _enter_tree() -> void:
+	set_multiplayer_authority(1)
+
+func _ready() -> void:
+	current_health = max_health
+	
+	# Setup audio player for hit sound
+	hit_sfx_player = AudioStreamPlayer2D.new()
+	hit_sfx_player.name = "HitSFXPlayer"
+	if hit_sound:
+		hit_sfx_player.stream = hit_sound
+	add_child(hit_sfx_player)
+
+	setup_shoot_timer()
+
+func setup_shoot_timer() -> void:
+	if not shoot_timer:
+		shoot_timer = Timer.new()
+		shoot_timer.name = "ShootTimer"
+		add_child(shoot_timer)
+
+	shoot_timer.wait_time = attack_cooldown
+	shoot_timer.timeout.connect(_on_shoot_timer_timeout)
+	shoot_timer.start()
+
+func _physics_process(_delta: float) -> void:
+	if not is_multiplayer_authority() or is_dying:
+		return
+
+	find_target_player()
+
+	if target_player and is_instance_valid(target_player):
+		var distance = global_position.distance_to(target_player.global_position)
+		var direction = (target_player.global_position - global_position).normalized()
+
+		# Sniper Positioning Logic: Back up if too close, approach if too far
+		if distance < preferred_distance - 40.0:
+			velocity = -direction * speed # Back away
+		elif distance > preferred_distance + 40.0:
+			velocity = direction * speed  # Move closer
+		else:
+			velocity = Vector2.ZERO       # Hold position
+
+		if sprite:
+			sprite.flip_h = (direction.x < 0)
+	else:
+		velocity = Vector2.ZERO
+
+	move_and_slide()
+
+func find_target_player() -> void:
+	if target_player and is_instance_valid(target_player):
+		return
+
+	var players = get_tree().get_nodes_in_group("players")
+	if players.is_empty():
+		return
+
+	var closest_dist: float = INF
+	for p in players:
+		if p is CharacterBody2D:
+			var d = global_position.distance_to(p.global_position)
+			if d < closest_dist:
+				closest_dist = d
+				target_player = p
+
+func _on_shoot_timer_timeout() -> void:
+	if not is_multiplayer_authority() or is_dying:
+		return
+
+	if not target_player or not is_instance_valid(target_player):
+		return
+
+	var fire_dir = (target_player.global_position - global_position).normalized()
+	rpc("spawn_sniper_bullet_rpc", global_position, fire_dir.angle())
+
+@rpc("any_peer", "call_local", "reliable")
+func spawn_sniper_bullet_rpc(spawn_pos: Vector2, angle: float) -> void:
+	if bullet_scene:
+		var bullet = bullet_scene.instantiate() as Node2D
+		bullet.global_position = spawn_pos
+		bullet.rotation = angle
+		get_parent().add_child(bullet)
+
+# --- COMBAT, SHADER & SFX HANDLERS ---
+
+func take_damage(amount: int) -> void:
+	if is_dying:
+		return
+
+	current_health -= amount
+	rpc("play_hit_effects_rpc")
+
+	if current_health <= 0:
+		rpc("die_with_dissolve_rpc")
+
+@rpc("any_peer", "call_local", "reliable")
+func play_hit_effects_rpc() -> void:
+	if hit_sfx_player and hit_sfx_player.stream:
+		hit_sfx_player.play()
+
+	# Trigger Shader Flash on the Sprite
+	if sprite and sprite.material is ShaderMaterial:
+		var mat = sprite.material as ShaderMaterial
+		mat.set_shader_parameter("enabled", true)
+		
+		# Turn off flash after 0.12 seconds
+		get_tree().create_timer(0.12).timeout.connect(func():
+			if is_instance_valid(mat):
+				mat.set_shader_parameter("enabled", false)
+		)
+
+@rpc("any_peer", "call_local", "reliable")
+func die_with_dissolve_rpc() -> void:
+	is_dying = true
+	velocity = Vector2.ZERO
+	
+	var col = get_node_or_null("CollisionShape2D")
+	if col:
+		col.set_deferred("disabled", true)
+
+	if sprite and sprite.material is ShaderMaterial:
+		var mat = sprite.material as ShaderMaterial
+		var tween = create_tween()
+		mat.set_shader_parameter("dissolve_value", 1.0)
+		tween.tween_property(mat, "shader_parameter/dissolve_value", 0.0, 0.8)
+		tween.finished.connect(func(): queue_free())
+	else:
+		queue_free()

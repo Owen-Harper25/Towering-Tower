@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bxnqgysvkwsam"]
 
-[ext_resource type="Script" uid="uid://d4anpqsd3h1b6" path="res://Scripts/apple.gd" id="1_ir1en"]
+[ext_resource type="Script" uid="uid://d4anpqsd3h1b6" path="res://Scripts/Old/apple.gd" id="1_ir1en"]
 [ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_v3gsn"]
 [ext_resource type="AudioStream" uid="uid://b0x8tchbrlo6m" path="res://SFX/bite 1.mp3" id="3_lyte0"]
 [ext_resource type="AudioStream" uid="uid://cifqylu0n7njn" path="res://SFX/bite 2.mp3" id="4_mxla6"]

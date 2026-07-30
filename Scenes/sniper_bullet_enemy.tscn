@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://b8dof7whv71kv"]
+
+[ext_resource type="Script" uid="uid://bqgeq4pfpdtk4" path="res://Scripts/sniper_bullet_enemy.gd" id="1_fy332"]
+[ext_resource type="PackedScene" uid="uid://dektnuev5o6ji" path="res://Scenes/bullet.tscn" id="2_2oujc"]
+[ext_resource type="AudioStream" uid="uid://58cdostlto8y" path="res://SFX/cancel.wav" id="3_d5re6"]
+[ext_resource type="Texture2D" uid="uid://c5e841mtflrqw" path="res://Assets/icon.svg" id="3_oblbw"]
+[ext_resource type="Material" uid="uid://cydtl2ts0hxew" path="res://Shaders/Enemy.tres" id="4_np3ee"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rup26"]
+radius = 18.027756
+
+[node name="SniperBulletEnemy" type="CharacterBody2D" unique_id=1668297099]
+modulate = Color(0, 1, 0, 1)
+collision_layer = 2
+collision_mask = 21
+script = ExtResource("1_fy332")
+bullet_scene = ExtResource("2_2oujc")
+hit_sound = ExtResource("3_d5re6")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1844082445]
+material = ExtResource("4_np3ee")
+scale = Vector2(0.2734375, 0.2734375)
+texture = ExtResource("3_oblbw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=210083982]
+shape = SubResource("CircleShape2D_rup26")

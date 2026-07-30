@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bm15cj0doin8l"]
 
 [ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_1ex53"]
-[ext_resource type="Script" uid="uid://dtr0dly8im66c" path="res://Scripts/bird_2.gd" id="1_8xgav"]
-[ext_resource type="PackedScene" uid="uid://ccpa4irvwfn7y" path="res://Scenes/coin.tscn" id="2_lyr42"]
+[ext_resource type="Script" uid="uid://dtr0dly8im66c" path="res://Scripts/Old/bird_2.gd" id="1_8xgav"]
+[ext_resource type="PackedScene" uid="uid://ccpa4irvwfn7y" path="res://Scenes/Old/coin.tscn" id="2_lyr42"]
 [ext_resource type="AudioStream" uid="uid://mh02tftwobkq" path="res://SFX/freesound_community-crow-64028.mp3" id="3_jskm2"]
 [ext_resource type="AudioStream" uid="uid://byt03oa4o0owc" path="res://SFX/flap.mp3" id="4_lyr42"]
 

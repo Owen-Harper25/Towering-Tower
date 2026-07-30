@@ -2,8 +2,9 @@
 
 [ext_resource type="Script" uid="uid://cccgncb0n6rqn" path="res://Scripts/player.gd" id="1_cvnsp"]
 [ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_v0iea"]
-[ext_resource type="PackedScene" uid="uid://dektnuev5o6ji" path="res://Scenes/bullet.tscn" id="2_vgqql"]
+[ext_resource type="PackedScene" uid="uid://204r5nyeg1ov" path="res://Scenes/player_bullet.tscn" id="2_fkybt"]
 [ext_resource type="PackedScene" uid="uid://b220qk7byb8a3" path="res://Scenes/interacting_component.tscn" id="3_6t5aa"]
+[ext_resource type="Material" uid="uid://cydtl2ts0hxew" path="res://Shaders/Enemy.tres" id="3_x3wgy"]
 [ext_resource type="FontFile" uid="uid://c350m17mql3a6" path="res://Assets/Capital Bold - Normal.ttf" id="5_fkybt"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_cvnsp"]
@@ -191,17 +192,17 @@ font = ExtResource("5_fkybt")
 font_size = 8
 outline_color = Color(0.04755766, 0.047557645, 0.047557645, 1)
 
-[node name="Player" type="CharacterBody2D" unique_id=700136896]
+[node name="Player" type="CharacterBody2D" unique_id=700136896 groups=["players"]]
 z_index = 1
-collision_layer = 3
-collision_mask = 3
+collision_mask = 11
 script = ExtResource("1_cvnsp")
-bullet_scene = ExtResource("2_vgqql")
+bullet_scene = ExtResource("2_fkybt")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1663558308]
 shape = SubResource("CircleShape2D_cvnsp")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1678787369]
+material = ExtResource("3_x3wgy")
 sprite_frames = SubResource("SpriteFrames_8erm5")
 animation = &"death"
 
@@ -217,7 +218,7 @@ libraries/ = SubResource("AnimationLibrary_vgqql")
 
 [node name="InteractingComponent" parent="." unique_id=410509540 instance=ExtResource("3_6t5aa")]
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=438642054]
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=438642054 groups=["players"]]
 replication_config = SubResource("SceneReplicationConfig_6t5aa")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1378376637]

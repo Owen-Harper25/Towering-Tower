@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dee1aotsbqypf"]
 
-[ext_resource type="Script" uid="uid://k8r8u41d656d" path="res://Scripts/banana.gd" id="1_0exhq"]
+[ext_resource type="Script" uid="uid://k8r8u41d656d" path="res://Scripts/Old/banana.gd" id="1_0exhq"]
 [ext_resource type="Texture2D" uid="uid://bs01w1buxrntq" path="res://Assets/Crow man.png" id="1_3gmt6"]
 [ext_resource type="AudioStream" uid="uid://b0x8tchbrlo6m" path="res://SFX/bite 1.mp3" id="3_863xn"]
 [ext_resource type="AudioStream" uid="uid://cifqylu0n7njn" path="res://SFX/bite 2.mp3" id="4_wxbs5"]

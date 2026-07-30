@@ -169,6 +169,11 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 	is_rolling = true
 	is_invulnerable = true
 	roll_direction = dir
+	
+	# Temporarily disable enemy bullet collision layer (e.g., Layer 3)
+	var original_mask = collision_mask
+	set_collision_mask_value(3, false) # Assume Layer 3 = Enemy Bullets
+
 	if menusfx: menusfx.play()
 	
 	if sprite.sprite_frames.has_animation("roll"):
@@ -178,7 +183,10 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 	iframe_timer.timeout.connect(func(): is_invulnerable = false)
 	
 	var roll_timer = get_tree().create_timer(roll_duration)
-	roll_timer.timeout.connect(func(): is_rolling = false)
+	roll_timer.timeout.connect(func(): 
+		is_rolling = false
+		collision_mask = original_mask # Restore normal collision
+	)
 
 func handle_roll_physics() -> void:
 	velocity = roll_direction * roll_speed
@@ -288,16 +296,32 @@ func revive_player() -> void:
 func start_invulnerability_rpc(duration: float) -> void:
 	is_invulnerable = true
 	
-	# Kill any existing tween on the sprite so multiple hits don't overlap awkwardly
+	if not sprite or not (sprite.material is ShaderMaterial):
+		get_tree().create_timer(duration).timeout.connect(func(): is_invulnerable = false)
+		return
+
+	var mat = sprite.material as ShaderMaterial
+	
+	# Quick initial hit flash (0.15s)
+	mat.set_shader_parameter("enabled", true)
+	get_tree().create_timer(0.15).timeout.connect(func():
+		if is_instance_valid(mat):
+			mat.set_shader_parameter("enabled", false)
+	)
+
+	# Optional: Continuous alpha pulsing while invulnerable
 	var tween = create_tween().set_loops(int(duration / 0.1))
 	tween.tween_property(sprite, "modulate:a", 0.3, 0.05)
 	tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
-	
+
 	get_tree().create_timer(duration).timeout.connect(func():
 		is_invulnerable = false
 		if tween and tween.is_running():
 			tween.kill()
-		sprite.modulate.a = 1.0
+		if sprite:
+			sprite.modulate.a = 1.0
+			if sprite.material is ShaderMaterial:
+				(sprite.material as ShaderMaterial).set_shader_parameter("enabled", false)
 	)
 
 # --- Visuals & Animations ---

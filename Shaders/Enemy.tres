@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://cydtl2ts0hxew"]
+
+[ext_resource type="Shader" uid="uid://d0n2p7xij1xht" path="res://Shaders/enemy_material.gdshader" id="1_15d57"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="2_ew8wu"]
+
+[resource]
+resource_local_to_scene = true
+shader = ExtResource("1_15d57")
+shader_parameter/enabled = false
+shader_parameter/tint = Color(1, 1, 1, 1)
+shader_parameter/dissolve_value = 1.0
+shader_parameter/noise_tex = ExtResource("2_ew8wu")

@@ -26,7 +26,11 @@ var shooter: Node = null
 
 func _on_body_entered(body: Node2D) -> void:
 	# Ignore the enemy that spawned this bullet
-	if body == shooter:
+	if body == shooter or body.name == str(shooter_id):
+		return
+	if body.has_method("try_receive_revive_hit"):
+		body.try_receive_revive_hit(float(damage))
+		queue_free()
 		return
 		
 	if body.has_method("take_damage"):

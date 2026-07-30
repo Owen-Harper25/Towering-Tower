@@ -68,6 +68,7 @@ var revive_hp_max: float = 0.0
 # --- Death Timer Settings ---
 @export var death_timer_max: float = 15.0      # Total time before player dies when downed
 @export var pause_on_hit_duration: float = 1.5 # Seconds timer pauses when hit by an ally
+@export var enemy_hit_death_time_penalty: float = 2.5
 
 var death_timer_current: float = 0.0
 var pause_timer: float = 0.0
@@ -150,6 +151,10 @@ func player_fully_died_rpc() -> void:
 	is_downed = false
 	sprite.play("death")
 	player_died.emit()
+	if is_multiplayer_authority():
+		var main := get_tree().get_first_node_in_group("main")
+		if main and main.has_method("return_party_to_lobby"):
+			main.return_party_to_lobby()
 	# Add any death despawn/spectate logic here
 
 # --- Movement & Input Handling ---
@@ -407,6 +412,12 @@ func enter_downed_state_rpc() -> void:
 	queue_redraw()
 
 # Called when an ally attacks a downed player to revive them
+func try_receive_revive_hit(amount: float) -> bool:
+	if not is_downed or not is_multiplayer_authority():
+		return false
+	rpc("receive_revive_hit_rpc", amount)
+	return true
+
 @rpc("any_peer", "call_local", "reliable")
 func receive_revive_hit_rpc(amount: float) -> void:
 	if not is_downed:
@@ -423,6 +434,24 @@ func receive_revive_hit_rpc(amount: float) -> void:
 	# Authority validates when player gets fully revived
 	if is_multiplayer_authority() and revive_hp_current <= 0:
 		rpc("sync_revive_player_rpc")
+
+func try_receive_enemy_hit(damage: int) -> bool:
+	if not is_downed or not is_multiplayer_authority():
+		return false
+	var penalty := enemy_hit_death_time_penalty * maxf(1.0, float(damage))
+	rpc("receive_enemy_hit_rpc", penalty)
+	return true
+
+@rpc("any_peer", "call_local", "reliable")
+func receive_enemy_hit_rpc(penalty: float) -> void:
+	if not is_downed:
+		return
+	pause_timer = 0.0
+	death_timer_current = maxf(0.0, death_timer_current - penalty)
+	queue_redraw()
+	var tween := create_tween()
+	tween.tween_property(sprite, "modulate", Color(1.0, 0.28, 0.28), 0.06)
+	tween.tween_property(sprite, "modulate", Color.WHITE, 0.08)
 @rpc("any_peer", "call_local", "reliable")
 
 func sync_revive_player_rpc() -> void:
@@ -437,6 +466,20 @@ func revive_player() -> void:
 	if sprite.sprite_frames.has_animation("Idle"):
 		sprite.play("Idle")
 
+	queue_redraw()
+
+@rpc("any_peer", "call_local", "reliable")
+func reset_for_lobby_rpc() -> void:
+	is_downed = false
+	is_falling = false
+	is_rolling = false
+	death_timer_current = 0.0
+	pause_timer = 0.0
+	revive_hp_current = 0.0
+	current_health = max_health
+	if sprite.sprite_frames.has_animation("Idle"):
+		sprite.play("Idle")
+	health_changed.emit(current_health, max_health)
 	queue_redraw()
 
 @rpc("any_peer", "call_local", "reliable")

@@ -237,13 +237,13 @@ vertical_alignment = 1
 
 [node name="WeaponPivot" type="Node2D" parent="." unique_id=69733009]
 
-[node name="GunBody" type="Polygon2D" parent="WeaponPivot"]
-polygon = PackedVector2Array(-6, -5, 6, -5, 9, -2, 9, 2, 3, 2, 2, 7, -2, 7, -2, 2, -6, 2)
+[node name="GunBody" type="Polygon2D" parent="WeaponPivot" unique_id=919488784]
 color = Color(0.16, 0.22, 0.32, 1)
+polygon = PackedVector2Array(-6, -5, 6, -5, 9, -2, 9, 2, 3, 2, 2, 7, -2, 7, -2, 2, -6, 2)
 
-[node name="GunAccent" type="Polygon2D" parent="WeaponPivot"]
-polygon = PackedVector2Array(-4, -3, 7, -3, 7, -1, -4, -1)
+[node name="GunAccent" type="Polygon2D" parent="WeaponPivot" unique_id=605726025]
 color = Color(0.35, 0.85, 1, 1)
+polygon = PackedVector2Array(-4, -3, 7, -3, 7, -1, -4, -1)
 
 [node name="Muzzle" type="Marker2D" parent="WeaponPivot" unique_id=1414953790]
 position = Vector2(12, 0)

@@ -192,6 +192,27 @@ func start_combat_rpc() -> void:
 		if is_instance_valid(player):
 			player.global_position = Vector2(240, 136)
 
+func return_party_to_lobby() -> void:
+	if multiplayer.is_server():
+		rpc("return_party_to_lobby_rpc")
+	else:
+		rpc_id(1, "request_return_party_to_lobby_rpc")
+
+@rpc("any_peer", "reliable")
+func request_return_party_to_lobby_rpc() -> void:
+	if multiplayer.is_server():
+		rpc("return_party_to_lobby_rpc")
+
+@rpc("authority", "call_local", "reliable")
+func return_party_to_lobby_rpc() -> void:
+	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
+		Networking.set_lobby_joinable(true)
+	load_level(default_level_scene)
+	for player in players:
+		if is_instance_valid(player):
+			player.global_position = Vector2(240, 136)
+			player.rpc("reset_for_lobby_rpc")
+
 # --- LEVEL SWITCHING SYSTEM ---
 
 func load_level(level_scene: PackedScene) -> void:

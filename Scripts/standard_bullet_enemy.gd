@@ -27,6 +27,7 @@ var current_health: int
 var is_dying: bool = false
 var hit_sfx_player: AudioStreamPlayer2D
 var knockback_velocity := Vector2.ZERO
+var state_sync_elapsed := 0.0
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(1)
@@ -85,6 +86,10 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
+	state_sync_elapsed += delta
+	if state_sync_elapsed >= 0.05:
+		state_sync_elapsed = 0.0
+		rpc("sync_enemy_state_rpc", global_position, velocity, sprite.flip_h if sprite else false)
 	if not is_on_tower(24.0):
 		fall_into_clouds()
 
@@ -93,6 +98,13 @@ func apply_knockback(force: Vector2) -> void:
 		knockback_velocity += force
 
 func fall_into_clouds() -> void:
+	if is_dying:
+		return
+	drop_loot_at_arena_edge()
+	rpc("fall_into_clouds_rpc")
+
+@rpc("authority", "call_local", "reliable")
+func fall_into_clouds_rpc() -> void:
 	if is_dying:
 		return
 	is_dying = true
@@ -104,6 +116,15 @@ func fall_into_clouds() -> void:
 	tween.tween_property(self, "scale", Vector2.ZERO, 0.45)
 	tween.tween_property(self, "modulate:a", 0.0, 0.45)
 	tween.finished.connect(queue_free)
+
+@rpc("authority", "call_remote", "unreliable")
+func sync_enemy_state_rpc(new_position: Vector2, new_velocity: Vector2, facing_left: bool) -> void:
+	if is_dying:
+		return
+	global_position = new_position
+	velocity = new_velocity
+	if sprite:
+		sprite.flip_h = facing_left
 
 func get_arena_bounds() -> Rect2:
 	var bounds: Variant = get_meta("arena_bounds", Rect2(28, 30, 424, 220))
@@ -181,9 +202,28 @@ func take_damage(amount: int) -> void:
 
 func drop_loot() -> void:
 	if randf() <= coin_drop_chance:
-		rpc("spawn_loot_rpc", global_position, 0)
+		rpc("spawn_loot_rpc", get_safe_loot_position(global_position), 0)
 	if randf() <= health_drop_chance:
-		rpc("spawn_loot_rpc", global_position + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0)), 1)
+		rpc("spawn_loot_rpc", get_safe_loot_position(global_position + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0))), 1)
+
+func drop_loot_at_arena_edge() -> void:
+	var drop_position := get_safe_loot_position(global_position)
+	if randf() <= coin_drop_chance:
+		rpc("spawn_loot_rpc", drop_position, 0)
+	if randf() <= health_drop_chance:
+		rpc("spawn_loot_rpc", drop_position + Vector2(randf_range(-5.0, 5.0), randf_range(-5.0, 5.0)), 1)
+
+func get_safe_loot_position(requested_position: Vector2) -> Vector2:
+	var bounds := get_arena_bounds()
+	var center := bounds.get_center()
+	var radii := bounds.size * 0.5 - Vector2(18.0, 18.0)
+	var offset := requested_position - center
+	if offset == Vector2.ZERO:
+		return center
+	var distance_scale := sqrt((offset.x * offset.x) / (radii.x * radii.x) + (offset.y * offset.y) / (radii.y * radii.y))
+	if distance_scale > 1.0:
+		offset /= distance_scale
+	return center + offset
 
 @rpc("authority", "call_local", "reliable")
 func spawn_loot_rpc(drop_position: Vector2, loot_type: int) -> void:

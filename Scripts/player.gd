@@ -446,6 +446,9 @@ func try_receive_enemy_hit(damage: int) -> bool:
 func receive_enemy_hit_rpc(penalty: float) -> void:
 	if not is_downed:
 		return
+	# An ally's recent revive shot grants a brief protection window.
+	if pause_timer > 0.0:
+		return
 	pause_timer = 0.0
 	death_timer_current = maxf(0.0, death_timer_current - penalty)
 	queue_redraw()

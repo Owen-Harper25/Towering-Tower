@@ -16,7 +16,8 @@ const PLAYER = preload("uid://dflfyebeka06d")
 @onready var break_timer: Timer = $Timers/MusicBreakTimer
 
 # --- Level & Player References ---
-@export var default_level_scene: PackedScene = preload("res://Scenes/arena.tscn")
+@export var default_level_scene: PackedScene = preload("res://Scenes/lobby.tscn")
+const ARENA_SCENE := preload("res://Scenes/arena.tscn")
 @onready var level_container: Node = $"Level Container"
 @onready var players_container: Node2D = $"Level Container/Players"
 
@@ -29,6 +30,7 @@ var current_loop_count: int = 0
 var current_level: Node = null
 
 func _ready() -> void:
+	add_to_group("main")
 	Networking.host_created.connect(on_host_created)
 	Networking.client_joined.connect(on_client_joined)
 	Networking.lobby_list_received.connect(_on_lobby_match_list)
@@ -118,6 +120,8 @@ func spawn_player(peer_id: int) -> void:
 
 	if not current_level:
 		load_level(default_level_scene)
+	if current_level.has_method("can_players_join") and not current_level.can_players_join():
+		return
 
 	var new_player := PLAYER.instantiate() as CharacterBody2D
 	new_player.name = str(peer_id)
@@ -165,6 +169,28 @@ func _on_peer_disconnected(id: int) -> void:
 		if players.has(player_node):
 			players.erase(player_node)
 		player_node.queue_free()
+
+func start_combat_from_lobby() -> void:
+	if multiplayer.is_server():
+		rpc("start_combat_rpc")
+	else:
+		rpc_id(1, "request_start_combat_rpc")
+
+@rpc("any_peer", "reliable")
+func request_start_combat_rpc() -> void:
+	if multiplayer.is_server():
+		rpc("start_combat_rpc")
+
+@rpc("authority", "call_local", "reliable")
+func start_combat_rpc() -> void:
+	if current_level and current_level.is_in_group("tower_arena"):
+		return
+	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
+		Networking.set_lobby_joinable(false)
+	load_level(ARENA_SCENE)
+	for player in players:
+		if is_instance_valid(player):
+			player.global_position = Vector2(240, 136)
 
 # --- LEVEL SWITCHING SYSTEM ---
 

@@ -10,23 +10,12 @@ const SETTINGS_PATH := "user://settings.cfg"
 
 func _ready() -> void:
 	load_settings()
-	move_settings_to_overlay.call_deferred()
 	solo_button.pressed.connect(_on_solo_pressed)
 	host_button.pressed.connect(_on_host_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
-	settings_panel.hide()
-
-func move_settings_to_overlay() -> void:
-	var settings_layer := CanvasLayer.new()
-	settings_layer.layer = 20
-	get_tree().current_scene.add_child(settings_layer)
-	settings_panel.reparent(settings_layer, false)
-	settings_panel.custom_minimum_size = Vector2.ZERO
-	settings_panel.custom_maximum_size = Vector2.ZERO
-	settings_panel.position = Vector2.ZERO
-	settings_panel.size = get_viewport_rect().size
 	build_settings_menu()
+	settings_panel.hide()
 
 # --- BUTTON ACTIONS ---
 
@@ -38,6 +27,8 @@ func _on_host_pressed() -> void:
 
 func _on_settings_pressed() -> void:
 	settings_panel.visible = not settings_panel.visible
+	if settings_panel.visible:
+		layout_settings_menu()
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
@@ -46,16 +37,15 @@ func build_settings_menu() -> void:
 	for child in settings_panel.get_children():
 		child.queue_free()
 
-	settings_panel.position = Vector2.ZERO
-	settings_panel.size = get_viewport_rect().size
+	settings_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var backdrop := ColorRect.new()
+	backdrop.name = "Backdrop"
 	backdrop.color = Color(0.04, 0.06, 0.12, 0.94)
 	backdrop.size = Vector2(260, 246)
-	backdrop.position = (settings_panel.size - backdrop.size) * 0.5
 	settings_panel.add_child(backdrop)
 
 	var content := VBoxContainer.new()
-	content.position = backdrop.position + Vector2(16, 12)
+	content.name = "Content"
 	content.size = Vector2(228, 220)
 	content.add_theme_constant_override("separation", 5)
 	settings_panel.add_child(content)
@@ -95,6 +85,19 @@ func build_settings_menu() -> void:
 	close_button.text = "CLOSE"
 	close_button.pressed.connect(func(): settings_panel.hide())
 	content.add_child(close_button)
+	layout_settings_menu()
+
+func layout_settings_menu() -> void:
+	if not is_instance_valid(settings_panel):
+		return
+	settings_panel.position = Vector2.ZERO
+	settings_panel.size = get_viewport_rect().size
+	var backdrop := settings_panel.get_node_or_null("Backdrop") as ColorRect
+	var content := settings_panel.get_node_or_null("Content") as VBoxContainer
+	if not backdrop or not content:
+		return
+	backdrop.position = (settings_panel.size - backdrop.size) * 0.5
+	content.position = backdrop.position + Vector2(16, 12)
 
 func add_volume_slider(container: VBoxContainer, label_text: String, bus_name: String) -> void:
 	var label := Label.new()

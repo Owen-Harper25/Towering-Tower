@@ -22,6 +22,7 @@ buses/default_bus_layout="uid://byy0tqicyhkdq"
 [autoload]
 
 Networking="*uid://c7tyosrvmyyfx"
+MetaProgression="*res://Scripts/meta_progression.gd"
 
 [display]
 

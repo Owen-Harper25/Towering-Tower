@@ -1,0 +1,156 @@
+[gd_scene format=3 uid="uid://xfnkgbfqfpjx"]
+
+[ext_resource type="Script" uid="uid://cost6s60faxlp" path="res://Scripts/lobby.gd" id="1_lobby"]
+[ext_resource type="Texture2D" uid="uid://drk74brvrwway" path="res://Assets/Ground.png" id="2_4233d"]
+[ext_resource type="Texture2D" uid="uid://dtrqbi5hr11s8" path="res://Assets/Generated/lobby-sprites.png" id="2_sprites"]
+[ext_resource type="Texture2D" uid="uid://uat077b45f80" path="res://Assets/clouds.png" id="3_bvheq"]
+[ext_resource type="Shader" uid="uid://btwn6sqe5e1ig" path="res://Shaders/outlineshader.gdshader" id="3_outline"]
+[ext_resource type="Texture2D" uid="uid://bj0a18g86cxly" path="res://Assets/Cloud 2.png" id="4_aghey"]
+[ext_resource type="PackedScene" uid="uid://cyowr518ht03d" path="res://Scenes/interactable.tscn" id="4_interactable"]
+
+[sub_resource type="ShaderMaterial" id="ShopOutline"]
+resource_local_to_scene = true
+shader = ExtResource("3_outline")
+shader_parameter/outline_colour = Color(1, 0.85, 0.3, 1)
+shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_enabled = false
+
+[sub_resource type="CircleShape2D" id="InteractShape"]
+radius = 22.090721
+
+[sub_resource type="ShaderMaterial" id="TreeOutline"]
+resource_local_to_scene = true
+shader = ExtResource("3_outline")
+shader_parameter/outline_colour = Color(0.25, 0.85, 1, 1)
+shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_enabled = false
+
+[sub_resource type="ShaderMaterial" id="TeleportOutline"]
+resource_local_to_scene = true
+shader = ExtResource("3_outline")
+shader_parameter/outline_colour = Color(0.4, 0.9, 1, 1)
+shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_enabled = false
+
+[node name="Lobby" type="Node2D" unique_id=1887785168]
+script = ExtResource("1_lobby")
+
+[node name="Ground" type="Parallax2D" parent="." unique_id=32740265]
+scroll_scale = Vector2(0.05, 0.05)
+scroll_offset = Vector2(-475, -164)
+repeat_size = Vector2(480, 270)
+repeat_times = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="Ground" unique_id=1057281896]
+texture_filter = 2
+position = Vector2(717, 297)
+texture = ExtResource("2_4233d")
+
+[node name="Parallax2D2" type="Parallax2D" parent="." unique_id=29658300]
+physics_interpolation_mode = 1
+scroll_scale = Vector2(0.1, 0.1)
+scroll_offset = Vector2(5, -127)
+repeat_size = Vector2(450, 200)
+autoscroll = Vector2(2, 1)
+repeat_times = 3
+
+[node name="Sprite2D" type="Sprite2D" parent="Parallax2D2" unique_id=1828644861]
+modulate = Color(1, 1, 1, 0.49411765)
+texture_filter = 2
+texture = ExtResource("3_bvheq")
+
+[node name="Parallax2D" type="Parallax2D" parent="." unique_id=1067880925]
+scroll_scale = Vector2(0.2, 0.2)
+scroll_offset = Vector2(843, 444)
+repeat_size = Vector2(450, 200)
+autoscroll = Vector2(2, 1)
+repeat_times = 3
+
+[node name="Sprite2D" type="Sprite2D" parent="Parallax2D" unique_id=1310679588]
+modulate = Color(1, 1, 1, 0.49411765)
+texture_filter = 2
+texture = ExtResource("3_bvheq")
+
+[node name="Parallax2D3" type="Parallax2D" parent="." unique_id=1921577937]
+scroll_scale = Vector2(0.1, 0.1)
+scroll_offset = Vector2(843, 444)
+repeat_size = Vector2(450, 200)
+autoscroll = Vector2(2, 1)
+repeat_times = 3
+
+[node name="Sprite2D" type="Sprite2D" parent="Parallax2D3" unique_id=1904896620]
+modulate = Color(1, 1, 1, 0.49411765)
+texture_filter = 2
+texture = ExtResource("4_aghey")
+
+[node name="Sprite2D2" type="Sprite2D" parent="." unique_id=2096325283]
+position = Vector2(233, 166)
+scale = Vector2(0.34, 0.34)
+texture = ExtResource("2_sprites")
+region_enabled = true
+region_rect = Rect2(1673.3433, 150.85645, 450.15356, 503.74353)
+
+[node name="Title" type="Label" parent="." unique_id=383439078]
+offset_left = 138.0
+offset_top = 10.0
+offset_right = 342.0
+offset_bottom = 34.0
+text = "SKYHOLD SANCTUARY"
+horizontal_alignment = 1
+
+[node name="ShopKeeper" type="Node2D" parent="." unique_id=1663674895]
+position = Vector2(147, 161)
+
+[node name="Sprite2D" type="Sprite2D" parent="ShopKeeper" unique_id=1485181601]
+texture_filter = 1
+material = SubResource("ShopOutline")
+position = Vector2(6.6625, -28.170956)
+scale = Vector2(0.10433985, 0.10433984)
+texture = ExtResource("2_sprites")
+region_enabled = true
+region_rect = Rect2(76.42035, 93.430664, 409.42548, 542.32806)
+
+[node name="Interactable" parent="ShopKeeper" unique_id=901773489 instance=ExtResource("4_interactable")]
+position = Vector2(0, -45)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ShopKeeper/Interactable" unique_id=893784772]
+position = Vector2(7, 15)
+shape = SubResource("InteractShape")
+
+[node name="SkillTree" type="Node2D" parent="." unique_id=629580029]
+position = Vector2(163, 168)
+
+[node name="Sprite2D" type="Sprite2D" parent="SkillTree" unique_id=580550904]
+texture_filter = 1
+material = SubResource("TreeOutline")
+position = Vector2(158.99998, -38.000008)
+scale = Vector2(0.1564795, 0.1564795)
+texture = ExtResource("2_sprites")
+region_enabled = true
+region_rect = Rect2(590.83057, 0, 463.01538, 724)
+
+[node name="Interactable" parent="SkillTree" unique_id=861710341 instance=ExtResource("4_interactable")]
+position = Vector2(0, -45)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SkillTree/Interactable" unique_id=227387350]
+position = Vector2(159, 7)
+shape = SubResource("InteractShape")
+
+[node name="Teleporter" type="Node2D" parent="." unique_id=1875814642]
+position = Vector2(230, 140)
+
+[node name="Sprite2D" type="Sprite2D" parent="Teleporter" unique_id=1367823541]
+texture_filter = 1
+material = SubResource("TeleportOutline")
+position = Vector2(1.9999847, -55)
+scale = Vector2(0.12014925, 0.12014925)
+texture = ExtResource("2_sprites")
+region_enabled = true
+region_rect = Rect2(1135.3022, 0, 469.44604, 724)
+
+[node name="Interactable" parent="Teleporter" unique_id=454414869 instance=ExtResource("4_interactable")]
+position = Vector2(0, -45)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Teleporter/Interactable" unique_id=1188656516]
+position = Vector2(2, -2)
+shape = SubResource("InteractShape")

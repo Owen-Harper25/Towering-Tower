@@ -76,6 +76,8 @@ func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
 
 func _ready() -> void:
+	max_health += MetaProgression.get_level("vitality") * 2
+	fire_cooldown = maxf(0.07, fire_cooldown - MetaProgression.get_level("rapid_fire") * 0.015)
 	current_health = max_health
 	if is_multiplayer_authority():
 		camera.make_current()
@@ -245,6 +247,8 @@ func find_safe_respawn_position() -> Vector2:
 	return center
 
 func is_on_tower() -> bool:
+	if get_tree().get_first_node_in_group("safe_lobby"):
+		return true
 	var arena: Node = get_tree().get_first_node_in_group("tower_arena")
 	if arena and arena.has_method("is_on_tower"):
 		var is_safe: bool = arena.call("is_on_tower", global_position)
@@ -298,6 +302,8 @@ func update_weapon_aim() -> void:
 		gun_accent.scale.y = vertical_flip
 
 func is_wave_active() -> bool:
+	if get_tree().get_first_node_in_group("safe_lobby"):
+		return false
 	var arena: Node = get_tree().get_first_node_in_group("tower_arena")
 	if arena and arena.has_method("is_wave_active"):
 		var active: bool = arena.call("is_wave_active")
@@ -340,6 +346,7 @@ func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int) -> void:
 		var bullet = bullet_scene.instantiate() as Area2D
 		bullet.global_position = spawn_pos
 		bullet.rotation = angle
+		bullet.set("damage", 2 + MetaProgression.get_level("damage"))
 		if shootsfx: shootsfx.play()
 		
 		if "shooter_id" in bullet:
@@ -374,6 +381,8 @@ func heal(amount: int) -> void:
 
 func collect_coins(amount: int) -> void:
 	coins += amount
+	if is_multiplayer_authority():
+		MetaProgression.add_currency(amount)
 	if hud and hud.has_method("update_coins"):
 		hud.update_coins(coins)
 

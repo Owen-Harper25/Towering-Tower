@@ -10,6 +10,7 @@ const TURRET_SCENE := preload("res://Scenes/turret_enemy.tscn")
 var wave := 0
 var wave_active := false
 var next_wave_time := 0.0
+var run_started := true
 @onready var enemies: Node2D = $Enemies
 var wave_banner: ColorRect
 var wave_label: Label
@@ -27,7 +28,7 @@ func create_debug_controls() -> void:
 	var next_wave_button := Button.new()
 	next_wave_button.text = "DEBUG: NEXT WAVE"
 	next_wave_button.position = Vector2(8, 8)
-	next_wave_button.tooltip_text = "Clear the current wave and spawn the next one."
+	next_wave_button.tooltip_text = "Start the run, or clear the current wave and spawn the next one."
 	next_wave_button.pressed.connect(_on_next_wave_button_pressed)
 	debug_layer.add_child(next_wave_button)
 	add_child(debug_layer)
@@ -86,6 +87,9 @@ func is_on_tower(world_position: Vector2, edge_padding: float = 0.0) -> bool:
 
 func is_wave_active() -> bool:
 	return wave_active
+
+func can_players_join() -> bool:
+	return false
 
 func _physics_process(delta: float) -> void:
 	if not multiplayer.is_server():

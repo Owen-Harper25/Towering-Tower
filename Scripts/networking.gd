@@ -9,6 +9,7 @@ const LOBBY_TYPE := Steam.LOBBY_TYPE_PUBLIC
 const MAX_MEMBERS := 4
 
 var peer: SteamMultiplayerPeer
+var active_lobby_id := 0
 
 func _ready() -> void:
 	Steam.initRelayNetworkAccess()
@@ -32,11 +33,16 @@ func request_lobbies() -> void:
 	Steam.addRequestLobbyListStringFilter("game", "ToweringTower", Steam.LOBBY_COMPARISON_EQUAL)
 	Steam.requestLobbyList()
 
+func set_lobby_joinable(joinable: bool) -> void:
+	if active_lobby_id != 0:
+		Steam.setLobbyJoinable(active_lobby_id, joinable)
+
 func on_lobby_created(connect_res: int, lobby_id: int) -> void:
 	if connect_res != Steam.RESULT_OK:
 		push_error("Steam lobby creation failed: %s" % connect_res)
 		return
 
+	active_lobby_id = lobby_id
 	var host_name: String = Steam.getPersonaName()
 	Steam.setLobbyData(lobby_id, "name", host_name + "'s Tower")
 	Steam.setLobbyData(lobby_id, "game", "ToweringTower")
@@ -56,6 +62,7 @@ func on_lobby_joined(lobby_id: int, _permissions: int, _locked: bool, response: 
 		return
 	if Steam.getLobbyOwner(lobby_id) == Steam.getSteamID():
 		return
+	active_lobby_id = lobby_id
 	if peer:
 		peer.close()
 	peer = SteamMultiplayerPeer.new()

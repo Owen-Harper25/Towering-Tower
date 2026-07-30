@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const LOOT_PICKUP := preload("res://Scenes/loot_pickup.tscn")
+
 # --- Signals & Export Settings ---
 @export_group("Movement Settings")
 @export var speed: float = 110.0
@@ -11,6 +13,8 @@ extends CharacterBody2D
 @export_enum("Aimed", "Spread", "Ring") var shot_pattern := 1
 @export var projectile_count := 3
 @export var spread_angle := 0.28
+@export_range(0.0, 1.0) var coin_drop_chance := 0.85
+@export_range(0.0, 1.0) var health_drop_chance := 0.18
 @export var bullet_scene: PackedScene
 @export var hit_sound: AudioStream
 
@@ -28,6 +32,7 @@ func _enter_tree() -> void:
 	set_multiplayer_authority(1)
 
 func _ready() -> void:
+	add_to_group("enemies")
 	current_health = max_health
 	
 	# Setup dynamic audio player for hit sound
@@ -164,14 +169,31 @@ func spawn_enemy_bullet_rpc(spawn_pos: Vector2, angle: float) -> void:
 # --- COMBAT, SHADER & SFX HANDLERS ---
 
 func take_damage(amount: int) -> void:
-	if is_dying:
+	if not is_multiplayer_authority() or is_dying:
 		return
 
 	current_health -= amount
 	rpc("play_hit_effects_rpc")
 
 	if current_health <= 0:
+		drop_loot()
 		rpc("die_with_dissolve_rpc")
+
+func drop_loot() -> void:
+	if randf() <= coin_drop_chance:
+		rpc("spawn_loot_rpc", global_position, 0)
+	if randf() <= health_drop_chance:
+		rpc("spawn_loot_rpc", global_position + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0)), 1)
+
+@rpc("authority", "call_local", "reliable")
+func spawn_loot_rpc(drop_position: Vector2, loot_type: int) -> void:
+	call_deferred("spawn_loot_deferred", drop_position, loot_type)
+
+func spawn_loot_deferred(drop_position: Vector2, loot_type: int) -> void:
+	var loot := LOOT_PICKUP.instantiate() as Node2D
+	loot.global_position = drop_position
+	loot.call("configure", loot_type)
+	get_parent().add_child(loot)
 
 @rpc("any_peer", "call_local", "reliable")
 func play_hit_effects_rpc() -> void:

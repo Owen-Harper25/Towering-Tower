@@ -24,7 +24,7 @@ signal player_revived()
 @export var roll_duration: float = 0.30
 @export var roll_iframe_duration: float = 0.28
 @export var fire_cooldown: float = 0.16
-@export var fall_recovery_time: float = 0.85
+@export var fall_recovery_time: float = 1.75
 @export var fall_dash_speed: float = 420.0
 @onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Shoot")
 @onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Hurt")
@@ -43,6 +43,8 @@ signal player_revived()
 @onready var character_name: Label = $CharacterName
 @onready var weapon_pivot: Node2D = $WeaponPivot
 @onready var muzzle: Node2D = $WeaponPivot/Muzzle
+@onready var gun_body: Polygon2D = $WeaponPivot/GunBody
+@onready var gun_accent: Polygon2D = $WeaponPivot/GunAccent
 
 # --- Internal State ---
 var current_health: int
@@ -54,6 +56,8 @@ var next_shot_time := 0.0
 var arena_bounds := Rect2(28, 30, 424, 220)
 var is_falling := false
 var fall_time_remaining := 0.0
+var coins := 0
+var weapon_is_drawn := false
 
 # --- Downed & Revive State (Nightreign Style) ---
 @export var is_downed: bool = false
@@ -213,11 +217,32 @@ func land_from_fall_rpc() -> void:
 @rpc("any_peer", "call_local", "reliable")
 func rescue_from_fall_rpc() -> void:
 	land_from_fall_rpc()
-	global_position = arena_bounds.get_center()
+	global_position = find_safe_respawn_position()
 	if is_multiplayer_authority():
 		current_health = max(1, current_health - 2)
 		health_changed.emit(current_health, max_health)
 		rpc("start_invulnerability_rpc", invincibility_duration)
+
+func find_safe_respawn_position() -> Vector2:
+	var center := arena_bounds.get_center()
+	var candidates: Array[Vector2] = [
+		center,
+		center + Vector2(64, 0),
+		center + Vector2(-64, 0),
+		center + Vector2(0, 48),
+		center + Vector2(0, -48),
+	]
+	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemies")
+	for candidate in candidates:
+		var is_clear := true
+		for enemy_node in enemies:
+			var enemy := enemy_node as Node2D
+			if is_instance_valid(enemy) and candidate.distance_to(enemy.global_position) < 52.0:
+				is_clear = false
+				break
+		if is_clear:
+			return candidate
+	return center
 
 func is_on_tower() -> bool:
 	var arena: Node = get_tree().get_first_node_in_group("tower_arena")
@@ -260,12 +285,43 @@ func handle_roll_physics() -> void:
 # --- Weapon & Shooting System ---
 func update_weapon_aim() -> void:
 	if weapon_pivot:
-		weapon_pivot.visible = not is_downed and not is_falling
-		var target_angle = aim_direction.angle() if is_multiplayer_authority() else velocity.angle()
+		set_weapon_drawn(not is_downed and not is_falling and not is_rolling and is_wave_active())
+		var weapon_direction := aim_direction if is_multiplayer_authority() else sync_velocity.normalized()
+		if weapon_direction == Vector2.ZERO:
+			weapon_direction = Vector2.RIGHT
+		var hover_offset := weapon_direction * 16.0 + Vector2(0.0, sin(Time.get_ticks_msec() * 0.006) * 2.0)
+		weapon_pivot.position = weapon_pivot.position.lerp(hover_offset, 0.24)
+		var target_angle = weapon_direction.angle()
 		weapon_pivot.rotation = target_angle
+		var vertical_flip := -1.0 if weapon_direction.x < 0.0 else 1.0
+		gun_body.scale.y = vertical_flip
+		gun_accent.scale.y = vertical_flip
+
+func is_wave_active() -> bool:
+	var arena: Node = get_tree().get_first_node_in_group("tower_arena")
+	if arena and arena.has_method("is_wave_active"):
+		var active: bool = arena.call("is_wave_active")
+		return active
+	return true
+
+func set_weapon_drawn(should_draw: bool) -> void:
+	if weapon_is_drawn == should_draw:
+		return
+	weapon_is_drawn = should_draw
+	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if should_draw:
+		weapon_pivot.visible = true
+		weapon_pivot.scale = Vector2.ZERO
+		tween.tween_property(weapon_pivot, "scale", Vector2.ONE, 0.16)
+	else:
+		tween.tween_property(weapon_pivot, "scale", Vector2.ZERO, 0.10)
+		tween.tween_callback(func():
+			if not weapon_is_drawn:
+				weapon_pivot.visible = false
+		)
 
 func shoot() -> void:
-	if is_downed or not bullet_scene or Time.get_ticks_msec() / 1000.0 < next_shot_time:
+	if is_downed or not is_wave_active() or not bullet_scene or Time.get_ticks_msec() / 1000.0 < next_shot_time:
 		return
 	next_shot_time = Time.get_ticks_msec() / 1000.0 + fire_cooldown
 		
@@ -309,6 +365,17 @@ func take_damage(amount: int) -> void:
 
 	if current_health <= 0:
 		rpc("enter_downed_state_rpc")
+
+func heal(amount: int) -> void:
+	if is_downed or current_health >= max_health:
+		return
+	current_health = min(max_health, current_health + amount)
+	health_changed.emit(current_health, max_health)
+
+func collect_coins(amount: int) -> void:
+	coins += amount
+	if hud and hud.has_method("update_coins"):
+		hud.update_coins(coins)
 
 @rpc("any_peer", "call_local", "reliable")
 func enter_downed_state_rpc() -> void:
@@ -366,6 +433,8 @@ func revive_player() -> void:
 @rpc("any_peer", "call_local", "reliable")
 func start_invulnerability_rpc(duration: float) -> void:
 	is_invulnerable = true
+	var original_enemy_mask := get_collision_mask_value(2)
+	set_collision_mask_value(2, false)
 	
 	if not sprite or not (sprite.material is ShaderMaterial):
 		get_tree().create_timer(duration).timeout.connect(func(): is_invulnerable = false)
@@ -387,6 +456,7 @@ func start_invulnerability_rpc(duration: float) -> void:
 
 	get_tree().create_timer(duration).timeout.connect(func():
 		is_invulnerable = false
+		set_collision_mask_value(2, original_enemy_mask)
 		if tween and tween.is_running():
 			tween.kill()
 		if sprite:

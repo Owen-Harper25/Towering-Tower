@@ -269,6 +269,13 @@ anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
+[node name="CoinLabel" type="Label" parent="HUD/Control"]
+offset_left = 8.0
+offset_top = 34.0
+offset_right = 130.0
+offset_bottom = 56.0
+text = "COINS: 0"
+
 [node name="HeartContainer" type="HBoxContainer" parent="HUD/Control" unique_id=470020185]
 layout_mode = 0
 offset_right = 40.0

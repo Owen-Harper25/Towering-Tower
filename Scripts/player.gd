@@ -172,8 +172,8 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 	
 	# Temporarily disable enemy bullet collision layer (e.g., Layer 3)
 	var original_mask = collision_mask
+	set_collision_mask_value(4, false) # Assume Layer 3 = Enemy Bullets
 	set_collision_mask_value(3, false) # Assume Layer 3 = Enemy Bullets
-
 	if menusfx: menusfx.play()
 	
 	if sprite.sprite_frames.has_animation("roll"):

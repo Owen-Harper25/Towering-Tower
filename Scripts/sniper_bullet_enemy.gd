@@ -8,11 +8,10 @@ extends CharacterBody2D
 @export_group("Combat Settings")
 @export var max_health: int = 8             # Fragile compared to standard enemy
 @export var attack_cooldown: float = 3.5    # Longer interval between shots
+@export var projectile_speed: float = 100.0 # Must match the bullet scene's speed
 @export var bullet_scene: PackedScene
 @export var hit_sound: AudioStream
 
-# --- Internal References ---
-# Change AnimatedSprite2D to Sprite2D (or Node2D)
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var shoot_timer: Timer = get_node_or_null("ShootTimer")
 
@@ -94,8 +93,35 @@ func _on_shoot_timer_timeout() -> void:
 	if not target_player or not is_instance_valid(target_player):
 		return
 
-	var fire_dir = (target_player.global_position - global_position).normalized()
+	var fire_dir = get_intercept_direction(target_player)
 	rpc("spawn_sniper_bullet_rpc", global_position, fire_dir.angle())
+
+func get_intercept_direction(target: CharacterBody2D) -> Vector2:
+	var offset := target.global_position - global_position
+	# sync_velocity is replicated by the player scene, unlike CharacterBody2D.velocity.
+	var target_velocity: Vector2 = target.get("sync_velocity")
+	var a := target_velocity.length_squared() - projectile_speed * projectile_speed
+	var b := 2.0 * offset.dot(target_velocity)
+	var c := offset.length_squared()
+	var time_to_hit := 0.0
+
+	if is_zero_approx(a):
+		if not is_zero_approx(b):
+			time_to_hit = -c / b
+	else:
+		var discriminant := b * b - 4.0 * a * c
+		if discriminant >= 0.0:
+			var sqrt_discriminant := sqrt(discriminant)
+			var first_time := (-b - sqrt_discriminant) / (2.0 * a)
+			var second_time := (-b + sqrt_discriminant) / (2.0 * a)
+			if first_time > 0.0 and second_time > 0.0:
+				time_to_hit = min(first_time, second_time)
+			else:
+				time_to_hit = max(first_time, second_time)
+
+	# If the player is moving too fast to intercept, aim directly at them instead.
+	var aim_position := target.global_position + target_velocity * time_to_hit if time_to_hit > 0.0 else target.global_position
+	return (aim_position - global_position).normalized()
 
 @rpc("any_peer", "call_local", "reliable")
 func spawn_sniper_bullet_rpc(spawn_pos: Vector2, angle: float) -> void:

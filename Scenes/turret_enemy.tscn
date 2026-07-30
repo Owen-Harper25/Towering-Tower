@@ -1,12 +1,19 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/standard_bullet_enemy.tscn" id="1"]
+[ext_resource type="Texture2D" path="res://Assets/Generated/enemy-sprites.png" id="2"]
 
 [node name="TurretEnemy" instance=ExtResource("1")]
-modulate = Color(0.75, 0.3, 1, 1)
+modulate = Color(1, 1, 1, 1)
 speed = 0.0
 stopping_distance = 10000.0
 max_health = 26
 attack_cooldown = 2.4
 shot_pattern = 2
 projectile_count = 10
+
+[node name="Sprite2D" parent="." index="0"]
+texture = ExtResource("2")
+region_enabled = true
+region_rect = Rect2(1448, 0, 724, 724)
+scale = Vector2(0.09, 0.09)

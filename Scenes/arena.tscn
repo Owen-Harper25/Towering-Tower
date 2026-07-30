@@ -3,10 +3,9 @@
 [ext_resource type="Texture2D" uid="uid://uat077b45f80" path="res://Assets/clouds.png" id="1_csrox"]
 [ext_resource type="Texture2D" uid="uid://drk74brvrwway" path="res://Assets/Ground.png" id="1_nnts3"]
 [ext_resource type="Texture2D" uid="uid://bj0a18g86cxly" path="res://Assets/Cloud 2.png" id="3_1v1nj"]
-[ext_resource type="PackedScene" uid="uid://b8dof7whv71kv" path="res://Scenes/sniper_bullet_enemy.tscn" id="5_kcpg1"]
-[ext_resource type="PackedScene" uid="uid://bwiskxejdg8w7" path="res://Scenes/standard_bullet_enemy.tscn" id="6_csrox"]
 [ext_resource type="Texture2D" uid="uid://s3phw8uykxrv" path="res://Assets/Tower.png" id="6_iyva0"]
-[ext_resource type="Script" path="res://Scripts/arena.gd" id="7_arena"]
+[ext_resource type="Script" uid="uid://dgrtj4vk4jjfv" path="res://Scripts/arena.gd" id="7_arena"]
+[ext_resource type="Script" uid="uid://dyfen8d7re74" path="res://Scripts/arena_boundary.gd" id="8_boundary"]
 
 [node name="Arena" type="Node2D" unique_id=101048953]
 script = ExtResource("7_arena")
@@ -60,7 +59,11 @@ texture_filter = 2
 texture = ExtResource("3_1v1nj")
 
 [node name="Tower" type="Sprite2D" parent="." unique_id=770358675]
-position = Vector2(240, 599)
+position = Vector2(240, 447)
 texture = ExtResource("6_iyva0")
 
-[node name="Enemies" type="Node2D" parent="."]
+[node name="ArenaBoundary" type="Node2D" parent="." unique_id=1394090485]
+z_index = 2
+script = ExtResource("8_boundary")
+
+[node name="Enemies" type="Node2D" parent="." unique_id=1063582548]

@@ -15,6 +15,11 @@ func _ready() -> void:
 	# Automatically despawn after lifetime seconds
 	var timer = get_tree().create_timer(lifetime)
 	timer.timeout.connect(queue_free)
+	var base_scale := scale
+	scale = Vector2.ZERO
+	var spawn_tween := create_tween()
+	spawn_tween.tween_property(self, "scale", base_scale * 1.4, 0.05)
+	spawn_tween.tween_property(self, "scale", base_scale, 0.06)
 
 func _physics_process(delta: float) -> void:
 	# Move forward in the direction the bullet is facing/rotated

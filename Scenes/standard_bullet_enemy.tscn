@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dektnuev5o6ji" path="res://Scenes/bullet.tscn" id="2_q0fm4"]
 [ext_resource type="Texture2D" uid="uid://c5e841mtflrqw" path="res://Assets/icon.svg" id="3_dwr7g"]
 [ext_resource type="AudioStream" uid="uid://58cdostlto8y" path="res://SFX/cancel.wav" id="4_flqi6"]
+[ext_resource type="Texture2D" path="res://Assets/Generated/enemy-sprites.png" id="5_enemy"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_rup26"]
 radius = 21.023796
@@ -15,7 +16,7 @@ properties/0/spawn = true
 properties/0/replication_mode = 1
 
 [node name="StandardBulletEnemy" type="CharacterBody2D" unique_id=1566023599]
-modulate = Color(1, 0.31072217, 0.26185015, 1)
+modulate = Color(1, 1, 1, 1)
 collision_layer = 2
 collision_mask = 21
 script = ExtResource("1_u7bv3")
@@ -24,8 +25,10 @@ hit_sound = ExtResource("4_flqi6")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=2076468894]
 material = ExtResource("1_flqi6")
-scale = Vector2(0.2734375, 0.2734375)
-texture = ExtResource("3_dwr7g")
+scale = Vector2(0.09, 0.09)
+texture = ExtResource("5_enemy")
+region_enabled = true
+region_rect = Rect2(0, 0, 724, 724)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=553431097]
 shape = SubResource("CircleShape2D_rup26")

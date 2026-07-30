@@ -38,6 +38,15 @@ func _ready() -> void:
 	add_child(hit_sfx_player)
 
 	setup_shoot_timer()
+	play_spawn_effects()
+
+func play_spawn_effects() -> void:
+	scale = Vector2.ZERO
+	modulate.a = 0.0
+	var tween := create_tween().set_parallel()
+	tween.tween_property(self, "scale", Vector2.ONE * 1.18, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "modulate:a", 1.0, 0.12)
+	tween.chain().tween_property(self, "scale", Vector2.ONE, 0.10)
 
 func setup_shoot_timer() -> void:
 	if not shoot_timer:
@@ -71,7 +80,7 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
-	if not get_arena_bounds().grow(24.0).has_point(global_position):
+	if not is_on_tower(24.0):
 		fall_into_clouds()
 
 func apply_knockback(force: Vector2) -> void:
@@ -94,6 +103,12 @@ func fall_into_clouds() -> void:
 func get_arena_bounds() -> Rect2:
 	var bounds: Variant = get_meta("arena_bounds", Rect2(28, 30, 424, 220))
 	return bounds if bounds is Rect2 else Rect2(28, 30, 424, 220)
+
+func is_on_tower(edge_padding: float) -> bool:
+	var bounds := get_arena_bounds()
+	var radii := bounds.size * 0.5 + Vector2(edge_padding, edge_padding)
+	var normalized_offset := (global_position - bounds.get_center()) / radii
+	return normalized_offset.length_squared() <= 1.0
 
 func find_target_player() -> void:
 	if target_player and is_instance_valid(target_player):
@@ -173,6 +188,9 @@ func play_hit_effects_rpc() -> void:
 			if is_instance_valid(mat):
 				mat.set_shader_parameter("enabled", false)
 		)
+	var hit_tween := create_tween()
+	hit_tween.tween_property(self, "scale", Vector2.ONE * 1.12, 0.05)
+	hit_tween.tween_property(self, "scale", Vector2.ONE, 0.09)
 @rpc("any_peer", "call_local", "reliable")
 func die_with_dissolve_rpc() -> void:
 	is_dying = true

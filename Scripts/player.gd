@@ -119,7 +119,7 @@ func _physics_process(delta: float) -> void:
 		if not is_falling:
 			sync_velocity = velocity
 			move_and_slide()
-			if not arena_bounds.has_point(global_position):
+			if not is_on_tower():
 				rpc("start_falling_rpc")
 
 	update_animations()
@@ -189,7 +189,7 @@ func handle_falling(delta: float) -> void:
 	sprite.scale = Vector2.ONE * lerpf(1.0, 0.45, clampf(fall_progress, 0.0, 1.0))
 	sprite.modulate.a = lerpf(1.0, 0.25, clampf(fall_progress, 0.0, 1.0))
 
-	if arena_bounds.has_point(global_position):
+	if is_on_tower():
 		rpc("land_from_fall_rpc")
 	elif fall_time_remaining <= 0.0:
 		rpc("rescue_from_fall_rpc")
@@ -218,6 +218,14 @@ func rescue_from_fall_rpc() -> void:
 		current_health = max(1, current_health - 2)
 		health_changed.emit(current_health, max_health)
 		rpc("start_invulnerability_rpc", invincibility_duration)
+
+func is_on_tower() -> bool:
+	var arena: Node = get_tree().get_first_node_in_group("tower_arena")
+	if arena and arena.has_method("is_on_tower"):
+		var is_safe: bool = arena.call("is_on_tower", global_position)
+		return is_safe
+	var normalized_offset := (global_position - arena_bounds.get_center()) / (arena_bounds.size * 0.5)
+	return normalized_offset.length_squared() <= 1.0
 
 # --- Dodge Roll System ---
 @rpc("any_peer", "call_local", "reliable")
@@ -263,6 +271,10 @@ func shoot() -> void:
 		
 	var spawn_pos = muzzle.global_position if muzzle else global_position
 	var fire_angle = aim_direction.angle()
+	if muzzle:
+		var recoil_tween := create_tween()
+		muzzle.scale = Vector2.ONE * 1.45
+		recoil_tween.tween_property(muzzle, "scale", Vector2.ONE, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	
 	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id())
 

@@ -30,6 +30,15 @@ func _on_settings_pressed() -> void:
 	if settings_panel.visible:
 		layout_settings_menu()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if settings_panel.visible and event.is_action_pressed("ui_cancel"):
+		close_settings()
+		get_viewport().set_input_as_handled()
+
+func close_settings() -> void:
+	settings_panel.hide()
+	settings_button.grab_focus()
+
 func _on_quit_pressed() -> void:
 	get_tree().quit()
 	
@@ -82,8 +91,8 @@ func build_settings_menu() -> void:
 	content.add_child(vsync_button)
 
 	var close_button := Button.new()
-	close_button.text = "CLOSE"
-	close_button.pressed.connect(func(): settings_panel.hide())
+	close_button.text = "BACK / CANCEL"
+	close_button.pressed.connect(close_settings)
 	content.add_child(close_button)
 	layout_settings_menu()
 

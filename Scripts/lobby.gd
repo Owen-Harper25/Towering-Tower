@@ -9,9 +9,9 @@ var panel_content: VBoxContainer
 
 func _ready() -> void:
 	add_to_group("safe_lobby")
-	configure_interactable(shop_interactable, "E  —  Talk to the Tower Merchant", open_shop)
-	configure_interactable(tree_interactable, "E  —  Touch the Rune Tree", open_skill_tree)
-	configure_interactable(teleporter_interactable, "E  —  Enter the Tower", enter_tower)
+	configure_interactable(shop_interactable, "E - TALK WITH TOWER MERCHANT", open_shop)
+	configure_interactable(tree_interactable, "E - RUNE TREE", open_skill_tree)
+	configure_interactable(teleporter_interactable, "E - ENTER THE TOWER", enter_tower)
 	create_overlay()
 
 func configure_interactable(interactable: Area2D, prompt: String, action: Callable) -> void:

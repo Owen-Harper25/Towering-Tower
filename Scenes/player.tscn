@@ -239,7 +239,7 @@ vertical_alignment = 1
 
 [node name="GunBody" type="Polygon2D" parent="WeaponPivot" unique_id=919488784]
 color = Color(0.16, 0.22, 0.32, 1)
-polygon = PackedVector2Array(-6, -5, 6, -5, 9, -2, 9, 2, 3, 2, 2, 7, -2, 7, -2, 2, -6, 2)
+polygon = PackedVector2Array(-6, -5, -3, -5, -2, -6, 0, -5, 6, -5, 9, -5, 10, -3, 10, -2, 10, -1, 9, 2, 1, 2, -1, 3, -2, 7, -5, 7, -5, 3, -6, 2)
 
 [node name="GunAccent" type="Polygon2D" parent="WeaponPivot" unique_id=605726025]
 color = Color(0.35, 0.85, 1, 1)

@@ -1,6 +1,7 @@
 extends Node2D
 
 const PLAYER = preload("uid://dflfyebeka06d")
+const IRIS_TRANSITION_SHADER := preload("res://Shaders/iris_transition.gdshader")
 
 # --- UI References (Matching Exact Scene Tree) ---
 @onready var menu_canvas_layer: CanvasLayer = $"CanvasLayer/Main Menu/CanvasLayer"
@@ -28,6 +29,9 @@ var music: bool = false
 var current_loop_count: int = 0
 @export var loops_per_song: int = 2
 var current_level: Node = null
+var transition_overlay: ColorRect
+var transition_tween: Tween
+var transition_material: ShaderMaterial
 
 func _ready() -> void:
 	add_to_group("main")
@@ -38,11 +42,13 @@ func _ready() -> void:
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 
 	menu_canvas_layer.show()
+	create_scene_transition_overlay()
 	
 	# Setup Music System
 	background_songs = $Music.get_children()
 	for i in background_songs:
 		if i is AudioStreamPlayer2D or i is AudioStreamPlayer:
+			i.bus = &"Music"
 			i.finished.connect(on_song_fin)
 	break_timer.timeout.connect(play_next_random_song)
 	play_next_random_song()
@@ -216,6 +222,13 @@ func return_party_to_lobby_rpc() -> void:
 # --- LEVEL SWITCHING SYSTEM ---
 
 func load_level(level_scene: PackedScene) -> void:
+	if current_level and transition_overlay:
+		transition_to_level(level_scene)
+		return
+	perform_load_level(level_scene)
+	play_scene_transition()
+
+func perform_load_level(level_scene: PackedScene) -> void:
 	if current_level:
 		current_level.queue_free()
 		current_level = null
@@ -225,6 +238,45 @@ func load_level(level_scene: PackedScene) -> void:
 	
 	if current_level.has_node("SpawnPoint"):
 		$SpawnPoint.global_position = current_level.get_node("SpawnPoint").global_position
+
+func create_scene_transition_overlay() -> void:
+	var transition_layer := CanvasLayer.new()
+	transition_layer.layer = 100
+	transition_overlay = ColorRect.new()
+	transition_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	transition_material = ShaderMaterial.new()
+	transition_material.shader = IRIS_TRANSITION_SHADER
+	transition_overlay.material = transition_material
+	transition_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	transition_overlay.hide()
+	transition_layer.add_child(transition_overlay)
+	add_child(transition_layer)
+
+func play_scene_transition() -> void:
+	if not transition_overlay:
+		return
+	if transition_tween and transition_tween.is_valid():
+		transition_tween.kill()
+	transition_overlay.show()
+	set_iris_radius(0.0)
+	transition_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	transition_tween.tween_method(set_iris_radius, 0.0, 1.6, 0.32)
+	transition_tween.tween_callback(transition_overlay.hide)
+
+func transition_to_level(level_scene: PackedScene) -> void:
+	if transition_tween and transition_tween.is_valid():
+		transition_tween.kill()
+	transition_overlay.show()
+	set_iris_radius(1.6)
+	transition_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	transition_tween.tween_method(set_iris_radius, 1.6, 0.0, 0.22)
+	transition_tween.tween_callback(func(): perform_load_level(level_scene))
+	transition_tween.tween_method(set_iris_radius, 0.0, 1.6, 0.30)
+	transition_tween.tween_callback(transition_overlay.hide)
+
+func set_iris_radius(radius: float) -> void:
+	if transition_material:
+		transition_material.set_shader_parameter("iris_radius", radius)
 
 func change_level_networked(new_level_path: String) -> void:
 	if not multiplayer.is_server():

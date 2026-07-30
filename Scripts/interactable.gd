@@ -12,6 +12,11 @@ func _ready() -> void:
 
 	if sprite == null:
 		sprite = get_parent().get_node_or_null("AnimatedSprite2D")
+	if sprite == null:
+		for child in get_parent().get_children():
+			if child is Sprite2D or child is AnimatedSprite2D:
+				sprite = child
+				break
 
 func set_highlighted(state: bool) -> void:
 	if sprite and sprite.material:

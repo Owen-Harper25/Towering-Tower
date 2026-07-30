@@ -1,5 +1,7 @@
 extends Area2D
 
+const IMPACT_TEXTURE := preload("res://Assets/plus particle.png")
+
 @export var speed: float = 220.0
 @export var damage: int = 1
 @export var lifetime: float = 2.5
@@ -36,10 +38,12 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 		
 	if body.has_method("try_receive_enemy_hit") and body.try_receive_enemy_hit(damage):
+		spawn_impact_particles(Color(1.0, 0.25, 0.2))
 		queue_free()
 		return
 	if body.has_method("take_damage"):
 		body.take_damage(damage)
+		spawn_impact_particles(Color(1.0, 0.38, 0.18))
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(Vector2.RIGHT.rotated(rotation) * knockback_force)
 	
@@ -52,4 +56,25 @@ func _on_area_entered(area: Area2D) -> void:
 		
 	if area.has_method("take_damage"):
 		area.take_damage(damage)
+		spawn_impact_particles(Color(1.0, 0.38, 0.18))
 		queue_free()
+
+func spawn_impact_particles(color: Color) -> void:
+	var parent := get_parent()
+	if not parent:
+		return
+	var burst := Node2D.new()
+	burst.global_position = global_position
+	parent.add_child(burst)
+	for index in range(6):
+		var particle := Sprite2D.new()
+		particle.texture = IMPACT_TEXTURE
+		particle.modulate = color
+		particle.scale = Vector2.ONE * randf_range(0.45, 0.85)
+		burst.add_child(particle)
+		var direction := Vector2.from_angle(randf_range(0.0, TAU))
+		var tween := burst.create_tween().set_parallel()
+		tween.tween_property(particle, "position", direction * randf_range(8.0, 18.0), 0.15)
+		tween.tween_property(particle, "scale", Vector2.ZERO, 0.15)
+		tween.tween_property(particle, "modulate:a", 0.0, 0.15)
+	get_tree().create_timer(0.17).timeout.connect(burst.queue_free)

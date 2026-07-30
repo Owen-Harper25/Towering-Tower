@@ -17,6 +17,7 @@
 [ext_resource type="AudioStream" uid="uid://i7xo33jq15by" path="res://SFX/openMenu.wav" id="14_k12tt"]
 [ext_resource type="Script" uid="uid://bv5n1x476g4ts" path="res://Scripts/hud.gd" id="15_wsu2k"]
 [ext_resource type="PackedScene" uid="uid://cxv05nhe5atxk" path="res://Scenes/heart_gui.tscn" id="16_k12tt"]
+[ext_resource type="FontFile" uid="uid://c350m17mql3a6" path="res://Assets/Capital Bold - Normal.ttf" id="18_b3802"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hibaj"]
 resource_local_to_scene = true
@@ -66,6 +67,9 @@ _data = {
 &"RESET": SubResource("Animation_mk4b3"),
 &"new_song": SubResource("Animation_jwfaf")
 }
+
+[sub_resource type="LabelSettings" id="LabelSettings_h1bgf"]
+font = ExtResource("18_b3802")
 
 [node name="Main" type="Node2D" unique_id=672026216]
 script = ExtResource("1_bo1nx")
@@ -230,21 +234,27 @@ one_shot = true
 
 [node name="Battle1" type="AudioStreamPlayer2D" parent="Music" unique_id=296510013]
 stream = ExtResource("3_d1ilt")
+bus = &"Music"
 
 [node name="Boss 2 Fin" type="AudioStreamPlayer2D" parent="Music" unique_id=134335270]
 stream = ExtResource("4_6iyac")
+bus = &"Music"
 
 [node name="Boss 3" type="AudioStreamPlayer2D" parent="Music" unique_id=306654453]
 stream = ExtResource("5_fdnlq")
+bus = &"Music"
 
 [node name="Dungeon" type="AudioStreamPlayer2D" parent="Music" unique_id=450816281]
 stream = ExtResource("6_jkdf5")
+bus = &"Music"
 
 [node name="Town" type="AudioStreamPlayer2D" parent="Music" unique_id=1595563514]
 stream = ExtResource("7_wsu2k")
+bus = &"Music"
 
 [node name="Town 2" type="AudioStreamPlayer2D" parent="Music" unique_id=695435391]
 stream = ExtResource("8_k12tt")
+bus = &"Music"
 
 [node name="SFX" type="Node2D" parent="." unique_id=896389301]
 
@@ -269,11 +279,12 @@ offset_bottom = 40.0
 
 [node name="CoinLabel" type="Label" parent="HUD/Control" unique_id=1653880140]
 layout_mode = 0
-offset_left = 8.0
-offset_top = 34.0
-offset_right = 130.0
-offset_bottom = 56.0
+offset_left = 6.0
+offset_top = 9.0
+offset_right = 128.0
+offset_bottom = 31.0
 text = "COINS: 0"
+label_settings = SubResource("LabelSettings_h1bgf")
 
 [node name="HeartContainer" type="HBoxContainer" parent="HUD/Control" unique_id=470020185]
 layout_mode = 0

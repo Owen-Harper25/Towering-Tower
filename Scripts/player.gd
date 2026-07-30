@@ -371,6 +371,7 @@ func take_damage(amount: int) -> void:
 	current_health = max(0, current_health)
 	health_changed.emit(current_health, max_health)
 	if hurtsfx: hurtsfx.play()
+	play_hit_screen_shake()
 	
 	# RPC the invulnerability visually across all peers
 	rpc("start_invulnerability_rpc", invincibility_duration)
@@ -451,10 +452,20 @@ func receive_enemy_hit_rpc(penalty: float) -> void:
 		return
 	pause_timer = 0.0
 	death_timer_current = maxf(0.0, death_timer_current - penalty)
+	if is_multiplayer_authority():
+		play_hit_screen_shake()
 	queue_redraw()
 	var tween := create_tween()
 	tween.tween_property(sprite, "modulate", Color(1.0, 0.28, 0.28), 0.06)
 	tween.tween_property(sprite, "modulate", Color.WHITE, 0.08)
+
+func play_hit_screen_shake() -> void:
+	if not is_multiplayer_authority() or not camera:
+		return
+	var shake := create_tween()
+	shake.tween_property(camera, "offset", Vector2(randf_range(-4.0, 4.0), randf_range(-3.0, 3.0)), 0.035)
+	shake.tween_property(camera, "offset", Vector2(randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)), 0.045)
+	shake.tween_property(camera, "offset", Vector2.ZERO, 0.07)
 @rpc("any_peer", "call_local", "reliable")
 
 func sync_revive_player_rpc() -> void:

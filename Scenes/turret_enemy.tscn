@@ -1,10 +1,18 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cn3svt8wqmado"]
 
-[ext_resource type="PackedScene" path="res://Scenes/standard_bullet_enemy.tscn" id="1"]
-[ext_resource type="Texture2D" path="res://Assets/Generated/enemy-sprites.png" id="2"]
+[ext_resource type="PackedScene" uid="uid://bwiskxejdg8w7" path="res://Scenes/standard_bullet_enemy.tscn" id="1"]
+[ext_resource type="Shader" uid="uid://d0n2p7xij1xht" path="res://Shaders/enemy_material.gdshader" id="2_gaacj"]
+[ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="3_qj7wb"]
 
-[node name="TurretEnemy" instance=ExtResource("1")]
-modulate = Color(1, 1, 1, 1)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_v5dfy"]
+resource_local_to_scene = true
+shader = ExtResource("2_gaacj")
+shader_parameter/enabled = false
+shader_parameter/tint = Color(1, 1, 1, 1)
+shader_parameter/dissolve_value = 1.0
+shader_parameter/noise_tex = ExtResource("3_qj7wb")
+
+[node name="TurretEnemy" unique_id=438426310 instance=ExtResource("1")]
 speed = 0.0
 stopping_distance = 10000.0
 max_health = 26
@@ -12,8 +20,7 @@ attack_cooldown = 2.4
 shot_pattern = 2
 projectile_count = 10
 
-[node name="Sprite2D" parent="." index="0"]
-texture = ExtResource("2")
-region_enabled = true
-region_rect = Rect2(1448, 0, 724, 724)
-scale = Vector2(0.09, 0.09)
+[node name="Sprite2D" parent="." index="0" unique_id=2076468894]
+material = SubResource("ShaderMaterial_v5dfy")
+position = Vector2(-1, -1)
+region_rect = Rect2(64, -1, 31, 33)

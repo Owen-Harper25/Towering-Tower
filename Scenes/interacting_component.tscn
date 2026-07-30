@@ -1,13 +1,14 @@
 [gd_scene format=3 uid="uid://b220qk7byb8a3"]
 
-[ext_resource type="Script" path="res://Scripts/interacting_component.gd" id="1_hkgi3"]
+[ext_resource type="Script" uid="uid://c2v51ijln31la" path="res://Scripts/interacting_component.gd" id="1_hkgi3"]
+[ext_resource type="FontFile" uid="uid://c350m17mql3a6" path="res://Assets/Capital Bold - Normal.ttf" id="2_nsw6d"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_wcss1"]
 radius = 34.0
 
 [sub_resource type="LabelSettings" id="LabelSettings_hkgi3"]
-font_size = 12
-outline_size = 3
+font = ExtResource("2_nsw6d")
+font_size = 8
 outline_color = Color(0, 0, 0, 1)
 
 [node name="InteractingComponent" type="Node2D" unique_id=410509540]
@@ -33,7 +34,7 @@ offset_right = 36.25
 offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "E to Interact"
+text = "E TO INTERACT"
 label_settings = SubResource("LabelSettings_hkgi3")
 
 [connection signal="area_entered" from="InteractRange" to="." method="_on_interact_range_area_entered"]

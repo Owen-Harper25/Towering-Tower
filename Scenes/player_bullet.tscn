@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://dai7bgia0buxf" path="res://Assets/Player Bullet.png" id="2_3m2mg"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_rup26"]
-radius = 2.0
+radius = 5.0
 
 [node name="PlayerBullet" type="Area2D" unique_id=1453827250]
 collision_layer = 4
@@ -17,4 +17,5 @@ damage = 2
 shape = SubResource("CircleShape2D_rup26")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=2053746416]
+scale = Vector2(2, 2)
 texture = ExtResource("2_3m2mg")

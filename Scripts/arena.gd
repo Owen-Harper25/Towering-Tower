@@ -3,6 +3,7 @@ extends Node2D
 const RUSHER_SCENE := preload("res://Scenes/standard_bullet_enemy.tscn")
 const SNIPER_SCENE := preload("res://Scenes/sniper_bullet_enemy.tscn")
 const TURRET_SCENE := preload("res://Scenes/turret_enemy.tscn")
+const BOSS_SCENE := preload("res://Scenes/tower_boss.tscn")
 
 @export var arena_bounds: Rect2 = Rect2(28, 30, 424, 220)
 @export var time_between_waves: float = 2.5
@@ -83,6 +84,9 @@ func _physics_process(delta: float) -> void:
 func start_wave() -> void:
 	wave += 1
 	rpc("sync_wave_state_rpc", wave, true)
+	if wave == 4:
+		spawn_boss()
+		return
 	var rusher_count: int = 2 + wave
 	var sniper_count: int = 1 + wave / 2
 	var turret_count: int = maxi(0, (wave - 2) / 2)
@@ -95,7 +99,7 @@ func start_wave() -> void:
 func sync_wave_state_rpc(new_wave: int, active: bool) -> void:
 	wave = new_wave
 	wave_active = active
-	update_wave_banner("INCOMING" if active else "CLEAR")
+	update_wave_banner("BOSS" if active and new_wave == 4 else "INCOMING" if active else "CLEAR")
 
 func spawn_group(scene: PackedScene, count: int) -> void:
 	for index in range(count):
@@ -106,6 +110,12 @@ func spawn_group(scene: PackedScene, count: int) -> void:
 		var enemy_id := "Enemy_%d" % next_enemy_id
 		next_enemy_id += 1
 		rpc("spawn_enemy", scene.resource_path, spawn_position, enemy_id)
+
+func spawn_boss() -> void:
+	var spawn_position := arena_bounds.get_center() + Vector2(0.0, -72.0)
+	var enemy_id := "Enemy_%d" % next_enemy_id
+	next_enemy_id += 1
+	rpc("spawn_enemy", BOSS_SCENE.resource_path, spawn_position, enemy_id)
 
 @rpc("authority", "call_local", "reliable")
 func spawn_enemy(scene_path: String, spawn_position: Vector2, enemy_id: String) -> void:

@@ -36,6 +36,8 @@ func _on_body_entered(body: Node2D) -> void:
 	# Ignore the enemy that spawned this bullet
 	if body == shooter:
 		return
+	if body.has_method("is_dodging_bullets") and body.is_dodging_bullets():
+		return
 		
 	if body.has_method("try_receive_enemy_hit") and body.try_receive_enemy_hit(damage):
 		spawn_impact_particles(Color(1.0, 0.25, 0.2))

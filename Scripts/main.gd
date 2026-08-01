@@ -2,6 +2,7 @@ extends Node2D
 
 const PLAYER = preload("uid://dflfyebeka06d")
 const IRIS_TRANSITION_SHADER := preload("res://Shaders/iris_transition.gdshader")
+const GAME_GRADE_SHADER := preload("res://Shaders/game_grade.gdshader")
 
 # --- UI References (Matching Exact Scene Tree) ---
 @onready var menu_canvas_layer: CanvasLayer = $"CanvasLayer/Main Menu/CanvasLayer"
@@ -32,6 +33,10 @@ var current_level: Node = null
 var transition_overlay: ColorRect
 var transition_tween: Tween
 var transition_material: ShaderMaterial
+var game_grade_material: ShaderMaterial
+var post_process_tween: Tween
+var game_grade_darkness := 0.985
+var game_grade_glow := 0.025
 
 func _ready() -> void:
 	add_to_group("main")
@@ -43,6 +48,7 @@ func _ready() -> void:
 
 	menu_canvas_layer.show()
 	create_scene_transition_overlay()
+	create_game_post_process()
 	
 	# Setup Music System
 	background_songs = $Music.get_children()
@@ -235,6 +241,7 @@ func perform_load_level(level_scene: PackedScene) -> void:
 		
 	current_level = level_scene.instantiate()
 	level_container.add_child(current_level)
+	update_game_post_process(current_level.is_in_group("tower_arena"))
 	
 	if current_level.has_node("SpawnPoint"):
 		$SpawnPoint.global_position = current_level.get_node("SpawnPoint").global_position
@@ -251,6 +258,41 @@ func create_scene_transition_overlay() -> void:
 	transition_overlay.hide()
 	transition_layer.add_child(transition_overlay)
 	add_child(transition_layer)
+
+func create_game_post_process() -> void:
+	var grade_layer := CanvasLayer.new()
+	grade_layer.layer = 10
+	var overlay := ColorRect.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	game_grade_material = ShaderMaterial.new()
+	game_grade_material.shader = GAME_GRADE_SHADER
+	game_grade_material.set_shader_parameter("darkness", game_grade_darkness)
+	game_grade_material.set_shader_parameter("glow_strength", game_grade_glow)
+	overlay.material = game_grade_material
+	grade_layer.add_child(overlay)
+	add_child(grade_layer)
+
+func update_game_post_process(in_combat: bool) -> void:
+	if not game_grade_material:
+		return
+	var target_darkness := 0.92 if in_combat else 0.985
+	var target_glow := 0.10 if in_combat else 0.025
+	if post_process_tween and post_process_tween.is_valid():
+		post_process_tween.kill()
+	post_process_tween = create_tween().set_parallel()
+	post_process_tween.tween_method(set_game_grade_darkness, game_grade_darkness, target_darkness, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	post_process_tween.tween_method(set_game_grade_glow, game_grade_glow, target_glow, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func set_game_grade_darkness(value: float) -> void:
+	game_grade_darkness = value
+	if game_grade_material:
+		game_grade_material.set_shader_parameter("darkness", value)
+
+func set_game_grade_glow(value: float) -> void:
+	game_grade_glow = value
+	if game_grade_material:
+		game_grade_material.set_shader_parameter("glow_strength", value)
 
 func play_scene_transition() -> void:
 	if not transition_overlay:

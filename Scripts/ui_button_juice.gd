@@ -4,16 +4,38 @@ const HOVER_SCALE := Vector2(1.045, 1.045)
 const PRESS_SCALE := Vector2(0.96, 0.96)
 const NAVIGATION_SOUND := preload("res://SFX/select.wav")
 const CONFIRM_SOUND := preload("res://SFX/Confirm.wav")
+const CURSOR_TEXTURE := preload("res://Assets/Cursor.png")
+const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
+const CURSOR_SCALE := 2.5
 
 var navigation_player: AudioStreamPlayer
 var confirm_player: AudioStreamPlayer
 var last_navigation_sound_time := -1.0
 var keyboard_navigation_active := false
+var cursor_sprite: Sprite2D
 
 func _ready() -> void:
+	create_scaled_cursor()
 	create_audio_players()
 	get_tree().node_added.connect(_on_node_added)
 	call_deferred("style_existing_buttons")
+
+func create_scaled_cursor() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+	var cursor_layer := CanvasLayer.new()
+	cursor_layer.layer = 200
+	cursor_sprite = Sprite2D.new()
+	cursor_sprite.texture = CURSOR_TEXTURE
+	cursor_sprite.centered = false
+	cursor_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cursor_sprite.scale = Vector2.ONE * CURSOR_SCALE
+	cursor_layer.add_child(cursor_sprite)
+	add_child(cursor_layer)
+
+func _process(_delta: float) -> void:
+	if cursor_sprite:
+		var hotspot := CURSOR_TEXTURE.get_size() * CURSOR_SCALE * 0.5
+		cursor_sprite.position = get_viewport().get_mouse_position() - hotspot
 
 func create_audio_players() -> void:
 	navigation_player = AudioStreamPlayer.new()
@@ -71,6 +93,11 @@ func find_first_available_button(node: Node) -> BaseButton:
 func setup_button(button: BaseButton) -> void:
 	if not button or button.has_meta("tower_ui_juiced"):
 		return
+	# Keep all text buttons consistent, including controls created at runtime.
+	if button is Button:
+		var text_button := button as Button
+		text_button.text = text_button.text.to_upper()
+		text_button.add_theme_font_override("font", CAPITAL_BOLD_FONT)
 	button.set_meta("tower_ui_juiced", true)
 	button.pivot_offset = button.size * 0.5
 	button.resized.connect(func(): button.pivot_offset = button.size * 0.5)

@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const LOW_HEALTH_IRIS_SHADER := preload("res://Shaders/low_health_iris.gdshader")
+
 # --- Signals ---
 signal health_changed(new_health: int, max_health: int)
 signal player_died()
@@ -26,6 +28,12 @@ signal player_revived()
 @export var fire_cooldown: float = 0.16
 @export var fall_recovery_time: float = 1.75
 @export var fall_dash_speed: float = 420.0
+@export var fall_dash_duration: float = 0.34
+@export var fall_drift_duration: float = 0.28
+@export_group("Camera Settings")
+@export var aim_camera_lead_distance: float = 22.0
+@export var aim_camera_lead_smoothness: float = 7.0
+@export var aim_camera_deadzone: float = 8.0
 @onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Shoot")
 @onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Hurt")
 @onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
@@ -57,6 +65,11 @@ var next_shot_time := 0.0
 var arena_bounds := Rect2(28, 30, 424, 220)
 var is_falling := false
 var fall_time_remaining := 0.0
+var fall_dash_used := false
+var fall_dash_active := false
+var fall_dash_direction := Vector2.ZERO
+var fall_drift_remaining := 0.0
+var fall_drift_velocity := Vector2.ZERO
 var coins := 0
 var weapon_is_drawn := false
 
@@ -73,6 +86,11 @@ var revive_hp_max: float = 0.0
 
 var death_timer_current: float = 0.0
 var pause_timer: float = 0.0
+var low_health_iris_material: ShaderMaterial
+var low_health_lowpass: AudioEffectLowPassFilter
+var low_health_effect_tween: Tween
+var low_health_iris_intensity := 0.0
+var low_health_lowpass_cutoff := 20000.0
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
@@ -94,6 +112,10 @@ func _ready() -> void:
 		if hud:
 			hud.setup_hearts(max_health, current_health)
 			health_changed.connect(hud.update_hearts)
+		create_low_health_iris()
+		create_low_health_audio_filter()
+		health_changed.connect(update_low_health_iris)
+		update_low_health_iris(current_health, max_health)
 	else:
 		camera.enabled = false
 		camera.process_mode = Node.PROCESS_MODE_DISABLED
@@ -128,10 +150,21 @@ func _physics_process(delta: float) -> void:
 			sync_velocity = velocity
 			move_and_slide()
 			if not is_on_tower():
-				rpc("start_falling_rpc")
+				rpc("start_falling_rpc", velocity)
 
 	update_animations()
 	update_weapon_aim()
+	update_aim_camera(delta)
+
+func update_aim_camera(delta: float) -> void:
+	if not is_multiplayer_authority() or not camera or not camera.enabled:
+		return
+	var mouse_offset := get_global_mouse_position() - global_position
+	var target_offset := Vector2.ZERO
+	if mouse_offset.length() > aim_camera_deadzone:
+		target_offset = mouse_offset.normalized() * aim_camera_lead_distance
+	var blend := 1.0 - exp(-aim_camera_lead_smoothness * delta)
+	camera.offset = camera.offset.lerp(target_offset, blend)
 
 func handle_death_timer(delta: float) -> void:
 	if pause_timer > 0.0:
@@ -188,13 +221,16 @@ func handle_crawling_movement() -> void:
 
 func handle_falling(delta: float) -> void:
 	fall_time_remaining -= delta
-	input_dir = Vector2(
-		Input.get_axis("Left", "Right"),
-		Input.get_axis("Up", "Down")
-	).normalized()
-	velocity = input_dir * speed
-	if Input.is_action_just_pressed("DodgeRoll") and input_dir != Vector2.ZERO:
-		velocity = input_dir * fall_dash_speed
+	if fall_drift_remaining > 0.0:
+		fall_drift_remaining -= delta
+		velocity = fall_drift_velocity
+		fall_drift_velocity = fall_drift_velocity.move_toward(Vector2.ZERO, speed * 1.8 * delta)
+	elif not fall_dash_active:
+		velocity = Vector2.ZERO
+		if Input.is_action_just_pressed("DodgeRoll") and not fall_dash_used:
+			rpc("start_fall_recovery_dash_rpc", get_fall_recovery_direction())
+	else:
+		velocity = fall_dash_direction * fall_dash_speed
 
 	move_and_slide()
 	sync_velocity = velocity
@@ -208,16 +244,52 @@ func handle_falling(delta: float) -> void:
 		rpc("rescue_from_fall_rpc")
 
 @rpc("any_peer", "call_local", "reliable")
-func start_falling_rpc() -> void:
+func start_falling_rpc(initial_velocity: Vector2) -> void:
 	if is_falling or is_downed:
 		return
 	is_falling = true
 	is_rolling = false
+	fall_dash_used = false
+	fall_dash_active = false
+	fall_dash_direction = Vector2.ZERO
+	fall_drift_remaining = fall_drift_duration
+	fall_drift_velocity = initial_velocity
 	fall_time_remaining = fall_recovery_time
+
+func get_fall_recovery_direction() -> Vector2:
+	var arena: Node = get_tree().get_first_node_in_group("tower_arena")
+	var bounds: Rect2 = arena.get("arena_bounds") if arena else arena_bounds
+	var center := bounds.get_center()
+	var radii := bounds.size * 0.5
+	var normalized_offset := (global_position - center) / radii
+	if normalized_offset == Vector2.ZERO:
+		return Vector2.UP
+	var safe_target := center + (normalized_offset.normalized() * radii * 0.82)
+	return (safe_target - global_position).normalized()
+
+@rpc("any_peer", "call_local", "reliable")
+func start_fall_recovery_dash_rpc(direction: Vector2) -> void:
+	if not is_falling or fall_dash_used:
+		return
+	fall_dash_used = true
+	fall_dash_active = true
+	fall_dash_direction = direction.normalized()
+	if sprite.sprite_frames.has_animation("roll"):
+		sprite.play("roll")
+	get_tree().create_timer(fall_dash_duration).timeout.connect(end_fall_recovery_dash)
+
+func end_fall_recovery_dash() -> void:
+	fall_dash_active = false
+	velocity = Vector2.ZERO
 
 @rpc("any_peer", "call_local", "reliable")
 func land_from_fall_rpc() -> void:
 	is_falling = false
+	fall_dash_active = false
+	fall_dash_used = false
+	fall_dash_direction = Vector2.ZERO
+	fall_drift_remaining = 0.0
+	fall_drift_velocity = Vector2.ZERO
 	fall_time_remaining = 0.0
 	velocity = Vector2.ZERO
 	sprite.scale = Vector2.ONE
@@ -274,8 +346,7 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 	
 	# Temporarily disable enemy bullet collision layer (e.g., Layer 3)
 	var original_mask = collision_mask
-	set_collision_mask_value(4, false) # Assume Layer 3 = Enemy Bullets
-	set_collision_mask_value(3, false) # Assume Layer 3 = Enemy Bullets
+	set_collision_mask_value(4, false)
 	if menusfx: menusfx.play()
 	
 	if sprite.sprite_frames.has_animation("roll"):
@@ -381,11 +452,37 @@ func take_damage(amount: int) -> void:
 	if current_health <= 0:
 		rpc("enter_downed_state_rpc")
 
+@rpc("any_peer", "call_local", "reliable")
+func receive_boss_bash_rpc(damage: int, knockback: Vector2) -> void:
+	if not is_multiplayer_authority():
+		return
+	take_damage(damage)
+	if not is_downed:
+		velocity += knockback
+
 func heal(amount: int) -> void:
-	if is_downed or current_health >= max_health:
+	if is_downed:
+		if is_multiplayer_authority():
+			rpc("revive_from_health_pickup_rpc")
+		return
+	if current_health >= max_health:
 		return
 	current_health = min(max_health, current_health + amount)
 	health_changed.emit(current_health, max_health)
+
+@rpc("any_peer", "call_local", "reliable")
+func revive_from_health_pickup_rpc() -> void:
+	if not is_downed:
+		return
+	is_downed = false
+	death_timer_current = 0.0
+	pause_timer = 0.0
+	current_health = 1
+	health_changed.emit(current_health, max_health)
+	player_revived.emit()
+	if sprite.sprite_frames.has_animation("Idle"):
+		sprite.play("Idle")
+	queue_redraw()
 
 func collect_coins(amount: int) -> void:
 	coins += amount
@@ -468,6 +565,52 @@ func play_hit_screen_shake() -> void:
 	shake.tween_property(camera, "offset", Vector2(randf_range(-4.0, 4.0), randf_range(-3.0, 3.0)), 0.035)
 	shake.tween_property(camera, "offset", Vector2(randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)), 0.045)
 	shake.tween_property(camera, "offset", Vector2.ZERO, 0.07)
+
+func is_dodging_bullets() -> bool:
+	return is_rolling and is_invulnerable
+
+func create_low_health_iris() -> void:
+	var iris_layer := CanvasLayer.new()
+	iris_layer.layer = 20
+	var overlay := ColorRect.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	low_health_iris_material = ShaderMaterial.new()
+	low_health_iris_material.shader = LOW_HEALTH_IRIS_SHADER
+	overlay.material = low_health_iris_material
+	iris_layer.add_child(overlay)
+	add_child(iris_layer)
+
+func create_low_health_audio_filter() -> void:
+	var master_bus_index := AudioServer.get_bus_index("Master")
+	if master_bus_index < 0:
+		return
+	low_health_lowpass = AudioEffectLowPassFilter.new()
+	low_health_lowpass.cutoff_hz = 20000.0
+	AudioServer.add_bus_effect(master_bus_index, low_health_lowpass)
+
+func update_low_health_iris(health: int, health_maximum: int) -> void:
+	if not low_health_iris_material or health_maximum <= 0:
+		return
+	var missing_health_ratio := 1.0 - clampf(float(health) / float(health_maximum), 0.0, 1.0)
+	# The warning should remain very subtle above half health, then build smoothly.
+	var target_intensity := pow(maxf(0.0, missing_health_ratio - 0.35) / 0.65, 1.45)
+	var target_cutoff := lerpf(20000.0, 1200.0, pow(target_intensity, 1.15))
+	if low_health_effect_tween and low_health_effect_tween.is_valid():
+		low_health_effect_tween.kill()
+	low_health_effect_tween = create_tween().set_parallel()
+	low_health_effect_tween.tween_method(set_low_health_iris_intensity, low_health_iris_intensity, target_intensity, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	low_health_effect_tween.tween_method(set_low_health_audio_cutoff, low_health_lowpass_cutoff, target_cutoff, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func set_low_health_iris_intensity(value: float) -> void:
+	low_health_iris_intensity = value
+	if low_health_iris_material:
+		low_health_iris_material.set_shader_parameter("intensity", value)
+
+func set_low_health_audio_cutoff(value: float) -> void:
+	low_health_lowpass_cutoff = value
+	if low_health_lowpass:
+		low_health_lowpass.cutoff_hz = value
 @rpc("any_peer", "call_local", "reliable")
 
 func sync_revive_player_rpc() -> void:
@@ -538,6 +681,12 @@ func update_animations() -> void:
 	if is_downed:
 		if sprite.animation != "downed" and sprite.sprite_frames.has_animation("downed"):
 			sprite.play("downed")
+		return
+	if is_falling:
+		if fall_dash_active and sprite.sprite_frames.has_animation("roll"):
+			sprite.play("roll")
+		elif sprite.sprite_frames.has_animation("Idle"):
+			sprite.play("Idle")
 		return
 
 	if is_rolling:

@@ -1,0 +1,26 @@
+[gd_scene load_steps=6 format=3 uid="uid://j7cm2vkihbux"]
+
+[ext_resource type="Script" uid="uid://dbxmovpk2io2f" path="res://Scripts/tower_boss.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="2_icon"]
+[ext_resource type="Material" uid="uid://cydtl2ts0hxew" path="res://Shaders/Enemy.tres" id="3_be8u5"]
+[ext_resource type="PackedScene" uid="uid://dektnuev5o6ji" path="res://Scenes/bullet.tscn" id="3_bullet"]
+[ext_resource type="AudioStream" path="res://SFX/cancel.wav" id="4_hit"]
+[ext_resource type="AudioStream" path="res://SFX/kick.wav" id="5_death"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_boss"]
+radius = 19.0
+
+[node name="TowerBoss" type="CharacterBody2D" unique_id=683117091]
+collision_layer = 2
+script = ExtResource("1_script")
+bullet_scene = ExtResource("3_bullet")
+hit_sound = ExtResource("4_hit")
+death_sound = ExtResource("5_death")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=124233162]
+material = ExtResource("3_be8u5")
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("2_icon")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=221227355]
+shape = SubResource("CircleShape2D_boss")

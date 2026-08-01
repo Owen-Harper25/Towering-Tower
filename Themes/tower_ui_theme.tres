@@ -1,0 +1,97 @@
+[gd_resource type="Theme" load_steps=6 format=3]
+
+[ext_resource type="FontFile" path="res://Assets/Capital Bold - Normal.ttf" id="1_font"]
+
+[sub_resource type="StyleBoxFlat" id="ButtonNormal"]
+bg_color = Color(0.10, 0.075, 0.13, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.44, 0.16, 0.29, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+shadow_color = Color(0.015, 0.01, 0.03, 0.9)
+shadow_size = 2
+shadow_offset = Vector2(2, 3)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="ButtonHover"]
+bg_color = Color(0.19, 0.09, 0.20, 1)
+border_width_left = 3
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.28, 0.88, 1, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+shadow_color = Color(0.02, 0.55, 0.75, 0.42)
+shadow_size = 3
+shadow_offset = Vector2(2, 2)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="ButtonPressed"]
+bg_color = Color(0.055, 0.035, 0.08, 1)
+border_width_left = 2
+border_width_top = 3
+border_width_right = 2
+border_width_bottom = 1
+border_color = Color(1, 0.70, 0.24, 1)
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 3.0
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="ButtonFocus"]
+bg_color = Color(0.12, 0.08, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.77, 0.28, 1)
+content_margin_left = 11.0
+content_margin_top = 4.0
+content_margin_right = 11.0
+content_margin_bottom = 4.0
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="ButtonDisabled"]
+bg_color = Color(0.075, 0.065, 0.09, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.22, 0.20, 0.25, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+anti_aliasing = false
+
+[resource]
+Button/colors/font_color = Color(0.94, 0.91, 0.88, 1)
+Button/colors/font_hover_color = Color(0.75, 0.95, 1, 1)
+Button/colors/font_pressed_color = Color(1, 0.82, 0.39, 1)
+Button/colors/font_focus_color = Color(1, 0.84, 0.40, 1)
+Button/colors/font_disabled_color = Color(0.44, 0.42, 0.47, 1)
+Button/constants/outline_size = 1
+Button/colors/font_outline_color = Color(0.02, 0.015, 0.04, 1)
+Button/fonts/font = ExtResource("1_font")
+Button/font_sizes/font_size = 13
+Button/styles/normal = SubResource("ButtonNormal")
+Button/styles/hover = SubResource("ButtonHover")
+Button/styles/pressed = SubResource("ButtonPressed")
+Button/styles/focus = SubResource("ButtonFocus")
+Button/styles/disabled = SubResource("ButtonDisabled")
+Label/fonts/font = ExtResource("1_font")
+Label/font_sizes/font_size = 12
+Label/colors/font_color = Color(0.94, 0.91, 0.88, 1)
+CheckButton/fonts/font = ExtResource("1_font")
+CheckButton/font_sizes/font_size = 12
+OptionButton/fonts/font = ExtResource("1_font")
+OptionButton/font_sizes/font_size = 12

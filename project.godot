@@ -23,6 +23,11 @@ buses/default_bus_layout="uid://byy0tqicyhkdq"
 
 Networking="*uid://c7tyosrvmyyfx"
 MetaProgression="*res://Scripts/meta_progression.gd"
+UIJuice="*res://Scripts/ui_button_juice.gd"
+
+[gui]
+
+theme/default_theme="res://Themes/tower_ui_theme.tres"
 
 [display]
 

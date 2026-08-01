@@ -30,6 +30,7 @@ signal player_revived()
 @onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Hurt")
 @onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
 @export var sync_velocity: Vector2 = Vector2.ZERO
+@export var sync_aim_direction: Vector2 = Vector2.RIGHT
 
 # --- Health & Revive Settings ---
 @export_group("Combat Settings")
@@ -165,6 +166,7 @@ func handle_movement_and_actions() -> void:
 	).normalized()
 
 	aim_direction = (get_global_mouse_position() - global_position).normalized()
+	sync_aim_direction = aim_direction
 
 	if Input.is_action_just_pressed("DodgeRoll") and input_dir != Vector2.ZERO:
 		rpc("start_dodge_roll_rpc", input_dir)
@@ -295,7 +297,7 @@ func handle_roll_physics() -> void:
 func update_weapon_aim() -> void:
 	if weapon_pivot:
 		set_weapon_drawn(not is_downed and not is_falling and not is_rolling and is_wave_active())
-		var weapon_direction := aim_direction if is_multiplayer_authority() else sync_velocity.normalized()
+		var weapon_direction := sync_aim_direction
 		if weapon_direction == Vector2.ZERO:
 			weapon_direction = Vector2.RIGHT
 		var hover_offset := weapon_direction * 16.0 + Vector2(0.0, sin(Time.get_ticks_msec() * 0.006) * 2.0)

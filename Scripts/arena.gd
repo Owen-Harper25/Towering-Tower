@@ -11,6 +11,8 @@ var wave := 0
 var wave_active := false
 var next_wave_time := 0.0
 var run_started := true
+var enemy_state_sync_elapsed := 0.0
+var next_enemy_id := 1
 @onready var enemies: Node2D = $Enemies
 var wave_banner: ColorRect
 var wave_label: Label
@@ -63,6 +65,10 @@ func can_players_join() -> bool:
 func _physics_process(delta: float) -> void:
 	if not multiplayer.is_server():
 		return
+	enemy_state_sync_elapsed += delta
+	if enemy_state_sync_elapsed >= 0.08:
+		enemy_state_sync_elapsed = 0.0
+		rpc("sync_enemy_states_rpc", build_enemy_states())
 
 	if wave_active:
 		if enemies.get_child_count() == 0:
@@ -97,16 +103,67 @@ func spawn_group(scene: PackedScene, count: int) -> void:
 		var spawn_position: Vector2 = arena_bounds.get_center() + Vector2.from_angle(angle) * 250.0
 		spawn_position.x = clampf(spawn_position.x, arena_bounds.position.x, arena_bounds.end.x)
 		spawn_position.y = clampf(spawn_position.y, arena_bounds.position.y, arena_bounds.end.y)
-		rpc("spawn_enemy", scene.resource_path, spawn_position)
+		var enemy_id := "Enemy_%d" % next_enemy_id
+		next_enemy_id += 1
+		rpc("spawn_enemy", scene.resource_path, spawn_position, enemy_id)
 
 @rpc("authority", "call_local", "reliable")
-func spawn_enemy(scene_path: String, spawn_position: Vector2) -> void:
+func spawn_enemy(scene_path: String, spawn_position: Vector2, enemy_id: String) -> void:
+	create_enemy_instance(scene_path, spawn_position, enemy_id)
+
+func create_enemy_instance(scene_path: String, spawn_position: Vector2, enemy_id: String) -> void:
+	var existing_enemy := enemies.get_node_or_null(enemy_id)
+	if existing_enemy:
+		existing_enemy.global_position = spawn_position
+		return
 	var scene := load(scene_path) as PackedScene
 	if not scene:
 		return
 	var enemy := scene.instantiate() as CharacterBody2D
 	if not enemy:
 		return
+	enemy.name = enemy_id
 	enemy.global_position = spawn_position
 	enemy.set_meta("arena_bounds", arena_bounds)
 	enemies.add_child(enemy)
+
+func build_enemy_states() -> Array[Dictionary]:
+	var states: Array[Dictionary] = []
+	for child in enemies.get_children():
+		var enemy := child as CharacterBody2D
+		if not enemy or not enemy.is_in_group("enemies"):
+			continue
+		if bool(enemy.get("is_dying")):
+			continue
+		states.append({
+			"id": enemy.name,
+			"scene": enemy.scene_file_path,
+			"position": enemy.global_position,
+			"velocity": enemy.velocity,
+			"flip_h": (enemy.get_node_or_null("Sprite2D") as Sprite2D).flip_h if enemy.get_node_or_null("Sprite2D") else false,
+		})
+	return states
+
+@rpc("authority", "call_remote", "unreliable")
+func sync_enemy_states_rpc(states: Array[Dictionary]) -> void:
+	var active_ids: Dictionary = {}
+	for state in states:
+		var enemy_id: String = str(state.get("id", ""))
+		if enemy_id.is_empty():
+			continue
+		active_ids[enemy_id] = true
+		var enemy := enemies.get_node_or_null(enemy_id) as CharacterBody2D
+		if not enemy:
+			create_enemy_instance(str(state.get("scene", "")), state.get("position", Vector2.ZERO), enemy_id)
+			enemy = enemies.get_node_or_null(enemy_id) as CharacterBody2D
+		if not enemy:
+			continue
+		enemy.global_position = state.get("position", enemy.global_position)
+		enemy.velocity = state.get("velocity", Vector2.ZERO)
+		var enemy_sprite := enemy.get_node_or_null("Sprite2D") as Sprite2D
+		if enemy_sprite:
+			enemy_sprite.flip_h = bool(state.get("flip_h", false))
+	for child in enemies.get_children():
+		var enemy := child as CharacterBody2D
+		if enemy and enemy.is_in_group("enemies") and not active_ids.has(enemy.name):
+			enemy.queue_free()

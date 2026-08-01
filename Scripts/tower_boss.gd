@@ -86,7 +86,7 @@ func handle_idle(delta: float) -> void:
 		begin_next_attack()
 
 func begin_next_attack() -> void:
-	current_attack = attack_index % 3
+	current_attack = (attack_index % 3) as AttackType
 	attack_index += 1
 	attack_direction = (target_player.global_position - global_position).normalized()
 	if attack_direction == Vector2.ZERO:
@@ -242,7 +242,7 @@ func take_damage(amount: int) -> void:
 	current_health -= amount
 	rpc("update_boss_health_rpc", current_health, max_health, is_enraged)
 	rpc("play_boss_hit_feedback_rpc")
-	if not is_enraged and current_health > 0 and current_health <= max_health / 2:
+	if not is_enraged and current_health > 0 and current_health <= max_health * 0.5:
 		is_enraged = true
 		rpc("enter_rage_rpc")
 		rpc("update_boss_health_rpc", current_health, max_health, true)

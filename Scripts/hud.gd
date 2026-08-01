@@ -51,8 +51,8 @@ func show_coins_temporarily() -> void:
 	coin_label_tween.tween_property(coin_label, "modulate:a", 0.0, 0.28)
 	coin_label_tween.tween_callback(coin_label.hide)
 
-func set_coins_visible(visible: bool) -> void:
-	if visible:
+func set_coins_visible(should_show: bool) -> void:
+	if should_show:
 		show_coins_temporarily()
 	elif coin_label_tween and coin_label_tween.is_valid():
 		coin_label_tween.kill()

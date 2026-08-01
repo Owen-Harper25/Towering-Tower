@@ -65,6 +65,7 @@ func can_players_join() -> bool:
 
 func _physics_process(delta: float) -> void:
 	if not multiplayer.is_server():
+		interpolate_remote_enemies(delta)
 		return
 	enemy_state_sync_elapsed += delta
 	if enemy_state_sync_elapsed >= 0.08:
@@ -88,8 +89,8 @@ func start_wave() -> void:
 		spawn_boss()
 		return
 	var rusher_count: int = 2 + wave
-	var sniper_count: int = 1 + wave / 2
-	var turret_count: int = maxi(0, (wave - 2) / 2)
+	var sniper_count: int = 1 + floori(float(wave) * 0.5)
+	var turret_count: int = maxi(0, floori(float(wave - 2) * 0.5))
 
 	spawn_group(RUSHER_SCENE, rusher_count)
 	spawn_group(SNIPER_SCENE, sniper_count)
@@ -143,8 +144,6 @@ func build_enemy_states() -> Array[Dictionary]:
 		var enemy := child as CharacterBody2D
 		if not enemy or not enemy.is_in_group("enemies"):
 			continue
-		if bool(enemy.get("is_dying")):
-			continue
 		states.append({
 			"id": enemy.name,
 			"scene": enemy.scene_file_path,
@@ -168,8 +167,13 @@ func sync_enemy_states_rpc(states: Array[Dictionary]) -> void:
 			enemy = enemies.get_node_or_null(enemy_id) as CharacterBody2D
 		if not enemy:
 			continue
-		enemy.global_position = state.get("position", enemy.global_position)
-		enemy.velocity = state.get("velocity", Vector2.ZERO)
+		var target_position: Vector2 = state.get("position", enemy.global_position)
+		var target_velocity: Vector2 = state.get("velocity", Vector2.ZERO)
+		if not enemy.has_meta("network_target_position"):
+			enemy.global_position = target_position
+		enemy.set_meta("network_target_position", target_position)
+		enemy.set_meta("network_target_velocity", target_velocity)
+		enemy.velocity = target_velocity
 		var enemy_sprite := enemy.get_node_or_null("Sprite2D") as Sprite2D
 		if enemy_sprite:
 			enemy_sprite.flip_h = bool(state.get("flip_h", false))
@@ -177,3 +181,15 @@ func sync_enemy_states_rpc(states: Array[Dictionary]) -> void:
 		var enemy := child as CharacterBody2D
 		if enemy and enemy.is_in_group("enemies") and not active_ids.has(enemy.name):
 			enemy.queue_free()
+
+func interpolate_remote_enemies(delta: float) -> void:
+	var blend := 1.0 - exp(-16.0 * delta)
+	for child in enemies.get_children():
+		var enemy := child as CharacterBody2D
+		if not enemy or not enemy.has_meta("network_target_position"):
+			continue
+		var target_position: Vector2 = enemy.get_meta("network_target_position")
+		var target_velocity: Vector2 = enemy.get_meta("network_target_velocity", Vector2.ZERO)
+		var predicted_position := target_position + target_velocity * 0.055
+		enemy.global_position = enemy.global_position.lerp(predicted_position, blend)
+		enemy.velocity = target_velocity

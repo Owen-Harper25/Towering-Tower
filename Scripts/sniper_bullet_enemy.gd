@@ -24,7 +24,6 @@ var current_health: int
 var is_dying: bool = false
 var hit_sfx_player: AudioStreamPlayer2D
 var knockback_velocity := Vector2.ZERO
-var state_sync_elapsed := 0.0
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(1)
@@ -86,10 +85,6 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
-	state_sync_elapsed += delta
-	if state_sync_elapsed >= 0.05:
-		state_sync_elapsed = 0.0
-		rpc("sync_enemy_state_rpc", global_position, velocity, sprite.flip_h if sprite else false)
 	if not is_on_tower(24.0):
 		fall_into_clouds()
 
@@ -116,15 +111,6 @@ func fall_into_clouds_rpc() -> void:
 	tween.tween_property(self, "scale", Vector2.ZERO, 0.45)
 	tween.tween_property(self, "modulate:a", 0.0, 0.45)
 	tween.finished.connect(queue_free)
-
-@rpc("authority", "call_remote", "unreliable")
-func sync_enemy_state_rpc(new_position: Vector2, new_velocity: Vector2, facing_left: bool) -> void:
-	if is_dying:
-		return
-	global_position = new_position
-	velocity = new_velocity
-	if sprite:
-		sprite.flip_h = facing_left
 
 func get_arena_bounds() -> Rect2:
 	var bounds: Variant = get_meta("arena_bounds", Rect2(28, 30, 424, 220))

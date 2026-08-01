@@ -20,35 +20,43 @@ func configure_interactable(interactable: Area2D, prompt: String, action: Callab
 
 func create_overlay() -> void:
 	var layer := CanvasLayer.new()
-	layer.layer = 15
+	layer.layer = 50
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	layer.add_child(root)
 	panel = Panel.new()
-	panel.size = Vector2(266, 184)
-	panel.position = (get_viewport_rect().size - panel.size) * 0.5
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-150.0, -112.0)
+	panel.size = Vector2(300.0, 224.0)
 	panel.hide()
 	root.add_child(panel)
 	panel_content = VBoxContainer.new()
-	panel_content.position = Vector2(14, 12)
-	panel_content.size = Vector2(238, 158)
+	panel_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel_content.offset_left = 14.0
+	panel_content.offset_top = 12.0
+	panel_content.offset_right = -14.0
+	panel_content.offset_bottom = -12.0
 	panel_content.add_theme_constant_override("separation", 6)
 	panel.add_child(panel_content)
 	add_child(layer)
 
 func clear_panel() -> void:
 	for child in panel_content.get_children():
+		panel_content.remove_child(child)
 		child.queue_free()
 
 func add_title(text: String) -> void:
 	var title := Label.new()
 	title.text = text
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.custom_minimum_size = Vector2(0.0, 24.0)
 	panel_content.add_child(title)
 
 func add_close_button() -> void:
 	var close_button := Button.new()
 	close_button.text = "LEAVE"
+	close_button.custom_minimum_size = Vector2(0.0, 28.0)
 	close_button.pressed.connect(func(): panel.hide())
 	panel_content.add_child(close_button)
 
@@ -58,10 +66,12 @@ func open_shop() -> void:
 	var text := Label.new()
 	text.text = "Coins from runs become permanent Tower Coins."
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.custom_minimum_size = Vector2(0.0, 38.0)
 	panel_content.add_child(text)
 	var balance := Label.new()
 	balance.text = "TOWER COINS: %d" % MetaProgression.currency
 	balance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	balance.custom_minimum_size = Vector2(0.0, 22.0)
 	panel_content.add_child(balance)
 	add_close_button()
 	panel.show()
@@ -72,6 +82,7 @@ func open_skill_tree() -> void:
 	var balance := Label.new()
 	balance.name = "Balance"
 	balance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	balance.custom_minimum_size = Vector2(0.0, 22.0)
 	panel_content.add_child(balance)
 	for upgrade_id in ["damage", "vitality", "rapid_fire"]:
 		add_upgrade_button(upgrade_id)
@@ -82,6 +93,7 @@ func open_skill_tree() -> void:
 func add_upgrade_button(upgrade_id: String) -> void:
 	var button := Button.new()
 	button.name = upgrade_id
+	button.custom_minimum_size = Vector2(0.0, 28.0)
 	button.pressed.connect(func():
 		if MetaProgression.purchase(upgrade_id):
 			refresh_skill_tree()

@@ -72,6 +72,8 @@ var fall_drift_remaining := 0.0
 var fall_drift_velocity := Vector2.ZERO
 var coins := 0
 var weapon_is_drawn := false
+var base_max_health := 0
+var base_fire_cooldown := 0.0
 
 # --- Downed & Revive State (Nightreign Style) ---
 @export var is_downed: bool = false
@@ -96,10 +98,12 @@ func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
 
 func _ready() -> void:
-	max_health += MetaProgression.get_level("vitality") * 2
-	fire_cooldown = maxf(0.07, fire_cooldown - MetaProgression.get_level("rapid_fire") * 0.015)
+	base_max_health = max_health
+	base_fire_cooldown = fire_cooldown
+	apply_meta_upgrades(false)
 	current_health = max_health
 	if is_multiplayer_authority():
+		MetaProgression.changed.connect(_on_meta_progression_changed)
 		camera.make_current()
 		camera.enabled = true
 		player_name = Steam.getPersonaName()
@@ -416,21 +420,36 @@ func shoot() -> void:
 		muzzle.scale = Vector2.ONE * 1.45
 		recoil_tween.tween_property(muzzle, "scale", Vector2.ONE, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	
-	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id())
+	var bullet_damage := 2 + MetaProgression.get_level("damage")
+	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id(), bullet_damage)
 
 @rpc("any_peer", "call_local", "reliable")
-func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int) -> void:
+func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int, bullet_damage: int) -> void:
 	if bullet_scene:
 		var bullet = bullet_scene.instantiate() as Area2D
 		bullet.global_position = spawn_pos
 		bullet.rotation = angle
-		bullet.set("damage", 2 + MetaProgression.get_level("damage"))
+		bullet.set("damage", bullet_damage)
 		if shootsfx: shootsfx.play()
 		
 		if "shooter_id" in bullet:
 			bullet.shooter_id = shooter
 			
 		get_parent().add_child(bullet)
+
+func _on_meta_progression_changed() -> void:
+	if is_multiplayer_authority():
+		apply_meta_upgrades(true)
+
+func apply_meta_upgrades(heal_from_new_vitality: bool) -> void:
+	var previous_max_health := max_health
+	max_health = base_max_health + MetaProgression.get_level("vitality") * 2
+	fire_cooldown = maxf(0.07, base_fire_cooldown - MetaProgression.get_level("rapid_fire") * 0.015)
+	if not heal_from_new_vitality or current_health <= 0:
+		return
+	var gained_health := maxi(0, max_health - previous_max_health)
+	current_health = mini(max_health, current_health + gained_health)
+	health_changed.emit(current_health, max_health)
 
 # --- Health, Downed & Revive Mechanics ---
 func take_damage(amount: int) -> void:

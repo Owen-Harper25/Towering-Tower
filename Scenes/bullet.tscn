@@ -1,21 +1,19 @@
 [gd_scene format=3 uid="uid://dektnuev5o6ji"]
 
 [ext_resource type="Script" uid="uid://bj5trmjnr855e" path="res://Scripts/bullet.gd" id="1_oduel"]
-[ext_resource type="Texture2D" uid="uid://bkc3hlqctms7r" path="res://Assets/plus particle.png" id="1_xjght"]
+[ext_resource type="Texture2D" uid="uid://dl2uqifchrftg" path="res://Assets/Enemy Bullet.png" id="2_oduel"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_rup26"]
-radius = 3.0
+radius = 2.0
 
 [node name="EnemyBullet" type="Area2D" unique_id=710905811]
-modulate = Color(1, 0, 0, 1)
 collision_layer = 8
 collision_mask = 17
 script = ExtResource("1_oduel")
-speed = 220.0
 knockback_force = 50.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=292968213]
 shape = SubResource("CircleShape2D_rup26")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1250924056]
-texture = ExtResource("1_xjght")
+texture = ExtResource("2_oduel")

@@ -150,7 +150,7 @@ scale = Vector2(0.75, 0.75)
 [node name="Sprite2D" type="Sprite2D" parent="Teleporter" unique_id=1367823541]
 texture_filter = 1
 material = SubResource("TeleportOutline")
-position = Vector2(3, -75)
+position = Vector2(4.3333435, -77.66666)
 texture = ExtResource("5_bvheq")
 region_enabled = true
 region_rect = Rect2(324.3832, -10.423645, 180.46982, 56.52887)
@@ -159,5 +159,5 @@ region_rect = Rect2(324.3832, -10.423645, 180.46982, 56.52887)
 position = Vector2(-2, -69)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Teleporter/Interactable" unique_id=1188656516]
-position = Vector2(2, -2)
+position = Vector2(0.6666565, -7.3333282)
 shape = SubResource("InteractShape")

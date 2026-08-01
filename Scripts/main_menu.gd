@@ -99,8 +99,6 @@ func build_settings_menu() -> void:
 func layout_settings_menu() -> void:
 	if not is_instance_valid(settings_panel):
 		return
-	settings_panel.position = Vector2.ZERO
-	settings_panel.size = get_viewport_rect().size
 	var backdrop := settings_panel.get_node_or_null("Backdrop") as ColorRect
 	var content := settings_panel.get_node_or_null("Content") as VBoxContainer
 	if not backdrop or not content:

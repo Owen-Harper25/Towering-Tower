@@ -40,8 +40,13 @@ var game_grade_darkness := 0.985
 var game_grade_glow := 0.025
 var party_return_in_progress := false
 var mode_transition_in_progress := false
+var runtime_menu_open := false
+var single_player_pause_reasons: Dictionary = {}
 
 func _ready() -> void:
+	# Keep global UI/input responsive while gameplay below Level Container is paused.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	level_container.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_to_group("main")
 	Networking.host_created.connect(on_host_created)
 	Networking.client_joined.connect(on_client_joined)
@@ -118,6 +123,7 @@ func _on_lobby_back_button_pressed() -> void:
 # --- JOIN & NETWORKING HANDLERS ---
 
 func join_lobby_by_id(lobby_id: int) -> void:
+	close_runtime_menu()
 	menu_canvas_layer.hide()
 	if Networking.has_method("join_lobby"):
 		Networking.join_lobby(lobby_id)
@@ -126,6 +132,7 @@ func on_host_created() -> void:
 	spawn_player(multiplayer.get_unique_id())
 
 func on_client_joined() -> void:
+	close_runtime_menu()
 	menu_canvas_layer.hide()
 	load_level(default_level_scene)
 
@@ -157,16 +164,73 @@ func initialize_player(player: CharacterBody2D) -> void:
 		players.append(player)
 
 func _on_host_pressed() -> void:
+	close_runtime_menu()
 	menu_canvas_layer.hide()
 	Networking.host_lobby()
 	load_level(default_level_scene)
 
 func _on_solo_pressed() -> void:
+	close_runtime_menu()
 	menu_canvas_layer.hide()
 	var offline_peer = OfflineMultiplayerPeer.new()
 	multiplayer.multiplayer_peer = offline_peer
 	load_level(default_level_scene)
 	spawn_player(1)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not current_level or not event.is_action_pressed("ui_cancel"):
+		return
+	if current_level.is_in_group("tower_arena") and bool(current_level.get("boon_book_open")):
+		current_level.call("close_boon_book")
+		get_viewport().set_input_as_handled()
+		return
+	if runtime_menu_open:
+		close_runtime_menu()
+	else:
+		open_runtime_menu()
+	get_viewport().set_input_as_handled()
+
+func open_runtime_menu() -> void:
+	runtime_menu_open = true
+	menu_canvas_layer.show()
+	main_menu.show()
+	if main_menu.has_method("set_runtime_context"):
+		main_menu.call("set_runtime_context", true, true)
+	set_local_player_ui_locked(true)
+	set_single_player_menu_paused("runtime_menu", true)
+
+func close_runtime_menu() -> void:
+	if not runtime_menu_open:
+		set_single_player_menu_paused("runtime_menu", false)
+		return
+	runtime_menu_open = false
+	var settings_panel := main_menu.get_node_or_null("CanvasLayer/SettingsMenu") as Control
+	if settings_panel:
+		settings_panel.hide()
+	menu_canvas_layer.hide()
+	set_local_player_ui_locked(false)
+	set_single_player_menu_paused("runtime_menu", false)
+
+func set_single_player_menu_paused(reason: String, should_pause: bool) -> void:
+	if should_pause:
+		if not is_offline_single_player_session():
+			return
+		single_player_pause_reasons[reason] = true
+	else:
+		single_player_pause_reasons.erase(reason)
+	get_tree().paused = not single_player_pause_reasons.is_empty()
+
+func is_offline_single_player_session() -> bool:
+	return current_level != null and multiplayer.multiplayer_peer is OfflineMultiplayerPeer
+
+func clear_single_player_menu_pauses() -> void:
+	single_player_pause_reasons.clear()
+	get_tree().paused = false
+
+func set_local_player_ui_locked(locked: bool) -> void:
+	for player in players:
+		if is_instance_valid(player) and player.is_multiplayer_authority():
+			player.set("ui_input_locked", locked)
 
 func _on_multiplayer_spawner_spawned(node: Node) -> void:
 	if node is CharacterBody2D:
@@ -212,7 +276,7 @@ func start_survival_rpc() -> void:
 		Networking.set_lobby_joinable(false)
 	play_party_teleport_effect()
 	load_level(SURVIVAL_ARENA_SCENE)
-	finish_mode_teleport_after_load(false)
+	finish_mode_teleport_after_load(true)
 
 func leave_survival_mode() -> void:
 	# Leaving Popcorn returns the connected party through the host. A guest must
@@ -233,19 +297,32 @@ func start_combat_rpc() -> void:
 		Networking.set_lobby_joinable(false)
 	play_party_teleport_effect()
 	load_level(ARENA_SCENE)
-	finish_mode_teleport_after_load(true)
+	finish_mode_teleport_after_load(false)
 
-func finish_mode_teleport_after_load(move_to_tower_spawn: bool) -> void:
+func finish_mode_teleport_after_load(use_survival_spawn_ring: bool) -> void:
 	get_tree().create_timer(0.26).timeout.connect(func():
+		if use_survival_spawn_ring:
+			position_party_in_survival_spawn_ring()
 		for player in players:
 			if not is_instance_valid(player):
 				continue
-			if move_to_tower_spawn:
+			if not use_survival_spawn_ring:
 				player.global_position = Vector2(240.0, 136.0)
 			if player.has_method("reset_teleport_visual"):
 				player.call("reset_teleport_visual")
 		mode_transition_in_progress = false
 	)
+
+func position_party_in_survival_spawn_ring() -> void:
+	var valid_players: Array[CharacterBody2D] = []
+	for player in players:
+		if is_instance_valid(player):
+			valid_players.append(player)
+	valid_players.sort_custom(func(a: Node, b: Node): return a.name.naturalnocasecmp_to(b.name) < 0)
+	var arena_center := Vector2(450.0, 300.0)
+	for player_index in range(valid_players.size()):
+		var angle := TAU * float(player_index) / float(maxi(1, valid_players.size()))
+		valid_players[player_index].global_position = arena_center + Vector2.from_angle(angle) * 72.0
 
 func play_party_teleport_effect() -> void:
 	var effect_layer := CanvasLayer.new()
@@ -340,6 +417,7 @@ func return_party_to_lobby_rpc() -> void:
 # --- LEVEL SWITCHING SYSTEM ---
 
 func load_level(level_scene: PackedScene) -> void:
+	clear_single_player_menu_pauses()
 	if current_level and transition_overlay:
 		transition_to_level(level_scene)
 		return

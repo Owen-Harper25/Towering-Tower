@@ -52,7 +52,7 @@ func _ready() -> void:
 	create_mode_ui()
 	queue_redraw()
 	if multiplayer.is_server():
-		get_tree().create_timer(0.75).timeout.connect(start_server_mode)
+		get_tree().create_timer(0.75, false).timeout.connect(start_server_mode)
 
 func can_players_join() -> bool:
 	return false
@@ -431,7 +431,7 @@ func begin_boss_dash() -> void:
 		dash_target = arena_center + dash_offset.normalized() * dash_radius
 	var dash_start := boss_position
 	rpc("telegraph_boss_dash_rpc", dash_start, dash_target, get_boss_color(boss_index))
-	get_tree().create_timer(maxf(0.20, 0.42 / get_boss_aggression())).timeout.connect(func():
+	get_tree().create_timer(maxf(0.20, 0.42 / get_boss_aggression()), false).timeout.connect(func():
 		if is_inside_tree() and boss_active:
 			execute_boss_dash(dash_start, dash_target)
 	)

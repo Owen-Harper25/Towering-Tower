@@ -15,7 +15,7 @@ func _ready() -> void:
 	area_entered.connect(_on_area_entered)
 	
 	# Automatically despawn after lifetime seconds
-	var timer = get_tree().create_timer(lifetime)
+	var timer = get_tree().create_timer(lifetime, false)
 	timer.timeout.connect(queue_free)
 
 func _physics_process(delta: float) -> void:

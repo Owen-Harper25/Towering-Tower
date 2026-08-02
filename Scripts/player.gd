@@ -2,7 +2,7 @@ extends CharacterBody2D
 
 const LOW_HEALTH_IRIS_SHADER := preload("res://Shaders/low_health_iris.gdshader")
 const SURVIVAL_TEAM_MATERIAL := preload("res://Shaders/outlineshader.tres")
-const SURVIVAL_DEATH_SFX := preload("res://SFX/kick.wav")
+const SURVIVAL_DEATH_SFX := preload("res://SFX/game over.mp3")
 const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
 const BOONS := preload("res://Scripts/boon_catalog.gd")
 
@@ -119,6 +119,7 @@ var boon_fall_grace_bonus := 0.0
 var boon_roll_speed_bonus := 0.0
 var boon_critical_chance := 0.0
 var acquired_boons: Array[String] = []
+var ui_input_locked := false
 var in_survival_mode := false
 var is_survival_ghost := false
 var survival_bounds := Rect2(170, 20, 560, 560)
@@ -234,6 +235,8 @@ func _physics_process(delta: float) -> void:
 
 		if is_falling:
 			handle_falling(delta)
+		elif ui_input_locked:
+			velocity = Vector2.ZERO
 		elif is_downed:
 			handle_crawling_movement()
 		elif not is_rolling:
@@ -392,7 +395,7 @@ func start_fall_recovery_dash_rpc(direction: Vector2) -> void:
 	spawn_dash_start_burst(fall_dash_direction)
 	if sprite.sprite_frames.has_animation("roll"):
 		sprite.play("roll")
-	get_tree().create_timer(fall_dash_duration).timeout.connect(end_fall_recovery_dash)
+	get_tree().create_timer(fall_dash_duration, false).timeout.connect(end_fall_recovery_dash)
 
 func end_fall_recovery_dash() -> void:
 	fall_dash_active = false
@@ -473,10 +476,10 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 	if sprite.sprite_frames.has_animation("roll"):
 		sprite.play("roll")
 
-	var iframe_timer = get_tree().create_timer(roll_iframe_duration)
+	var iframe_timer = get_tree().create_timer(roll_iframe_duration, false)
 	iframe_timer.timeout.connect(func(): is_invulnerable = false)
 	
-	var roll_timer = get_tree().create_timer(roll_duration)
+	var roll_timer = get_tree().create_timer(roll_duration, false)
 	roll_timer.timeout.connect(func(): 
 		is_rolling = false
 		collision_mask = original_mask # Restore normal collision
@@ -1312,14 +1315,14 @@ func start_invulnerability_rpc(duration: float) -> void:
 	set_collision_mask_value(2, false)
 	
 	if not sprite or not (sprite.material is ShaderMaterial):
-		get_tree().create_timer(duration).timeout.connect(func(): is_invulnerable = false)
+		get_tree().create_timer(duration, false).timeout.connect(func(): is_invulnerable = false)
 		return
 
 	var mat = sprite.material as ShaderMaterial
 	
 	# Quick initial hit flash (0.15s)
 	mat.set_shader_parameter("enabled", true)
-	get_tree().create_timer(0.15).timeout.connect(func():
+	get_tree().create_timer(0.15, false).timeout.connect(func():
 		if is_instance_valid(mat):
 			mat.set_shader_parameter("enabled", false)
 	)
@@ -1329,7 +1332,7 @@ func start_invulnerability_rpc(duration: float) -> void:
 	tween.tween_property(sprite, "modulate:a", 0.3, 0.05)
 	tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
 
-	get_tree().create_timer(duration).timeout.connect(func():
+	get_tree().create_timer(duration, false).timeout.connect(func():
 		is_invulnerable = false
 		set_collision_mask_value(2, original_enemy_mask)
 		if tween and tween.is_running():

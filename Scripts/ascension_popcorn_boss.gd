@@ -6,7 +6,7 @@ const HIT_SFX := preload("res://SFX/cancel.wav")
 const DEATH_SFX := preload("res://SFX/kick.wav")
 const IMPACT_TEXTURE := preload("res://Assets/plus particle.png")
 
-enum AttackType { SLIDE, RING, GATLING, DNA, SPIRAL, FAN, WALL, CROSS }
+enum AttackType { SLIDE, RING, GATLING, DNA, SPIRAL, FAN, WALL, CROSS, BUTTER_CIRCLES, FIRE_LANES, MAGNET_SPREAD, TRI_DNA }
 enum BossState { INTRO, IDLE, WINDUP, SLIDING, FIRING, DYING }
 
 @export_group("Ascension Scaling")
@@ -38,6 +38,9 @@ var health_bar_fill: ColorRect
 var health_bar_label: Label
 var is_enraged := false
 var slide_hit_players: Dictionary = {}
+var signature_attack_bag: Array[int] = []
+var last_attack := -1
+var signature_step := 0
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(1)
@@ -112,14 +115,10 @@ func handle_idle(delta: float) -> void:
 		begin_next_attack()
 
 func begin_next_attack() -> void:
-	var attack_decks: Array[Array] = [
-		[AttackType.RING, AttackType.SPIRAL, AttackType.FAN, AttackType.RING],
-		[AttackType.WALL, AttackType.FAN, AttackType.SLIDE, AttackType.WALL],
-		[AttackType.CROSS, AttackType.SPIRAL, AttackType.GATLING, AttackType.CROSS],
-		[AttackType.DNA, AttackType.RING, AttackType.SPIRAL, AttackType.DNA],
-	]
-	var deck: Array = attack_decks[clampi(boss_kind, 0, attack_decks.size() - 1)]
-	current_attack = int(deck[attack_index % deck.size()]) as AttackType
+	if signature_attack_bag.is_empty():
+		refill_signature_attack_bag()
+	current_attack = signature_attack_bag.pop_front() as AttackType
+	last_attack = current_attack
 	attack_index += 1
 	attack_direction = global_position.direction_to(target_player.global_position)
 	if attack_direction == Vector2.ZERO:
@@ -128,6 +127,24 @@ func begin_next_attack() -> void:
 	state_timer = maxf(0.18, 0.54 / aggression)
 	velocity = Vector2.ZERO
 	rpc("show_attack_telegraph_rpc", current_attack, global_position, attack_direction, state_timer)
+
+func refill_signature_attack_bag() -> void:
+	var attack_decks: Array[Array] = [
+		[AttackType.BUTTER_CIRCLES, AttackType.BUTTER_CIRCLES, AttackType.SPIRAL, AttackType.RING, AttackType.FAN],
+		[AttackType.FIRE_LANES, AttackType.FIRE_LANES, AttackType.WALL, AttackType.FAN, AttackType.SLIDE],
+		[AttackType.MAGNET_SPREAD, AttackType.MAGNET_SPREAD, AttackType.CROSS, AttackType.SPIRAL, AttackType.GATLING],
+		[AttackType.TRI_DNA, AttackType.TRI_DNA, AttackType.DNA, AttackType.RING, AttackType.SPIRAL],
+	]
+	var deck: Array = attack_decks[clampi(boss_kind, 0, attack_decks.size() - 1)].duplicate()
+	deck.shuffle()
+	if deck.size() > 1 and int(deck[0]) == last_attack:
+		var swap_index := randi_range(1, deck.size() - 1)
+		var first_attack: Variant = deck[0]
+		deck[0] = deck[swap_index]
+		deck[swap_index] = first_attack
+	signature_attack_bag.clear()
+	for attack_variant in deck:
+		signature_attack_bag.append(int(attack_variant))
 
 func handle_windup(delta: float) -> void:
 	state_timer -= delta
@@ -144,7 +161,7 @@ func handle_windup(delta: float) -> void:
 		AttackType.WALL:
 			fire_flame_wall()
 			finish_attack()
-		AttackType.GATLING, AttackType.DNA, AttackType.SPIRAL, AttackType.FAN, AttackType.CROSS:
+		AttackType.GATLING, AttackType.DNA, AttackType.SPIRAL, AttackType.FAN, AttackType.CROSS, AttackType.BUTTER_CIRCLES, AttackType.FIRE_LANES, AttackType.MAGNET_SPREAD, AttackType.TRI_DNA:
 			state = BossState.FIRING
 			state_timer = get_firing_attack_duration()
 			shot_timer = 0.0
@@ -176,6 +193,18 @@ func handle_firing(delta: float) -> void:
 			AttackType.CROSS:
 				shot_timer = maxf(0.09, 0.22 / aggression)
 				fire_magnetic_cross()
+			AttackType.BUTTER_CIRCLES:
+				shot_timer = maxf(0.16, 0.34 / aggression)
+				fire_butter_circles()
+			AttackType.FIRE_LANES:
+				shot_timer = maxf(0.28, 0.62 / aggression)
+				fire_flame_lanes()
+			AttackType.MAGNET_SPREAD:
+				shot_timer = maxf(0.18, 0.40 / aggression)
+				fire_magnet_spread()
+			AttackType.TRI_DNA:
+				shot_timer = maxf(0.07, 0.15 / aggression)
+				fire_tri_dna()
 			_:
 				shot_timer = maxf(0.060, 0.14 / aggression)
 				fire_gatling_shots()
@@ -192,6 +221,9 @@ func get_firing_attack_duration() -> float:
 		AttackType.GATLING: return 1.35
 		AttackType.FAN: return 1.25
 		AttackType.CROSS: return 1.55
+		AttackType.FIRE_LANES: return 1.85
+		AttackType.BUTTER_CIRCLES, AttackType.MAGNET_SPREAD: return 1.55
+		AttackType.TRI_DNA: return 1.75
 		_: return 1.68
 
 func fire_circular_volley() -> void:
@@ -253,6 +285,60 @@ func fire_magnetic_cross() -> void:
 		var angle := attack_rotation + TAU * float(spoke_index) / float(spoke_count)
 		var alternating_speed := 142.0 if spoke_index % 2 == 0 else 208.0
 		rpc("spawn_bullet_rpc", global_position, angle, alternating_speed * minf(aggression, 2.2), Color(0.35, 0.82, 1.0))
+
+func fire_butter_circles() -> void:
+	signature_step += 1
+	attack_rotation += 0.19
+	var ring_count := 2 if is_enraged else 1
+	for ring_index in range(ring_count):
+		var bullet_count := 12 + ring_index * 6
+		var ring_offset := attack_rotation + float(ring_index) * PI / float(bullet_count)
+		for bullet_index in range(bullet_count):
+			var angle := ring_offset + TAU * float(bullet_index) / float(bullet_count)
+			var speed_value := (138.0 + float(ring_index) * 52.0) * minf(aggression, 2.2)
+			var butter_color := Color(1.0, 0.86, 0.20) if bullet_index % 2 == 0 else Color(1.0, 0.67, 0.08)
+			rpc("spawn_bullet_rpc", global_position, angle, speed_value, butter_color)
+	if signature_step % 2 == 0:
+		rpc("spawn_particles_rpc", global_position, Color(1.0, 0.82, 0.16), 14)
+
+func fire_flame_lanes() -> void:
+	signature_step += 1
+	var vertical := signature_step % 2 == 0
+	var lane_count := 7
+	var safe_lane := randi_range(1, lane_count - 2)
+	for lane_index in range(lane_count):
+		if lane_index == safe_lane:
+			continue
+		var lane_ratio := float(lane_index + 1) / float(lane_count + 1)
+		if vertical:
+			var x_position := lerpf(arena_bounds.position.x, arena_bounds.end.x, lane_ratio)
+			rpc("spawn_bullet_rpc", Vector2(x_position, arena_bounds.position.y - 10.0), PI * 0.5, 148.0 * minf(aggression, 2.15), Color(1.0, 0.24, 0.04))
+			rpc("spawn_bullet_rpc", Vector2(x_position, arena_bounds.end.y + 10.0), -PI * 0.5, 148.0 * minf(aggression, 2.15), Color(1.0, 0.58, 0.06))
+		else:
+			var y_position := lerpf(arena_bounds.position.y, arena_bounds.end.y, lane_ratio)
+			rpc("spawn_bullet_rpc", Vector2(arena_bounds.position.x - 10.0, y_position), 0.0, 148.0 * minf(aggression, 2.15), Color(1.0, 0.24, 0.04))
+			rpc("spawn_bullet_rpc", Vector2(arena_bounds.end.x + 10.0, y_position), PI, 148.0 * minf(aggression, 2.15), Color(1.0, 0.58, 0.06))
+
+func fire_magnet_spread() -> void:
+	signature_step += 1
+	for player in get_active_players():
+		var center_angle := global_position.direction_to(player.global_position).angle()
+		var spread_step := 0.075 + 0.012 * float(signature_step % 3)
+		for spread_index in range(-4, 5):
+			var speed_value := (178.0 + float(absi(spread_index)) * 12.0) * minf(aggression, 2.2)
+			var magnetic_color := Color(0.28, 0.84, 1.0) if spread_index % 2 == 0 else Color(0.72, 0.30, 1.0)
+			rpc("spawn_bullet_rpc", global_position, center_angle + float(spread_index) * spread_step, speed_value, magnetic_color)
+
+func fire_tri_dna() -> void:
+	signature_step += 1
+	attack_rotation += 0.27
+	var speed_value := 158.0 * minf(aggression, 2.2)
+	for arm_index in range(3):
+		var arm_angle := attack_rotation + TAU * float(arm_index) / 3.0
+		rpc("spawn_bullet_rpc", global_position, arm_angle, speed_value, Color(0.08, 0.96, 0.74))
+		rpc("spawn_bullet_rpc", global_position, arm_angle + 0.16, speed_value * 0.92, Color(1.0, 0.22, 0.70))
+		if signature_step % 3 == 0:
+			rpc("spawn_bullet_rpc", global_position, arm_angle - 0.16, speed_value * 0.72, Color(0.72, 0.94, 1.0))
 
 func damage_slide_collisions() -> void:
 	for collision_index in range(get_slide_collision_count()):
@@ -325,7 +411,7 @@ func show_attack_telegraph_rpc(attack_type: int, origin: Vector2, direction: Vec
 	var indicator := ATTACK_INDICATOR.new() as Node2D
 	indicator.global_position = origin
 	indicator.rotation = direction.angle()
-	var indicator_kind := 0 if attack_type == AttackType.SLIDE else 2 if attack_type in [AttackType.GATLING, AttackType.FAN, AttackType.WALL] else 1
+	var indicator_kind := 0 if attack_type == AttackType.SLIDE else 2 if attack_type in [AttackType.GATLING, AttackType.FAN, AttackType.WALL, AttackType.MAGNET_SPREAD] else 1
 	indicator.call("configure", indicator_kind, 170.0, 62.0, 30.0, duration)
 	get_parent().add_child(indicator)
 

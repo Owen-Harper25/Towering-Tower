@@ -2,8 +2,8 @@ extends Node
 
 const HOVER_SCALE := Vector2(1.045, 1.045)
 const PRESS_SCALE := Vector2(0.96, 0.96)
-const NAVIGATION_SOUND := preload("res://SFX/select.wav")
-const CONFIRM_SOUND := preload("res://SFX/Confirm.wav")
+const NAVIGATION_SOUND := preload("res://SFX/freesound_community-menu-selection-102220.mp3")
+const CONFIRM_SOUND := preload("res://SFX/confrimation.mp3")
 const CURSOR_TEXTURE := preload("res://Assets/Cursor.png")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 const CURSOR_SCALE := 2.5
@@ -13,6 +13,10 @@ var confirm_player: AudioStreamPlayer
 var last_navigation_sound_time := -1.0
 var keyboard_navigation_active := false
 var cursor_sprite: Sprite2D
+var cursor_layer: CanvasLayer
+var cursor_trail_root: Node2D
+var cursor_trail_timer := 0.0
+var last_cursor_position := Vector2.ZERO
 
 func _ready() -> void:
 	create_scaled_cursor()
@@ -22,8 +26,10 @@ func _ready() -> void:
 
 func create_scaled_cursor() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
-	var cursor_layer := CanvasLayer.new()
+	cursor_layer = CanvasLayer.new()
 	cursor_layer.layer = 200
+	cursor_trail_root = Node2D.new()
+	cursor_layer.add_child(cursor_trail_root)
 	cursor_sprite = Sprite2D.new()
 	cursor_sprite.texture = CURSOR_TEXTURE
 	cursor_sprite.centered = false
@@ -32,10 +38,38 @@ func create_scaled_cursor() -> void:
 	cursor_layer.add_child(cursor_sprite)
 	add_child(cursor_layer)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if cursor_sprite:
 		var hotspot := CURSOR_TEXTURE.get_size() * CURSOR_SCALE * 0.5
-		cursor_sprite.position = get_viewport().get_mouse_position() - hotspot
+		var cursor_position := get_viewport().get_mouse_position() - hotspot
+		cursor_sprite.position = cursor_position
+		cursor_trail_timer -= delta
+		if is_reel_menu_visible() and cursor_trail_timer <= 0.0 and cursor_position.distance_to(last_cursor_position) > 2.0:
+			cursor_trail_timer = 0.028
+			spawn_cursor_trail(cursor_position + hotspot * 0.5)
+		last_cursor_position = cursor_position
+
+func is_reel_menu_visible() -> bool:
+	var menu := get_tree().get_first_node_in_group("reel_menu_active") as CanvasItem
+	return menu != null and menu.is_visible_in_tree()
+
+func spawn_cursor_trail(position_value: Vector2) -> void:
+	if not cursor_trail_root:
+		return
+	var diamond := Polygon2D.new()
+	var radius := randf_range(1.0, 2.1)
+	diamond.polygon = PackedVector2Array([
+		Vector2(0.0, -radius), Vector2(radius, 0.0),
+		Vector2(0.0, radius), Vector2(-radius, 0.0),
+	])
+	diamond.position = position_value
+	diamond.color = Color.from_hsv(fmod(Time.get_ticks_msec() * 0.00012, 1.0), 0.42, 1.0, 0.72)
+	cursor_trail_root.add_child(diamond)
+	var tween := diamond.create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(diamond, "position:y", diamond.position.y + 7.0, 0.24)
+	tween.tween_property(diamond, "scale", Vector2.ZERO, 0.24)
+	tween.tween_property(diamond, "modulate:a", 0.0, 0.24)
+	tween.finished.connect(diamond.queue_free)
 
 func create_audio_players() -> void:
 	navigation_player = AudioStreamPlayer.new()
@@ -91,7 +125,7 @@ func find_first_available_button(node: Node) -> BaseButton:
 	return null
 
 func setup_button(button: BaseButton) -> void:
-	if not button or button.has_meta("tower_ui_juiced"):
+	if not button or button.has_meta("tower_ui_juiced") or button.has_meta("reel_menu_button") or button.has_meta("custom_card_animation"):
 		return
 	# Keep all text buttons consistent, including controls created at runtime.
 	if button is Button:

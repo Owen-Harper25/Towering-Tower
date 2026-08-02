@@ -70,5 +70,5 @@ func _interact_action() -> void:
 	await current_interactions[0].interact.call()
 
 	# Cooldown before allowing another interaction
-	await get_tree().create_timer(interact_cooldown).timeout
+	await get_tree().create_timer(interact_cooldown, false).timeout
 	can_interact = true

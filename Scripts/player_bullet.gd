@@ -5,6 +5,7 @@ const IMPACT_TEXTURE := preload("res://Assets/plus particle.png")
 @export var speed: float = 400.0
 @export var damage: int = 1
 @export var lifetime: float = 3.0
+@export var knockback_force: float = 190.0
 
 var shooter_id: int = -1 # Used to prevent hitting the player who shot it
 
@@ -38,6 +39,8 @@ func _on_body_entered(body: Node2D) -> void:
 		
 	if body.has_method("take_damage"):
 		body.take_damage(damage)
+		if body.has_method("apply_knockback"):
+			body.apply_knockback(Vector2.RIGHT.rotated(rotation) * knockback_force)
 		spawn_impact_particles(Color(0.15, 0.7, 1.0))
 	queue_free()
 

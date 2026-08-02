@@ -39,6 +39,7 @@ var post_process_tween: Tween
 var game_grade_darkness := 0.985
 var game_grade_glow := 0.025
 var party_return_in_progress := false
+var mode_transition_in_progress := false
 
 func _ready() -> void:
 	add_to_group("main")
@@ -203,12 +204,15 @@ func request_start_survival_rpc() -> void:
 
 @rpc("authority", "call_local", "reliable")
 func start_survival_rpc() -> void:
-	if current_level and current_level.is_in_group("survival_arena"):
+	if mode_transition_in_progress or (current_level and current_level.is_in_group("survival_arena")):
 		return
+	mode_transition_in_progress = true
 	party_return_in_progress = false
 	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
 		Networking.set_lobby_joinable(false)
+	play_party_teleport_effect()
 	load_level(SURVIVAL_ARENA_SCENE)
+	finish_mode_teleport_after_load(false)
 
 func leave_survival_mode() -> void:
 	# Leaving Popcorn returns the connected party through the host. A guest must
@@ -222,14 +226,83 @@ func request_start_combat_rpc() -> void:
 
 @rpc("authority", "call_local", "reliable")
 func start_combat_rpc() -> void:
-	if current_level and current_level.is_in_group("tower_arena"):
+	if mode_transition_in_progress or (current_level and current_level.is_in_group("tower_arena")):
 		return
+	mode_transition_in_progress = true
 	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
 		Networking.set_lobby_joinable(false)
+	play_party_teleport_effect()
 	load_level(ARENA_SCENE)
+	finish_mode_teleport_after_load(true)
+
+func finish_mode_teleport_after_load(move_to_tower_spawn: bool) -> void:
+	get_tree().create_timer(0.26).timeout.connect(func():
+		for player in players:
+			if not is_instance_valid(player):
+				continue
+			if move_to_tower_spawn:
+				player.global_position = Vector2(240.0, 136.0)
+			if player.has_method("reset_teleport_visual"):
+				player.call("reset_teleport_visual")
+		mode_transition_in_progress = false
+	)
+
+func play_party_teleport_effect() -> void:
+	var effect_layer := CanvasLayer.new()
+	effect_layer.layer = 110
+	add_child(effect_layer)
+	var canvas_transform := get_viewport().get_canvas_transform()
+	var beam_height := get_viewport_rect().size.y + 96.0
 	for player in players:
-		if is_instance_valid(player):
-			player.global_position = Vector2(240, 136)
+		if not is_instance_valid(player):
+			continue
+		if player.has_method("play_teleport_departure_visual"):
+			player.call("play_teleport_departure_visual")
+		create_teleport_beam(effect_layer, canvas_transform * player.global_position, beam_height)
+	get_tree().create_timer(0.62).timeout.connect(effect_layer.queue_free)
+
+func create_teleport_beam(parent: CanvasLayer, screen_position: Vector2, beam_height: float) -> void:
+	var beam_root := Node2D.new()
+	beam_root.position = screen_position
+	beam_root.scale = Vector2(0.04, 1.0)
+	parent.add_child(beam_root)
+	var glow := Polygon2D.new()
+	glow.polygon = PackedVector2Array([
+		Vector2(-16.0, -beam_height), Vector2(16.0, -beam_height),
+		Vector2(10.0, 12.0), Vector2(-10.0, 12.0),
+	])
+	glow.color = Color(0.82, 0.94, 1.0, 0.34)
+	beam_root.add_child(glow)
+	var core := Polygon2D.new()
+	core.polygon = PackedVector2Array([
+		Vector2(-5.0, -beam_height), Vector2(5.0, -beam_height),
+		Vector2(3.0, 10.0), Vector2(-3.0, 10.0),
+	])
+	core.color = Color(1.0, 1.0, 1.0, 0.96)
+	beam_root.add_child(core)
+	var floor_flash := Polygon2D.new()
+	floor_flash.polygon = PackedVector2Array([
+		Vector2(0.0, -7.0), Vector2(22.0, 0.0), Vector2(0.0, 7.0), Vector2(-22.0, 0.0),
+	])
+	floor_flash.color = Color(0.92, 0.98, 1.0, 0.88)
+	beam_root.add_child(floor_flash)
+	for particle_index in range(12):
+		var mote := Polygon2D.new()
+		var mote_size := randf_range(1.0, 2.4)
+		mote.polygon = PackedVector2Array([
+			Vector2(-mote_size, -mote_size), Vector2(mote_size, -mote_size),
+			Vector2(mote_size, mote_size), Vector2(-mote_size, mote_size),
+		])
+		mote.color = Color(1.0, 1.0, 1.0, randf_range(0.55, 0.95))
+		mote.position = Vector2(randf_range(-13.0, 13.0), randf_range(-3.0, 12.0))
+		beam_root.add_child(mote)
+		var mote_tween := create_tween().set_parallel()
+		mote_tween.tween_property(mote, "position:y", randf_range(-80.0, -34.0), randf_range(0.24, 0.42)).set_delay(randf_range(0.02, 0.12))
+		mote_tween.tween_property(mote, "modulate:a", 0.0, 0.24).set_delay(0.14)
+	var beam_tween := create_tween()
+	beam_tween.tween_property(beam_root, "scale", Vector2.ONE, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	beam_tween.tween_interval(0.16)
+	beam_tween.tween_property(beam_root, "modulate:a", 0.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 func return_party_to_lobby() -> void:
 	if multiplayer.is_server():
@@ -245,7 +318,7 @@ func request_return_party_to_lobby_rpc() -> void:
 func broadcast_party_return_to_lobby() -> void:
 	if not multiplayer.is_server() or party_return_in_progress:
 		return
-	if not current_level or not current_level.is_in_group("survival_arena"):
+	if not current_level or not (current_level.is_in_group("survival_arena") or current_level.is_in_group("tower_arena")):
 		return
 	party_return_in_progress = true
 	rpc("return_party_to_lobby_rpc")

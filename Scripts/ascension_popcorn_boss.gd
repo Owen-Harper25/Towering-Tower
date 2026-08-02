@@ -6,7 +6,7 @@ const HIT_SFX := preload("res://SFX/cancel.wav")
 const DEATH_SFX := preload("res://SFX/kick.wav")
 const IMPACT_TEXTURE := preload("res://Assets/plus particle.png")
 
-enum AttackType { SLIDE, RING, GATLING, DNA }
+enum AttackType { SLIDE, RING, GATLING, DNA, SPIRAL, FAN, WALL, CROSS }
 enum BossState { INTRO, IDLE, WINDUP, SLIDING, FIRING, DYING }
 
 @export_group("Ascension Scaling")
@@ -112,10 +112,14 @@ func handle_idle(delta: float) -> void:
 		begin_next_attack()
 
 func begin_next_attack() -> void:
-	if boss_kind == 3 and attack_index % 2 == 0:
-		current_attack = AttackType.DNA
-	else:
-		current_attack = posmod(boss_kind + attack_index, 3) as AttackType
+	var attack_decks: Array[Array] = [
+		[AttackType.RING, AttackType.SPIRAL, AttackType.FAN, AttackType.RING],
+		[AttackType.WALL, AttackType.FAN, AttackType.SLIDE, AttackType.WALL],
+		[AttackType.CROSS, AttackType.SPIRAL, AttackType.GATLING, AttackType.CROSS],
+		[AttackType.DNA, AttackType.RING, AttackType.SPIRAL, AttackType.DNA],
+	]
+	var deck: Array = attack_decks[clampi(boss_kind, 0, attack_decks.size() - 1)]
+	current_attack = int(deck[attack_index % deck.size()]) as AttackType
 	attack_index += 1
 	attack_direction = global_position.direction_to(target_player.global_position)
 	if attack_direction == Vector2.ZERO:
@@ -137,9 +141,12 @@ func handle_windup(delta: float) -> void:
 		AttackType.RING:
 			fire_circular_volley()
 			finish_attack()
-		AttackType.GATLING, AttackType.DNA:
+		AttackType.WALL:
+			fire_flame_wall()
+			finish_attack()
+		AttackType.GATLING, AttackType.DNA, AttackType.SPIRAL, AttackType.FAN, AttackType.CROSS:
 			state = BossState.FIRING
-			state_timer = 1.35 if current_attack == AttackType.GATLING else 1.65
+			state_timer = get_firing_attack_duration()
 			shot_timer = 0.0
 
 func handle_slide(delta: float) -> void:
@@ -156,12 +163,22 @@ func handle_firing(delta: float) -> void:
 	state_timer -= delta
 	shot_timer -= delta
 	if shot_timer <= 0.0:
-		if current_attack == AttackType.DNA:
-			shot_timer = maxf(0.055, 0.13 / aggression)
-			fire_dna_pair()
-		else:
-			shot_timer = maxf(0.060, 0.14 / aggression)
-			fire_gatling_shots()
+		match current_attack:
+			AttackType.DNA:
+				shot_timer = maxf(0.055, 0.13 / aggression)
+				fire_dna_pair()
+			AttackType.SPIRAL:
+				shot_timer = maxf(0.06, 0.15 / aggression)
+				fire_rotating_spiral()
+			AttackType.FAN:
+				shot_timer = maxf(0.16, 0.38 / aggression)
+				fire_targeted_fans()
+			AttackType.CROSS:
+				shot_timer = maxf(0.09, 0.22 / aggression)
+				fire_magnetic_cross()
+			_:
+				shot_timer = maxf(0.060, 0.14 / aggression)
+				fire_gatling_shots()
 	if state_timer <= 0.0:
 		finish_attack()
 
@@ -169,6 +186,13 @@ func finish_attack() -> void:
 	state = BossState.IDLE
 	state_timer = maxf(0.26, 0.86 / aggression)
 	velocity = Vector2.ZERO
+
+func get_firing_attack_duration() -> float:
+	match current_attack:
+		AttackType.GATLING: return 1.35
+		AttackType.FAN: return 1.25
+		AttackType.CROSS: return 1.55
+		_: return 1.68
 
 func fire_circular_volley() -> void:
 	var ring_count := 1 + mini(2, floori(float(bosses_defeated) / 2.0))
@@ -195,6 +219,40 @@ func fire_dna_pair() -> void:
 	if attack_index % 3 == 0:
 		rpc("spawn_bullet_rpc", global_position, attack_rotation + PI * 0.5, speed_value * 0.72, Color(0.72, 0.94, 1.0))
 		rpc("spawn_bullet_rpc", global_position, attack_rotation - PI * 0.5, speed_value * 0.72, Color(0.72, 0.94, 1.0))
+
+func fire_rotating_spiral() -> void:
+	attack_rotation += 0.23 + 0.025 * float(boss_kind)
+	var spoke_count := 3 if boss_kind != 3 else 4
+	for spoke_index in range(spoke_count):
+		var angle := attack_rotation + TAU * float(spoke_index) / float(spoke_count)
+		var color := boss_color.lerp(Color.WHITE, 0.18 + 0.12 * float(spoke_index % 2))
+		rpc("spawn_bullet_rpc", global_position, angle, 176.0 * minf(aggression, 2.25), color)
+
+func fire_targeted_fans() -> void:
+	for player in get_active_players():
+		var center_angle := global_position.direction_to(player.global_position).angle()
+		for spread_index in range(-2, 3):
+			var angle := center_angle + float(spread_index) * 0.105
+			rpc("spawn_bullet_rpc", global_position, angle, 218.0 * minf(aggression, 2.2), boss_color)
+
+func fire_flame_wall() -> void:
+	var target_angle := attack_direction.angle()
+	var bullet_count := 19 + mini(8, bosses_defeated * 2)
+	var safe_gap := randi_range(4, bullet_count - 5)
+	for bullet_index in range(bullet_count):
+		if absi(bullet_index - safe_gap) <= 1:
+			continue
+		var lateral := (float(bullet_index) - float(bullet_count) * 0.5) * 0.055
+		rpc("spawn_bullet_rpc", global_position, target_angle + lateral, 190.0 * minf(aggression, 2.15), Color(1.0, 0.27, 0.06))
+	rpc("spawn_particles_rpc", global_position, Color(1.0, 0.32, 0.06), 20)
+
+func fire_magnetic_cross() -> void:
+	attack_rotation += 0.16
+	var spoke_count := 8 if is_enraged else 4
+	for spoke_index in range(spoke_count):
+		var angle := attack_rotation + TAU * float(spoke_index) / float(spoke_count)
+		var alternating_speed := 142.0 if spoke_index % 2 == 0 else 208.0
+		rpc("spawn_bullet_rpc", global_position, angle, alternating_speed * minf(aggression, 2.2), Color(0.35, 0.82, 1.0))
 
 func damage_slide_collisions() -> void:
 	for collision_index in range(get_slide_collision_count()):
@@ -267,7 +325,7 @@ func show_attack_telegraph_rpc(attack_type: int, origin: Vector2, direction: Vec
 	var indicator := ATTACK_INDICATOR.new() as Node2D
 	indicator.global_position = origin
 	indicator.rotation = direction.angle()
-	var indicator_kind := 0 if attack_type == AttackType.SLIDE else 2 if attack_type == AttackType.GATLING else 1
+	var indicator_kind := 0 if attack_type == AttackType.SLIDE else 2 if attack_type in [AttackType.GATLING, AttackType.FAN, AttackType.WALL] else 1
 	indicator.call("configure", indicator_kind, 170.0, 62.0, 30.0, duration)
 	get_parent().add_child(indicator)
 
@@ -330,6 +388,8 @@ func update_health_bar() -> void:
 func play_hit_rpc(origin: Vector2) -> void:
 	play_sound(HIT_SFX, origin, -8.0)
 	spawn_particles(origin, boss_color.lightened(0.32), 7)
+	if presentation and presentation.has_method("play_hit_squash"):
+		presentation.call("play_hit_squash")
 
 @rpc("authority", "call_local", "reliable")
 func spawn_particles_rpc(origin: Vector2, color: Color, count: int) -> void:

@@ -4,6 +4,7 @@ const LOW_HEALTH_IRIS_SHADER := preload("res://Shaders/low_health_iris.gdshader"
 const SURVIVAL_TEAM_MATERIAL := preload("res://Shaders/outlineshader.tres")
 const SURVIVAL_DEATH_SFX := preload("res://SFX/kick.wav")
 const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
+const BOONS := preload("res://Scripts/boon_catalog.gd")
 
 # --- Signals ---
 signal health_changed(new_health: int, max_health: int)
@@ -97,8 +98,27 @@ var coins := 0
 var weapon_is_drawn := false
 var firing_recoil_velocity := Vector2.ZERO
 var weapon_recoil_offset := Vector2.ZERO
+var is_teleporting := false
+var teleport_visual_tween: Tween
 var base_max_health := 0
 var base_fire_cooldown := 0.0
+var base_speed := 0.0
+var base_roll_speed := 0.0
+var base_invincibility_duration := 0.0
+var base_fall_recovery_time := 0.0
+var boon_damage_bonus := 0
+var boon_health_bonus := 0
+var boon_fire_rate_bonus := 0.0
+var boon_move_speed_bonus := 0.0
+var boon_bullet_speed_bonus := 0.0
+var boon_knockback_bonus := 0.0
+var boon_multishot_chance := 0.0
+var boon_accuracy_bonus := 0.0
+var boon_invulnerability_bonus := 0.0
+var boon_fall_grace_bonus := 0.0
+var boon_roll_speed_bonus := 0.0
+var boon_critical_chance := 0.0
+var acquired_boons: Array[String] = []
 var in_survival_mode := false
 var is_survival_ghost := false
 var survival_bounds := Rect2(170, 20, 560, 560)
@@ -145,6 +165,10 @@ func _ready() -> void:
 	original_sprite_material = sprite.material
 	base_max_health = max_health
 	base_fire_cooldown = fire_cooldown
+	base_speed = speed
+	base_roll_speed = roll_speed
+	base_invincibility_duration = invincibility_duration
+	base_fall_recovery_time = fall_recovery_time
 	apply_cosmetic_visuals()
 	apply_meta_upgrades(false)
 	current_health = max_health
@@ -183,6 +207,12 @@ func _physics_process(delta: float) -> void:
 	update_survival_ghost_visibility()
 	update_cosmetic_motion(delta)
 	update_movement_trails(delta)
+	if is_teleporting:
+		if is_multiplayer_authority():
+			velocity = Vector2.ZERO
+			sync_velocity = Vector2.ZERO
+		update_weapon_aim()
+		return
 	if is_downed:
 		if in_survival_mode and is_multiplayer_authority():
 			handle_survival_proximity_revive(delta)
@@ -627,13 +657,19 @@ func shoot() -> void:
 	next_shot_time = Time.get_ticks_msec() / 1000.0 + fire_cooldown
 		
 	var spawn_pos = muzzle.global_position if muzzle else global_position
-	var spread_radians := deg_to_rad(randf_range(-bullet_spread_degrees, bullet_spread_degrees))
+	var adjusted_spread := bullet_spread_degrees * maxf(0.18, 1.0 - boon_accuracy_bonus)
+	var spread_radians := deg_to_rad(randf_range(-adjusted_spread, adjusted_spread))
 	var fire_angle := aim_direction.angle() + spread_radians
 	firing_recoil_velocity -= aim_direction * firing_recoil_force
 	rpc("play_firing_feedback_rpc", aim_direction)
 
-	var bullet_damage := 2 + MetaProgression.get_level("damage")
-	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id(), bullet_damage)
+	var bullet_damage := 2 + MetaProgression.get_level("damage") + boon_damage_bonus
+	if randf() < boon_critical_chance:
+		bullet_damage *= 2
+	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id(), bullet_damage, 1.0 + boon_bullet_speed_bonus, 1.0 + boon_knockback_bonus)
+	if randf() < boon_multishot_chance:
+		var echo_angle := fire_angle + deg_to_rad(5.0 if randf() > 0.5 else -5.0)
+		rpc("spawn_bullet_rpc", spawn_pos, echo_angle, multiplayer.get_unique_id(), bullet_damage, 1.0 + boon_bullet_speed_bonus, 1.0 + boon_knockback_bonus)
 
 @rpc("any_peer", "call_local", "unreliable")
 func play_firing_feedback_rpc(fire_direction: Vector2) -> void:
@@ -655,12 +691,14 @@ func play_firing_feedback_rpc(fire_direction: Vector2) -> void:
 	squash_tween.tween_property(sprite, "scale", Vector2.ONE, 0.12)
 
 @rpc("any_peer", "call_local", "reliable")
-func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int, bullet_damage: int) -> void:
+func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int, bullet_damage: int, speed_multiplier: float = 1.0, knockback_multiplier: float = 1.0) -> void:
 	if bullet_scene:
 		var bullet = bullet_scene.instantiate() as Area2D
 		bullet.global_position = spawn_pos
 		bullet.rotation = angle
 		bullet.set("damage", bullet_damage)
+		bullet.set("speed", float(bullet.get("speed")) * speed_multiplier)
+		bullet.set("knockback_force", float(bullet.get("knockback_force")) * knockback_multiplier)
 		if shootsfx: shootsfx.play()
 		
 		if "shooter_id" in bullet:
@@ -713,20 +751,93 @@ func update_cosmetic_motion(delta: float) -> void:
 	cosmetic_back.flip_h = not sprite.flip_h
 	cosmetic_head.modulate.a = sprite.modulate.a
 	cosmetic_back.modulate.a = sprite.modulate.a
+	if is_teleporting:
+		return
 	var bob := sin(Time.get_ticks_msec() * 0.009) * minf(1.0, sync_velocity.length() / maxf(1.0, speed))
 	cosmetic_head.position.y = lerpf(cosmetic_head.position.y, -12.0 + bob, minf(1.0, delta * 14.0))
 	var cape_target_rotation := clampf(-sync_velocity.x / 720.0, -0.24, 0.24)
 	cosmetic_back.rotation = lerp_angle(cosmetic_back.rotation, cape_target_rotation, minf(1.0, delta * 9.0))
 
+func play_teleport_departure_visual() -> void:
+	if is_teleporting:
+		return
+	is_teleporting = true
+	set_weapon_drawn(false)
+	if teleport_visual_tween and teleport_visual_tween.is_valid():
+		teleport_visual_tween.kill()
+	teleport_visual_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	teleport_visual_tween.tween_property(sprite, "position:y", sprite.position.y - 24.0, 0.24)
+	teleport_visual_tween.tween_property(sprite, "scale", Vector2(0.28, 1.45), 0.18)
+	teleport_visual_tween.tween_property(sprite, "modulate:a", 0.0, 0.22).set_delay(0.04)
+	teleport_visual_tween.tween_property(cosmetic_head, "position:y", cosmetic_head.position.y - 24.0, 0.24)
+	teleport_visual_tween.tween_property(cosmetic_back, "position:y", cosmetic_back.position.y - 24.0, 0.24)
+	teleport_visual_tween.tween_property(cosmetic_head, "modulate:a", 0.0, 0.22).set_delay(0.04)
+	teleport_visual_tween.tween_property(cosmetic_back, "modulate:a", 0.0, 0.22).set_delay(0.04)
+
+func reset_teleport_visual() -> void:
+	if teleport_visual_tween and teleport_visual_tween.is_valid():
+		teleport_visual_tween.kill()
+	is_teleporting = false
+	sprite.position = Vector2.ZERO
+	sprite.scale = Vector2.ONE
+	sprite.modulate.a = 1.0
+	cosmetic_head.position = Vector2(0.0, -12.0)
+	cosmetic_back.position = Vector2(0.0, 2.0)
+	cosmetic_head.scale = Vector2.ONE * 0.5
+	cosmetic_back.scale = Vector2.ONE * 0.5
+	cosmetic_head.modulate.a = 1.0
+	cosmetic_back.modulate.a = 1.0
+
 func apply_meta_upgrades(heal_from_new_vitality: bool) -> void:
 	var previous_max_health := max_health
-	max_health = base_max_health + MetaProgression.get_level("vitality") * 2
-	fire_cooldown = maxf(0.07, base_fire_cooldown - MetaProgression.get_level("rapid_fire") * 0.015)
+	max_health = base_max_health + MetaProgression.get_level("vitality") * 2 + boon_health_bonus
+	var meta_fire_cooldown := base_fire_cooldown - MetaProgression.get_level("rapid_fire") * 0.015
+	fire_cooldown = maxf(0.045, meta_fire_cooldown * (1.0 - minf(0.72, boon_fire_rate_bonus)))
+	speed = base_speed * (1.0 + boon_move_speed_bonus)
+	roll_speed = base_roll_speed * (1.0 + boon_roll_speed_bonus)
+	invincibility_duration = base_invincibility_duration + boon_invulnerability_bonus
+	fall_recovery_time = base_fall_recovery_time + boon_fall_grace_bonus
 	if not heal_from_new_vitality or current_health <= 0:
 		return
 	var gained_health := maxi(0, max_health - previous_max_health)
 	current_health = mini(max_health, current_health + gained_health)
 	health_changed.emit(current_health, max_health)
+
+func apply_ascension_boon(boon_id: String, rarity: int) -> void:
+	if not is_multiplayer_authority() or BOONS.get_boon(boon_id).is_empty():
+		return
+	var value := BOONS.get_value(boon_id, rarity)
+	match BOONS.get_effect(boon_id):
+		"damage": boon_damage_bonus += maxi(1, roundi(value))
+		"fire_rate": boon_fire_rate_bonus += value
+		"move_speed": boon_move_speed_bonus += value
+		"max_health": boon_health_bonus += maxi(1, roundi(value))
+		"bullet_speed": boon_bullet_speed_bonus += value
+		"knockback": boon_knockback_bonus += value
+		"multishot": boon_multishot_chance += value
+		"accuracy": boon_accuracy_bonus += value
+		"invulnerability": boon_invulnerability_bonus += value
+		"fall_grace": boon_fall_grace_bonus += value
+		"roll_speed": boon_roll_speed_bonus += value
+		"critical": boon_critical_chance += value
+	acquired_boons.append("%s:%d" % [boon_id, rarity])
+	apply_meta_upgrades(true)
+
+func clear_ascension_boons() -> void:
+	boon_damage_bonus = 0
+	boon_health_bonus = 0
+	boon_fire_rate_bonus = 0.0
+	boon_move_speed_bonus = 0.0
+	boon_bullet_speed_bonus = 0.0
+	boon_knockback_bonus = 0.0
+	boon_multishot_chance = 0.0
+	boon_accuracy_bonus = 0.0
+	boon_invulnerability_bonus = 0.0
+	boon_fall_grace_bonus = 0.0
+	boon_roll_speed_bonus = 0.0
+	boon_critical_chance = 0.0
+	acquired_boons.clear()
+	apply_meta_upgrades(false)
 
 func enter_survival_mode(bounds: Rect2, spawn_position: Vector2, team_id: int = 0, team_size: int = 1, team_color: Color = Color.WHITE) -> void:
 	in_survival_mode = true
@@ -1187,6 +1298,7 @@ func reset_for_lobby_rpc() -> void:
 	death_timer_current = 0.0
 	pause_timer = 0.0
 	revive_hp_current = 0.0
+	clear_ascension_boons()
 	current_health = max_health
 	if sprite.sprite_frames.has_animation("Idle"):
 		sprite.play("Idle")

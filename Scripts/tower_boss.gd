@@ -30,6 +30,7 @@ var is_enraged := false
 var health_bar_fill: ColorRect
 var health_bar_label: Label
 var health_bar_tween: Tween
+var hit_squash_tween: Tween
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(1)
@@ -303,9 +304,13 @@ func update_boss_health_rpc(new_health: int, health_maximum: int, enraged: bool)
 func play_boss_hit_feedback_rpc() -> void:
 	play_one_shot(hit_sound, global_position, -7.0)
 	spawn_boss_particles(global_position, Color(0.75, 0.92, 1.0), 7, 19.0, 0.50)
-	var hit_tween := create_tween()
-	hit_tween.tween_property(self, "scale", Vector2.ONE * 1.12, 0.05)
-	hit_tween.tween_property(self, "scale", Vector2.ONE, 0.10)
+	if hit_squash_tween and hit_squash_tween.is_valid():
+		hit_squash_tween.kill()
+	var base_scale := Vector2.ONE * 0.3
+	hit_squash_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	hit_squash_tween.tween_property(sprite, "scale", base_scale * Vector2(0.76, 1.28), 0.04)
+	hit_squash_tween.tween_property(sprite, "scale", base_scale * Vector2(1.07, 0.95), 0.07)
+	hit_squash_tween.tween_property(sprite, "scale", base_scale, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 @rpc("authority", "call_local", "reliable")
 func enter_rage_rpc() -> void:

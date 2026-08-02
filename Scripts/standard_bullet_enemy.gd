@@ -27,6 +27,7 @@ var current_health: int
 var is_dying: bool = false
 var hit_sfx_player: AudioStreamPlayer2D
 var knockback_velocity := Vector2.ZERO
+var hit_squash_tween: Tween
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(1)
@@ -236,9 +237,17 @@ func play_hit_effects_rpc() -> void:
 			if is_instance_valid(mat):
 				mat.set_shader_parameter("enabled", false)
 		)
-	var hit_tween := create_tween()
-	hit_tween.tween_property(self, "scale", Vector2.ONE * 1.12, 0.05)
-	hit_tween.tween_property(self, "scale", Vector2.ONE, 0.09)
+	play_hit_squash()
+
+func play_hit_squash() -> void:
+	if not sprite:
+		return
+	if hit_squash_tween and hit_squash_tween.is_valid():
+		hit_squash_tween.kill()
+	hit_squash_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	hit_squash_tween.tween_property(sprite, "scale", Vector2(0.72, 1.34), 0.035)
+	hit_squash_tween.tween_property(sprite, "scale", Vector2(1.08, 0.94), 0.065)
+	hit_squash_tween.tween_property(sprite, "scale", Vector2.ONE, 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 @rpc("any_peer", "call_local", "reliable")
 func die_with_dissolve_rpc() -> void:
 	is_dying = true

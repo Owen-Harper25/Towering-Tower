@@ -4,6 +4,7 @@ const RUSHER_SCENE := preload("res://Scenes/standard_bullet_enemy.tscn")
 const SNIPER_SCENE := preload("res://Scenes/sniper_bullet_enemy.tscn")
 const TURRET_SCENE := preload("res://Scenes/turret_enemy.tscn")
 const ASCENSION_BOSS_SCENE := preload("res://Scenes/ascension_popcorn_boss.tscn")
+const BOONS := preload("res://Scripts/boon_catalog.gd")
 const BOSS_PRESENTATION_PATHS: Array[String] = [
 	"res://Scenes/popcorn_boss_butterstorm.tscn",
 	"res://Scenes/popcorn_boss_flame.tscn",
@@ -24,6 +25,9 @@ var last_boss_kind := -1
 @onready var enemies: Node2D = $Enemies
 var wave_banner: ColorRect
 var wave_label: Label
+var boon_draft_active := false
+var boon_choices_by_peer: Dictionary = {}
+var boon_draft_layer: CanvasLayer
 
 func _ready() -> void:
 	add_to_group("tower_arena")
@@ -81,8 +85,15 @@ func _physics_process(delta: float) -> void:
 
 	if wave_active:
 		if get_living_enemy_count() == 0:
+			if wave % 5 == 0:
+				begin_boon_draft()
+				return
 			rpc("sync_wave_state_rpc", wave, false)
 			next_wave_time = time_between_waves
+			return
+		return
+	if boon_draft_active:
+		check_boon_draft_completion()
 		return
 
 	next_wave_time -= delta
@@ -102,6 +113,263 @@ func start_wave() -> void:
 	spawn_group(RUSHER_SCENE, rusher_count)
 	spawn_group(SNIPER_SCENE, sniper_count)
 	spawn_group(TURRET_SCENE, turret_count)
+
+func begin_boon_draft() -> void:
+	if not multiplayer.is_server() or boon_draft_active:
+		return
+	boon_draft_active = true
+	boon_choices_by_peer.clear()
+	rpc("sync_wave_state_rpc", wave, false)
+	var boon_ids := BOONS.get_ids()
+	boon_ids.shuffle()
+	var options: Array[Dictionary] = []
+	for option_index in range(mini(3, boon_ids.size())):
+		options.append({"id": boon_ids[option_index], "rarity": BOONS.roll_rarity()})
+	rpc("show_boon_draft_rpc", options)
+
+func get_expected_boon_peer_ids() -> Array[int]:
+	var peer_ids: Array[int] = []
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if not player:
+			continue
+		var peer_id := player.get_multiplayer_authority()
+		if peer_id > 0 and not peer_ids.has(peer_id):
+			peer_ids.append(peer_id)
+	return peer_ids
+
+func check_boon_draft_completion() -> void:
+	if not multiplayer.is_server() or not boon_draft_active:
+		return
+	var expected_peers := get_expected_boon_peer_ids()
+	if expected_peers.is_empty():
+		return
+	for peer_id in expected_peers:
+		if not boon_choices_by_peer.has(peer_id):
+			return
+	boon_draft_active = false
+	next_wave_time = time_between_waves
+	rpc("finish_boon_draft_rpc")
+
+@rpc("authority", "call_local", "reliable")
+func show_boon_draft_rpc(options: Array[Dictionary]) -> void:
+	boon_draft_active = true
+	create_boon_draft_ui(options)
+
+func create_boon_draft_ui(options: Array[Dictionary]) -> void:
+	if boon_draft_layer and is_instance_valid(boon_draft_layer):
+		boon_draft_layer.queue_free()
+	boon_draft_layer = CanvasLayer.new()
+	boon_draft_layer.layer = 75
+	var shade := ColorRect.new()
+	shade.color = Color(0.045, 0.018, 0.075, 0.94)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	boon_draft_layer.add_child(shade)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.add_child(center)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 7)
+	center.add_child(layout)
+	var title := Label.new()
+	title.text = "CHOOSE AN ASCENSION BOON"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 16)
+	layout.add_child(title)
+	var cards := HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 10)
+	layout.add_child(cards)
+	for option_index in range(options.size()):
+		var option := options[option_index]
+		create_boon_tarot_card(cards, str(option.get("id", "")), int(option.get("rarity", 0)), option_index)
+	var hint := Label.new()
+	hint.text = "THE NEXT FLOOR WAITS FOR EVERY PLAYER"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 9)
+	layout.add_child(hint)
+	add_child(boon_draft_layer)
+
+func create_boon_tarot_card(parent: HBoxContainer, boon_id: String, rarity: int, display_index: int) -> void:
+	var rarity_color := BOONS.get_rarity_color(rarity)
+	var paper_color := Color(0.93, 0.88, 0.72).lerp(rarity_color, 0.10)
+	var ink_color := Color(0.12, 0.055, 0.16)
+	var card := Button.new()
+	card.custom_minimum_size = Vector2(172.0, 192.0)
+	card.focus_mode = Control.FOCUS_ALL
+	card.add_theme_stylebox_override("normal", create_boon_card_style(rarity_color.darkened(0.10), paper_color, 4))
+	card.add_theme_stylebox_override("hover", create_boon_card_style(rarity_color.lightened(0.18), paper_color.lightened(0.08), 6))
+	card.add_theme_stylebox_override("focus", create_boon_card_style(Color.WHITE, paper_color.lightened(0.08), 6))
+	card.add_theme_stylebox_override("pressed", create_boon_card_style(rarity_color, paper_color.darkened(0.08), 7))
+	var card_tilts := [-2.4, 1.3, -1.6]
+	var base_rotation := deg_to_rad(float(card_tilts[display_index % card_tilts.size()]))
+	card.rotation = base_rotation
+	card.set_meta("base_rotation", base_rotation)
+	var content := VBoxContainer.new()
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 9.0
+	content.offset_top = 7.0
+	content.offset_right = -9.0
+	content.offset_bottom = -7.0
+	content.add_theme_constant_override("separation", 3)
+	card.add_child(content)
+	var rarity_label := Label.new()
+	rarity_label.text = BOONS.get_rarity_name(rarity)
+	rarity_label.modulate = rarity_color
+	rarity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rarity_label.add_theme_font_size_override("font_size", 9)
+	rarity_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(rarity_label)
+	var icon := TextureRect.new()
+	icon.texture = create_boon_pixel_icon(BOONS.get_sigil(boon_id), rarity_color)
+	icon.custom_minimum_size = Vector2(0.0, 58.0)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(icon)
+	var name_label := Label.new()
+	name_label.text = BOONS.get_display_name(boon_id)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_color_override("font_color", ink_color)
+	name_label.add_theme_color_override("font_outline_color", paper_color.darkened(0.12))
+	name_label.add_theme_constant_override("outline_size", 1)
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(name_label)
+	var divider := HSeparator.new()
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(divider)
+	var description := Label.new()
+	description.text = BOONS.get_description(boon_id, rarity)
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	description.add_theme_font_size_override("font_size", 9)
+	description.add_theme_color_override("font_color", ink_color.lightened(0.08))
+	description.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(description)
+	var choose := Label.new()
+	choose.text = "[ CHOOSE ]"
+	choose.modulate = rarity_color
+	choose.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	choose.add_theme_font_size_override("font_size", 9)
+	choose.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(choose)
+	card.pressed.connect(func(): select_local_boon(boon_id, rarity))
+	card.mouse_entered.connect(func(): animate_boon_card(card, true))
+	card.mouse_exited.connect(func(): animate_boon_card(card, false))
+	card.focus_entered.connect(func(): animate_boon_card(card, true))
+	card.focus_exited.connect(func(): animate_boon_card(card, false))
+	parent.add_child(card)
+	card.call_deferred("set_pivot_offset", card.custom_minimum_size * 0.5)
+
+func animate_boon_card(card: Button, raised: bool) -> void:
+	if not is_instance_valid(card):
+		return
+	var previous_tween: Variant = card.get_meta("hover_tween", null)
+	if previous_tween is Tween and previous_tween.is_valid():
+		previous_tween.kill()
+	card.z_index = 8 if raised else 0
+	var target_rotation := 0.0 if raised else float(card.get_meta("base_rotation", 0.0))
+	var target_scale := Vector2.ONE * 1.065 if raised else Vector2.ONE
+	var tween := create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(card, "rotation", target_rotation, 0.13)
+	tween.tween_property(card, "scale", target_scale, 0.13)
+	card.set_meta("hover_tween", tween)
+
+func create_boon_card_style(border_color: Color, fill_color: Color, border_width: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.border_color = border_color
+	style.set_border_width_all(border_width)
+	style.corner_radius_top_left = 5
+	style.corner_radius_top_right = 5
+	style.corner_radius_bottom_left = 5
+	style.corner_radius_bottom_right = 5
+	style.shadow_color = Color(0.015, 0.005, 0.025, 0.78)
+	style.shadow_size = 7
+	style.shadow_offset = Vector2(3.0, 5.0)
+	return style
+
+func create_boon_pixel_icon(sigil: int, color: Color) -> ImageTexture:
+	var image := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	image.fill(Color.TRANSPARENT)
+	var pale := color.lightened(0.38)
+	for pixel_index in range(8):
+		paint_icon_pixel(image, 15 + (pixel_index % 2), 4 + pixel_index * 3, 2, pale)
+	match sigil % 6:
+		0:
+			paint_icon_pixel(image, 10, 10, 12, color)
+			paint_icon_pixel(image, 13, 7, 6, pale)
+		1:
+			paint_icon_pixel(image, 9, 6, 14, 3, color)
+			paint_icon_pixel(image, 12, 10, 8, 12, pale)
+			paint_icon_pixel(image, 9, 23, 14, 3, color)
+		2:
+			paint_icon_pixel(image, 4, 10, 10, 5, color)
+			paint_icon_pixel(image, 18, 10, 10, 5, color)
+			paint_icon_pixel(image, 12, 14, 8, 11, pale)
+		3:
+			paint_icon_pixel(image, 7, 9, 8, 8, color)
+			paint_icon_pixel(image, 17, 9, 8, 8, color)
+			paint_icon_pixel(image, 10, 15, 12, 8, pale)
+		4:
+			paint_icon_pixel(image, 5, 8, 20, 4, color)
+			paint_icon_pixel(image, 9, 14, 18, 4, pale)
+			paint_icon_pixel(image, 5, 20, 20, 4, color)
+		_:
+			paint_icon_pixel(image, 13, 4, 6, 24, color)
+			paint_icon_pixel(image, 5, 13, 22, 6, pale)
+	return ImageTexture.create_from_image(image)
+
+func paint_icon_pixel(image: Image, x: int, y: int, width: int, height_or_color: Variant, optional_color: Color = Color.WHITE) -> void:
+	var height := width
+	var color := optional_color
+	if height_or_color is Color:
+		color = height_or_color
+	else:
+		height = int(height_or_color)
+	for px in range(x, mini(32, x + width)):
+		for py in range(y, mini(32, y + height)):
+			if px >= 0 and py >= 0:
+				image.set_pixel(px, py, color)
+
+func select_local_boon(boon_id: String, rarity: int) -> void:
+	var local_peer_id := multiplayer.get_unique_id()
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.is_multiplayer_authority() and player.has_method("apply_ascension_boon"):
+			player.call("apply_ascension_boon", boon_id, rarity)
+			break
+	if boon_draft_layer and is_instance_valid(boon_draft_layer):
+		boon_draft_layer.queue_free()
+	if multiplayer.is_server():
+		register_boon_choice(local_peer_id, boon_id, rarity)
+	else:
+		rpc_id(1, "submit_boon_choice_rpc", local_peer_id, boon_id, rarity)
+
+@rpc("any_peer", "reliable")
+func submit_boon_choice_rpc(peer_id: int, boon_id: String, rarity: int) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != peer_id or not BOONS.BOONS.has(boon_id):
+		return
+	register_boon_choice(peer_id, boon_id, rarity)
+
+func register_boon_choice(peer_id: int, boon_id: String, rarity: int) -> void:
+	if not boon_draft_active or boon_choices_by_peer.has(peer_id):
+		return
+	boon_choices_by_peer[peer_id] = {"id": boon_id, "rarity": clampi(rarity, 0, 3)}
+	check_boon_draft_completion()
+
+@rpc("authority", "call_local", "reliable")
+func finish_boon_draft_rpc() -> void:
+	boon_draft_active = false
+	if boon_draft_layer and is_instance_valid(boon_draft_layer):
+		boon_draft_layer.queue_free()
 
 @rpc("authority", "call_local", "reliable")
 func sync_wave_state_rpc(new_wave: int, active: bool) -> void:

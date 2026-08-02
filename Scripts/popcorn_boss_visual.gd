@@ -9,7 +9,11 @@ const IMPACT_TEXTURE := preload("res://Assets/plus particle.png")
 
 @onready var sprite: Sprite2D = $Sprite2D
 
+var hit_squash_tween: Tween
+var sprite_base_scale := Vector2.ONE
+
 func _ready() -> void:
+	sprite_base_scale = sprite.scale
 	sprite.modulate = base_color
 
 func get_boss_kind() -> int:
@@ -59,3 +63,11 @@ func spawn_landing_burst() -> void:
 		particle_tween.tween_property(particle, "scale", Vector2.ZERO, 0.28)
 		particle_tween.tween_property(particle, "modulate:a", 0.0, 0.28)
 	get_tree().create_timer(0.32).timeout.connect(burst.queue_free)
+
+func play_hit_squash() -> void:
+	if hit_squash_tween and hit_squash_tween.is_valid():
+		hit_squash_tween.kill()
+	hit_squash_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	hit_squash_tween.tween_property(sprite, "scale", sprite_base_scale * Vector2(0.74, 1.30), 0.04)
+	hit_squash_tween.tween_property(sprite, "scale", sprite_base_scale * Vector2(1.07, 0.95), 0.075)
+	hit_squash_tween.tween_property(sprite, "scale", sprite_base_scale, 0.11).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

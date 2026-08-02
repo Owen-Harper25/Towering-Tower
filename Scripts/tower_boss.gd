@@ -47,7 +47,8 @@ func _ready() -> void:
 	else:
 		current_health = max_health
 		update_boss_health_rpc(current_health, max_health, false)
-	rpc("set_boss_color_rpc", BossState.IDLE)
+	# Every peer initializes its local visual. Only the host sends later state RPCs.
+	set_boss_color_rpc(BossState.IDLE)
 
 func play_spawn_effects() -> void:
 	scale = Vector2.ZERO

@@ -11,6 +11,7 @@ func _ready() -> void:
 
 func setup_hearts(max_health: int, current_health: int) -> void:
 	for child in heart_container.get_children():
+		heart_container.remove_child(child)
 		child.queue_free()
 
 	# 1 Heart Container = 2 HP
@@ -22,7 +23,12 @@ func setup_hearts(max_health: int, current_health: int) -> void:
 
 	update_hearts(current_health)
 
-func update_hearts(current_health: int, _max_health: int = 0) -> void:
+func update_hearts(current_health: int, new_max_health: int = 0) -> void:
+	if new_max_health > 0:
+		var expected_hearts := int(ceil(new_max_health / 2.0))
+		if heart_container.get_child_count() != expected_hearts:
+			setup_hearts(new_max_health, current_health)
+			return
 	var hearts = heart_container.get_children()
 	
 	for i in range(hearts.size()):

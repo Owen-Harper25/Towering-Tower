@@ -96,9 +96,17 @@ func add_upgrade_button(upgrade_id: String) -> void:
 	button.custom_minimum_size = Vector2(0.0, 28.0)
 	button.pressed.connect(func():
 		if MetaProgression.purchase(upgrade_id):
+			apply_upgrades_to_local_player()
 			refresh_skill_tree()
 	)
 	panel_content.add_child(button)
+
+func apply_upgrades_to_local_player() -> void:
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.is_multiplayer_authority() and player.has_method("apply_meta_upgrades"):
+			player.call("apply_meta_upgrades", true)
+			return
 
 func refresh_skill_tree() -> void:
 	if not panel or not panel.visible:

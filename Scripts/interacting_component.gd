@@ -4,20 +4,10 @@ extends Node2D
 var current_interactions := []
 var can_interact := true
 var interact_cooldown := 0.4
-var interact_buffer := false
-var joystick_threshold := -0.9
 var last_highlighted: Area2D = null
 
 
 func _process(_delta: float) -> void:
-	var joy_y = Input.get_action_strength("Up")
-
-	if joy_y < joystick_threshold and !interact_buffer and can_interact:
-		_interact_action()
-		interact_buffer = true
-	elif joy_y > -0.2:
-		interact_buffer = false
-
 	if current_interactions and can_interact:
 		current_interactions.sort_custom(_sort_by_nearest)
 		var focused = current_interactions[0]
@@ -32,7 +22,8 @@ func _process(_delta: float) -> void:
 			last_highlighted = focused
 
 		if focused.is_interactable:
-			interact_label.text = focused.interact_name
+			var prompt := str(focused.interact_name)
+			interact_label.text = prompt.replace("E -", "[A] -") if UIJuice.controller_input_active else prompt
 			interact_label.show()
 	else:
 		if last_highlighted and last_highlighted.has_method("set_highlighted"):
@@ -45,6 +36,9 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	#if Global.buffer_inputs or Global.talking:
 		#return
+	var player := get_parent()
+	if player and bool(player.get("ui_input_locked")):
+		return
 	if event.is_action_pressed("Interact") and can_interact:
 		_interact_action()
 

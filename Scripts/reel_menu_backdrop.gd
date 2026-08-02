@@ -8,13 +8,18 @@ var particle_data: Array[Vector4] = []
 var elapsed := 0.0
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Keep clicks from reaching lobby/debug controls while the menu is open.
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var particle_rng := RandomNumberGenerator.new()
+	# A fixed seed keeps the menu composition stable, while independent random
+	# coordinates prevent the arithmetic diagonal bands the old layout produced.
+	particle_rng.seed = 0x746F776572
 	for particle_index in range(24):
-		var x := fmod(float(particle_index * 83 + 29), 480.0)
-		var y := fmod(float(particle_index * 47 + 17), 270.0)
-		var speed := 4.0 + float((particle_index * 7) % 13)
-		var particle_size := 0.8 + float(particle_index % 3) * 0.55
+		var x := particle_rng.randf()
+		var y := particle_rng.randf()
+		var speed := particle_rng.randf_range(4.0, 17.0)
+		var particle_size := particle_rng.randf_range(0.8, 1.9)
 		particle_data.append(Vector4(x, y, speed, particle_size))
 
 func _process(delta: float) -> void:
@@ -33,8 +38,8 @@ func _draw() -> void:
 	for particle_index in range(particle_data.size()):
 		var particle := particle_data[particle_index]
 		var particle_position := Vector2(
-			fmod(particle.x + sin(elapsed * 0.7 + float(particle_index)) * 8.0 + size.x, size.x),
-			fmod(particle.y - elapsed * particle.z + size.y * 4.0, size.y)
+			fmod(particle.x * size.x + sin(elapsed * 0.7 + float(particle_index)) * 8.0 + size.x, size.x),
+			fmod(particle.y * size.y - elapsed * particle.z + size.y * 4.0, size.y)
 		)
 		var pulse := 0.42 + sin(elapsed * 2.0 + float(particle_index) * 0.8) * 0.16
 		var color := PARTICLE_COLORS[particle_index % PARTICLE_COLORS.size()]

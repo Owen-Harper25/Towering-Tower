@@ -16,6 +16,7 @@ const GAME_GRADE_SHADER := preload("res://Shaders/game_grade.gdshader")
 @onready var song_queue: Label = $"CanvasLayer/Song Text/Song Queue"
 @onready var song_name_anim: AnimationPlayer = $"CanvasLayer/Song Text/Song Queue/SongName Anim"
 @onready var break_timer: Timer = $Timers/MusicBreakTimer
+@onready var menu_music: AudioStreamPlayer = $Music/GothicMenuTheme
 
 # --- Level & Player References ---
 @export var default_level_scene: PackedScene = preload("res://Scenes/lobby.tscn")
@@ -30,6 +31,7 @@ var current_song_index: int = 0
 var music: bool = false
 var current_loop_count: int = 0
 @export var loops_per_song: int = 2
+var music_context_is_gameplay := false
 var current_level: Node = null
 var transition_overlay: ColorRect
 var transition_tween: Tween
@@ -59,13 +61,17 @@ func _ready() -> void:
 	create_game_post_process()
 	
 	# Setup Music System
-	background_songs = $Music.get_children()
-	for i in background_songs:
+	background_songs = []
+	for i in $Music.get_children():
+		if i == menu_music:
+			continue
 		if i is AudioStreamPlayer2D or i is AudioStreamPlayer:
+			background_songs.append(i)
 			i.bus = &"Music"
 			i.finished.connect(on_song_fin)
+	menu_music.bus = &"Music"
 	break_timer.timeout.connect(play_next_random_song)
-	play_next_random_song()
+	play_menu_music(false)
 
 # --- STEAM LOBBY BROWSER SYSTEM ---
 
@@ -87,8 +93,11 @@ func _on_lobby_match_list(lobbies: Array) -> void:
 		var no_lobbies_label := Label.new()
 		no_lobbies_label.text = "No public lobbies found."
 		lobby_list_container.add_child(no_lobbies_label)
+		if UIJuice.keyboard_navigation_active:
+			refresh_button.grab_focus()
 		return
 
+	var first_available_lobby_button: Button = null
 	for lobby_id in lobbies:
 		var lobby_name: String = Steam.getLobbyData(lobby_id, "name")
 		var member_count: int = Steam.getNumLobbyMembers(lobby_id)
@@ -105,12 +114,21 @@ func _on_lobby_match_list(lobbies: Array) -> void:
 
 		lobby_button.pressed.connect(func(): join_lobby_by_id(lobby_id))
 		lobby_list_container.add_child(lobby_button)
+		if not lobby_button.disabled and not first_available_lobby_button:
+			first_available_lobby_button = lobby_button
+	if UIJuice.keyboard_navigation_active:
+		if first_available_lobby_button:
+			first_available_lobby_button.grab_focus()
+		else:
+			refresh_button.grab_focus()
 
 # --- SERVER BROWSER BUTTON HANDLERS ---
 
 func _on_join_button_pressed() -> void:
 	if server_browser:
 		server_browser.show()
+		if UIJuice.keyboard_navigation_active:
+			back_button.grab_focus()
 	request_lobby_browser()
 
 func _on_refresh_button_pressed() -> void:
@@ -178,7 +196,14 @@ func _on_solo_pressed() -> void:
 	spawn_player(1)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not current_level or not event.is_action_pressed("ui_cancel"):
+	if not current_level:
+		return
+	var cancel_requested := event.is_action_pressed("ui_cancel")
+	var pause_requested := event.is_action_pressed("Pause")
+	var keyboard_cancel := cancel_requested and not (event is InputEventJoypadButton)
+	if not runtime_menu_open and not pause_requested and not keyboard_cancel:
+		return
+	if runtime_menu_open and not pause_requested and not cancel_requested:
 		return
 	if current_level.is_in_group("tower_arena") and bool(current_level.get("boon_book_open")):
 		current_level.call("close_boon_book")
@@ -210,6 +235,9 @@ func close_runtime_menu() -> void:
 	menu_canvas_layer.hide()
 	set_local_player_ui_locked(false)
 	set_single_player_menu_paused("runtime_menu", false)
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	if focus_owner:
+		focus_owner.release_focus()
 
 func set_single_player_menu_paused(reason: String, should_pause: bool) -> void:
 	if should_pause:
@@ -432,6 +460,7 @@ func perform_load_level(level_scene: PackedScene) -> void:
 	current_level = level_scene.instantiate()
 	level_container.add_child(current_level)
 	update_game_post_process(current_level.is_in_group("tower_arena") or current_level.is_in_group("survival_arena"))
+	update_music_for_context()
 	
 	if current_level.has_node("SpawnPoint"):
 		$SpawnPoint.global_position = current_level.get_node("SpawnPoint").global_position
@@ -524,6 +553,8 @@ func sync_level_change(level_path: String) -> void:
 # --- MUSIC & MISC HANDLERS ---
 
 func on_song_fin():
+	if not music_context_is_gameplay:
+		return
 	current_loop_count += 1
 	if current_loop_count < loops_per_song:
 		background_songs[current_song_index].play()
@@ -531,6 +562,8 @@ func on_song_fin():
 		fade_out_and_next()
 
 func fade_out_and_next():
+	if not music_context_is_gameplay:
+		return
 	var song = background_songs[current_song_index]
 	var fade_tween = create_tween()
 	fade_tween.tween_property(song, "volume_db", -80.0, 3.0)
@@ -541,6 +574,8 @@ func fade_out_and_next():
 	)
 
 func play_next_random_song():
+	if not music_context_is_gameplay or background_songs.is_empty():
+		return
 	var next_song = randi() % background_songs.size()
 	while next_song == current_song_index and background_songs.size() > 1:
 		next_song = randi() % background_songs.size()
@@ -549,11 +584,50 @@ func play_next_random_song():
 	current_loop_count = 0
 	
 	var song = background_songs[current_song_index]
-	song.volume_db = 0
+	song.volume_db = -22.0
 	song.play()
+	create_tween().tween_property(song, "volume_db", 0.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	
 	song_queue.text = "Now Playing: " + str(song.name)
 	song_name_anim.play("new_song")
+
+func update_music_for_context() -> void:
+	# The gothic theme belongs only to the boot menu. Loading even the safe lobby
+	# counts as leaving that menu and hands music back to the world playlist.
+	if current_level != null:
+		play_gameplay_music()
+	else:
+		play_menu_music()
+
+func play_menu_music(crossfade: bool = true) -> void:
+	if not menu_music:
+		return
+	music_context_is_gameplay = false
+	break_timer.stop()
+	for song in background_songs:
+		if song is AudioStreamPlayer or song is AudioStreamPlayer2D:
+			song.stop()
+	if menu_music.playing:
+		return
+	menu_music.volume_db = -22.0 if crossfade else 0.0
+	menu_music.play()
+	if crossfade:
+		create_tween().tween_property(menu_music, "volume_db", 0.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	song_queue.text = "Now Playing: Veil of the Tower"
+
+func play_gameplay_music() -> void:
+	if music_context_is_gameplay:
+		return
+	music_context_is_gameplay = true
+	break_timer.stop()
+	if menu_music.playing:
+		var fade := create_tween()
+		fade.tween_property(menu_music, "volume_db", -40.0, 1.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		fade.finished.connect(func():
+			menu_music.stop()
+			menu_music.volume_db = 0.0
+		)
+	play_next_random_song()
 
 func _on_button_2_pressed() -> void:
 	background_songs[current_song_index].stop()

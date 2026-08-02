@@ -7,11 +7,13 @@ const CONFIRM_SOUND := preload("res://SFX/confrimation.mp3")
 const CURSOR_TEXTURE := preload("res://Assets/Cursor.png")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 const CURSOR_SCALE := 2.5
+const SWITCH_PRO_WINDOWS_MAPPING := "030000007e0500000920000000000000,Nintendo Switch Pro Controller,a:b0,b:b1,back:b8,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b4,leftstick:b10,lefttrigger:b6,leftx:a0,lefty:a1,misc1:b13,rightshoulder:b5,rightstick:b11,righttrigger:b7,rightx:a2,righty:a3,start:b9,x:b2,y:b3,platform:Windows,"
 
 var navigation_player: AudioStreamPlayer
 var confirm_player: AudioStreamPlayer
 var last_navigation_sound_time := -1.0
 var keyboard_navigation_active := false
+var controller_input_active := false
 var cursor_sprite: Sprite2D
 var cursor_layer: CanvasLayer
 var cursor_trail_root: Node2D
@@ -19,6 +21,12 @@ var cursor_trail_timer := 0.0
 var last_cursor_position := Vector2.ZERO
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	register_controller_mappings()
+	configure_controller_actions()
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	for device_id in Input.get_connected_joypads():
+		_on_joy_connection_changed(device_id, true)
 	create_scaled_cursor()
 	create_audio_players()
 	get_tree().node_added.connect(_on_node_added)
@@ -98,16 +106,100 @@ func _on_node_added(node: Node) -> void:
 		call_deferred("setup_button", node)
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
+	if event is InputEventMouseMotion or event is InputEventMouseButton:
+		controller_input_active = false
 		keyboard_navigation_active = false
-		clear_button_focus.call_deferred()
+		set_cursor_visible(true)
+		if event is InputEventMouseMotion or not (event as InputEventMouseButton).pressed:
+			clear_button_focus.call_deferred()
 		return
+	if event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) > 0.28):
+		controller_input_active = true
+		keyboard_navigation_active = true
+		set_cursor_visible(false)
+	elif event is InputEventKey and event.pressed:
+		controller_input_active = false
 	if event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down") or event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right"):
 		keyboard_navigation_active = true
-		if not get_viewport().gui_get_focus_owner():
-			var first_button := find_first_available_button(get_tree().root)
-			if first_button:
-				first_button.grab_focus()
+
+func set_cursor_visible(visible: bool) -> void:
+	if cursor_sprite:
+		cursor_sprite.visible = visible
+	if cursor_trail_root:
+		cursor_trail_root.visible = visible
+
+func configure_controller_actions() -> void:
+	add_controller_axis(&"Up", JOY_AXIS_LEFT_Y, -1.0)
+	add_controller_axis(&"Down", JOY_AXIS_LEFT_Y, 1.0)
+	add_controller_axis(&"Left", JOY_AXIS_LEFT_X, -1.0)
+	add_controller_axis(&"Right", JOY_AXIS_LEFT_X, 1.0)
+	add_controller_button(&"Up", JOY_BUTTON_DPAD_UP)
+	add_controller_button(&"Down", JOY_BUTTON_DPAD_DOWN)
+	add_controller_button(&"Left", JOY_BUTTON_DPAD_LEFT)
+	add_controller_button(&"Right", JOY_BUTTON_DPAD_RIGHT)
+	add_controller_axis(&"AimUp", JOY_AXIS_RIGHT_Y, -1.0)
+	add_controller_axis(&"AimDown", JOY_AXIS_RIGHT_Y, 1.0)
+	add_controller_axis(&"AimLeft", JOY_AXIS_RIGHT_X, -1.0)
+	add_controller_axis(&"AimRight", JOY_AXIS_RIGHT_X, 1.0)
+	add_controller_button(&"Interact", JOY_BUTTON_A)
+	add_controller_button(&"DodgeRoll", JOY_BUTTON_B)
+	add_controller_button(&"Codex", JOY_BUTTON_Y)
+	add_controller_axis(&"Shoot", JOY_AXIS_TRIGGER_RIGHT, 1.0)
+	add_controller_button(&"Shoot", JOY_BUTTON_RIGHT_SHOULDER)
+	add_controller_button(&"Pause", JOY_BUTTON_START)
+	add_controller_axis(&"ui_up", JOY_AXIS_LEFT_Y, -1.0)
+	add_controller_axis(&"ui_down", JOY_AXIS_LEFT_Y, 1.0)
+	add_controller_axis(&"ui_left", JOY_AXIS_LEFT_X, -1.0)
+	add_controller_axis(&"ui_right", JOY_AXIS_LEFT_X, 1.0)
+	add_controller_button(&"ui_up", JOY_BUTTON_DPAD_UP)
+	add_controller_button(&"ui_down", JOY_BUTTON_DPAD_DOWN)
+	add_controller_button(&"ui_left", JOY_BUTTON_DPAD_LEFT)
+	add_controller_button(&"ui_right", JOY_BUTTON_DPAD_RIGHT)
+	add_controller_button(&"ui_accept", JOY_BUTTON_A)
+	add_controller_button(&"ui_cancel", JOY_BUTTON_B)
+
+func register_controller_mappings() -> void:
+	# Godot 4.5+ uses SDL 3, but registering the official USB mapping here also
+	# covers Windows machines whose bundled database does not identify Switch Pro.
+	Input.add_joy_mapping(SWITCH_PRO_WINDOWS_MAPPING, true)
+
+func _on_joy_connection_changed(device_id: int, connected: bool) -> void:
+	if not connected:
+		print("[Controller] Disconnected device ", device_id)
+		return
+	print(
+		"[Controller] Connected device ", device_id,
+		": ", Input.get_joy_name(device_id),
+		" | GUID: ", Input.get_joy_guid(device_id),
+		" | info: ", Input.get_joy_info(device_id)
+	)
+
+func add_controller_axis(action: StringName, axis_index: int, axis_value: float) -> void:
+	ensure_input_action(action)
+	for existing_event in InputMap.action_get_events(action):
+		if existing_event is InputEventJoypadMotion:
+			var existing_motion := existing_event as InputEventJoypadMotion
+			if int(existing_motion.axis) == axis_index and is_equal_approx(existing_motion.axis_value, axis_value):
+				return
+	var motion := InputEventJoypadMotion.new()
+	motion.device = -1
+	motion.axis = axis_index as JoyAxis
+	motion.axis_value = axis_value
+	InputMap.action_add_event(action, motion)
+
+func add_controller_button(action: StringName, button_index: int) -> void:
+	ensure_input_action(action)
+	for existing_event in InputMap.action_get_events(action):
+		if existing_event is InputEventJoypadButton and int((existing_event as InputEventJoypadButton).button_index) == button_index:
+			return
+	var button := InputEventJoypadButton.new()
+	button.device = -1
+	button.button_index = button_index as JoyButton
+	InputMap.action_add_event(action, button)
+
+func ensure_input_action(action: StringName) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action, 0.22)
 
 func clear_button_focus() -> void:
 	var focused := get_viewport().gui_get_focus_owner()

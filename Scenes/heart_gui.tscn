@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cxv05nhe5atxk"]
 
-[ext_resource type="Script" uid="uid://ceqsvjy8ok8ox" path="res://heart_gui.gd" id="1_icnxf"]
+[ext_resource type="Script" uid="uid://ceqsvjy8ok8ox" path="res://Scripts/heart_gui.gd" id="1_icnxf"]
 [ext_resource type="Texture2D" uid="uid://cih1t4pbhpp67" path="res://Assets/Heart Full.png" id="2_06a6q"]
 [ext_resource type="Texture2D" uid="uid://528qdjuwywpn" path="res://Assets/Heart HAlf Full.png" id="3_w55mn"]
 [ext_resource type="Texture2D" uid="uid://c73bnd4b0nega" path="res://Assets/Heart Empty.png" id="4_gvydr"]

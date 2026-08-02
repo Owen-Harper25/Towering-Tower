@@ -9,6 +9,7 @@
 [ext_resource type="AudioStream" uid="uid://dtnid3cuec148" path="res://Music/Dungeon1.wav" id="6_jkdf5"]
 [ext_resource type="AudioStream" uid="uid://b3oxnsqlfluca" path="res://Music/Town.wav" id="7_wsu2k"]
 [ext_resource type="AudioStream" uid="uid://dacrglmnohv0j" path="res://Music/TownV2.wav" id="8_k12tt"]
+[ext_resource type="AudioStream" uid="uid://b41pldbxfhk6d" path="res://Music/VeilOfTheTower.wav" id="9_gothic"]
 [ext_resource type="Shader" uid="uid://cl148no3864xf" path="res://Shaders/dissolve.gdshader" id="9_h1bgf"]
 [ext_resource type="Texture2D" uid="uid://g31y4nq2uy0n" path="res://Assets/Noise.jpg" id="10_b3802"]
 [ext_resource type="FontFile" uid="uid://wmd0fjo3d7nj" path="res://Assets/GrapeSoda.ttf" id="11_fevyy"]
@@ -112,6 +113,7 @@ offset_bottom = 40.0
 script = ExtResource("6_6iyac")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="CanvasLayer/Main Menu" unique_id=1659967411]
+layer = 80
 
 [node name="TextureRect" type="TextureRect" parent="CanvasLayer/Main Menu/CanvasLayer" unique_id=276399594]
 offset_right = 40.0
@@ -232,6 +234,10 @@ wait_time = 5.0
 one_shot = true
 
 [node name="Music" type="Node2D" parent="." unique_id=506695460]
+
+[node name="GothicMenuTheme" type="AudioStreamPlayer" parent="Music"]
+stream = ExtResource("9_gothic")
+bus = &"Music"
 
 [node name="Battle1" type="AudioStreamPlayer2D" parent="Music" unique_id=296510013]
 stream = ExtResource("3_d1ilt")

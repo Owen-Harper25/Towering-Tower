@@ -9,6 +9,8 @@ const REEL_BACKDROP := preload("res://Scripts/reel_menu_backdrop.gd")
 @onready var settings_button: Button = $CanvasLayer/MarginContainer/VBoxContainer/Settings
 @onready var quit_button: Button = $CanvasLayer/MarginContainer/VBoxContainer/Quit
 @onready var settings_panel: Control = $CanvasLayer/SettingsMenu
+@onready var server_browser: Control = $"CanvasLayer/Server Browser"
+@onready var lobby_back_button: Button = $"CanvasLayer/Server Browser/LobbyBackButton"
 var runtime_context := false
 var reel_buttons: Array[Button] = []
 var reel_selected_button: Button
@@ -136,14 +138,14 @@ func create_reel_diamond(position_value: Vector2) -> Polygon2D:
 	return diamond
 
 func play_reel_menu_entrance() -> void:
+	# Let the VBox finish reflowing after runtime-only buttons change visibility.
+	# Reusing the boot-menu positions here caused the in-game menu to overlap.
+	await get_tree().process_frame
 	for button_index in range(reel_buttons.size()):
 		var button := reel_buttons[button_index]
 		if not is_instance_valid(button) or not button.visible:
 			continue
-		if not button.has_meta("reel_base_position"):
-			button.set_meta("reel_base_position", button.position)
-		else:
-			button.position = button.get_meta("reel_base_position") as Vector2
+		button.set_meta("reel_base_position", button.position)
 		button.position.x += 22.0
 		button.scale = Vector2(0.84, 0.84)
 		button.modulate.a = 0.0
@@ -213,26 +215,77 @@ func _on_settings_pressed() -> void:
 	settings_panel.visible = not settings_panel.visible
 	if settings_panel.visible:
 		layout_settings_menu()
+		if UIJuice.keyboard_navigation_active:
+			call_deferred("focus_first_settings_control")
 
 func set_runtime_context(active: bool, network_active: bool) -> void:
 	runtime_context = active
 	host_button.visible = not network_active
 	if not active:
 		host_button.show()
+	if reel_title:
+		reel_title.text = "PAUSED" if active else "TOWERING\nTOWER"
+		reel_title.custom_minimum_size.y = 40.0 if active else 58.0
 	settings_panel.hide()
 	var browser := $CanvasLayer.get_node_or_null("Server Browser") as Control
 	if browser:
 		browser.hide()
 	call_deferred("play_reel_menu_entrance")
+	if UIJuice.keyboard_navigation_active:
+		call_deferred("focus_first_visible_reel_button")
+
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+	var navigation_event := event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down") or event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right")
+	if not navigation_event and not (event is InputEventJoypadButton):
+		return
+	if settings_panel.visible:
+		call_deferred("focus_first_settings_control")
+		return
+	if server_browser and server_browser.visible:
+		call_deferred("focus_server_browser")
+	else:
+		call_deferred("focus_first_visible_reel_button")
+
+func focus_server_browser() -> void:
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	if focus_owner and server_browser and server_browser.is_ancestor_of(focus_owner) and focus_owner.is_visible_in_tree():
+		return
+	if lobby_back_button and lobby_back_button.is_visible_in_tree():
+		lobby_back_button.grab_focus()
+
+func focus_first_visible_reel_button() -> void:
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	if focus_owner and is_ancestor_of(focus_owner) and focus_owner.is_visible_in_tree():
+		return
+	for button in reel_buttons:
+		if is_instance_valid(button) and button.is_visible_in_tree() and not button.disabled:
+			button.grab_focus()
+			return
 
 func _unhandled_input(event: InputEvent) -> void:
-	if settings_panel.visible and event.is_action_pressed("ui_cancel"):
+	if settings_panel.visible and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("Pause")):
 		close_settings()
+		get_viewport().set_input_as_handled()
+		return
+	if server_browser and server_browser.visible and event.is_action_pressed("ui_cancel"):
+		server_browser.hide()
+		if UIJuice.keyboard_navigation_active:
+			($CanvasLayer/MarginContainer/VBoxContainer/JoinButton as Button).grab_focus()
 		get_viewport().set_input_as_handled()
 
 func close_settings() -> void:
 	settings_panel.hide()
-	settings_button.grab_focus()
+	if UIJuice.keyboard_navigation_active:
+		settings_button.grab_focus()
+
+func focus_first_settings_control() -> void:
+	for node in settings_panel.find_children("*", "Control", true, false):
+		var control := node as Control
+		if control and control.is_visible_in_tree() and control.focus_mode != Control.FOCUS_NONE:
+			control.grab_focus()
+			return
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

@@ -66,8 +66,14 @@ func begin_starting_boon_draft() -> void:
 	begin_boon_draft(true)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if boon_book_open and event.is_action_pressed("ui_cancel"):
+	if boon_book_open and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("Pause")):
 		close_boon_book()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("Codex") and not boon_draft_active:
+		if boon_book_open:
+			close_boon_book()
+		else:
+			open_boon_book()
 		get_viewport().set_input_as_handled()
 
 func _exit_tree() -> void:
@@ -243,6 +249,8 @@ func create_boon_book_overlay(acquired_value: Variant) -> void:
 	close_button.pressed.connect(close_boon_book)
 	content.add_child(close_button)
 	add_child(boon_book_overlay)
+	if UIJuice.keyboard_navigation_active:
+		close_button.call_deferred("grab_focus")
 
 func create_boon_book_card(parent: GridContainer, boon_id: String, rarity: int, display_index: int) -> void:
 	var rarity_color := BOONS.get_rarity_color(rarity)
@@ -688,6 +696,8 @@ func flip_dealt_card(card: Button, card_back: PanelContainer, rarity_color: Colo
 		if is_instance_valid(card):
 			card.disabled = false
 			card.z_index = 0
+			if UIJuice.keyboard_navigation_active and not get_viewport().gui_get_focus_owner():
+				card.grab_focus()
 	)
 
 func spawn_card_reveal_sparkles(card: Control, rarity_color: Color) -> void:

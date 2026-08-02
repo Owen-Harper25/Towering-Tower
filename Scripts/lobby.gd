@@ -25,6 +25,19 @@ func _ready() -> void:
 	configure_interactable(mirror_interactable, "E - CHANGE OUTFIT", open_wardrobe)
 	create_overlay()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if panel and panel.visible and event.is_action_pressed("ui_cancel"):
+		close_panel()
+		get_viewport().set_input_as_handled()
+	elif panel and panel.visible and not get_viewport().gui_get_focus_owner() and (
+		event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down") or
+		event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right")
+	):
+		focus_first_panel_button()
+
+func _exit_tree() -> void:
+	set_local_player_ui_locked(false)
+
 func configure_interactable(interactable: Area2D, prompt: String, action: Callable) -> void:
 	interactable.interact_name = prompt
 	interactable.interact = action
@@ -111,8 +124,34 @@ func add_close_button() -> void:
 	var close_button := Button.new()
 	close_button.text = "LEAVE"
 	close_button.custom_minimum_size = Vector2(0.0, 28.0)
-	close_button.pressed.connect(func(): panel.hide())
+	close_button.pressed.connect(close_panel)
 	panel_content.add_child(close_button)
+
+func show_panel() -> void:
+	panel.show()
+	set_local_player_ui_locked(true)
+	if UIJuice.keyboard_navigation_active:
+		call_deferred("focus_first_panel_button")
+
+func close_panel() -> void:
+	panel.hide()
+	set_local_player_ui_locked(false)
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	if focus_owner and panel.is_ancestor_of(focus_owner):
+		focus_owner.release_focus()
+
+func focus_first_panel_button() -> void:
+	for node in panel_content.find_children("*", "BaseButton", true, false):
+		var button := node as BaseButton
+		if button and button.is_visible_in_tree() and not button.disabled:
+			button.grab_focus()
+			return
+
+func set_local_player_ui_locked(locked: bool) -> void:
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.is_multiplayer_authority():
+			player.set("ui_input_locked", locked)
 
 func open_shop() -> void:
 	clear_panel()
@@ -141,7 +180,7 @@ func open_shop() -> void:
 	for cosmetic_id in COSMETICS.get_ids():
 		add_cosmetic_shop_button(shop_grid, cosmetic_id)
 	add_close_button()
-	panel.show()
+	show_panel()
 
 func add_cosmetic_shop_button(grid: GridContainer, cosmetic_id: String) -> void:
 	var button := Button.new()
@@ -194,7 +233,7 @@ func open_wardrobe() -> void:
 	)
 	panel_content.add_child(clear_button)
 	add_close_button()
-	panel.show()
+	show_panel()
 
 func add_wardrobe_button(grid: GridContainer, cosmetic_id: String) -> void:
 	var slot := COSMETICS.get_slot(cosmetic_id)
@@ -224,7 +263,7 @@ func open_skill_tree() -> void:
 	for upgrade_id in ["damage", "vitality", "rapid_fire"]:
 		add_upgrade_button(upgrade_id)
 	add_close_button()
-	panel.show()
+	show_panel()
 	refresh_skill_tree()
 
 func add_upgrade_button(upgrade_id: String) -> void:

@@ -261,10 +261,13 @@ func _physics_process(delta: float) -> void:
 func update_aim_camera(delta: float) -> void:
 	if not is_multiplayer_authority() or not camera or not camera.enabled:
 		return
-	var mouse_offset := get_global_mouse_position() - global_position
 	var target_offset := Vector2.ZERO
-	if mouse_offset.length() > aim_camera_deadzone:
-		target_offset = mouse_offset.normalized() * aim_camera_lead_distance
+	if UIJuice.controller_input_active:
+		target_offset = aim_direction * aim_camera_lead_distance
+	else:
+		var mouse_offset := get_global_mouse_position() - global_position
+		if mouse_offset.length() > aim_camera_deadzone:
+			target_offset = mouse_offset.normalized() * aim_camera_lead_distance
 	target_offset += survival_boss_shake_offset
 	var blend := 1.0 - exp(-aim_camera_lead_smoothness * delta)
 	camera.offset = camera.offset.lerp(target_offset, blend)
@@ -304,7 +307,14 @@ func handle_movement_and_actions() -> void:
 		Input.get_axis("Up", "Down")
 	).normalized()
 
-	aim_direction = (get_global_mouse_position() - global_position).normalized()
+	var controller_aim := Input.get_vector("AimLeft", "AimRight", "AimUp", "AimDown")
+	if UIJuice.controller_input_active:
+		if controller_aim.length_squared() > 0.04:
+			aim_direction = controller_aim.normalized()
+		elif aim_direction == Vector2.ZERO:
+			aim_direction = input_dir if input_dir != Vector2.ZERO else Vector2.RIGHT
+	else:
+		aim_direction = (get_global_mouse_position() - global_position).normalized()
 	sync_aim_direction = aim_direction
 
 	if Input.is_action_just_pressed("DodgeRoll") and input_dir != Vector2.ZERO:
@@ -1070,6 +1080,8 @@ func create_survival_ghost_ui() -> void:
 	)
 	panel.add_child(leave_button)
 	add_child(survival_ghost_ui)
+	if UIJuice.keyboard_navigation_active:
+		leave_button.call_deferred("grab_focus")
 
 # --- Health, Downed & Revive Mechanics ---
 func take_damage(amount: int) -> void:

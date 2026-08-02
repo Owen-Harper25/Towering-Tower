@@ -8,7 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://cyowr518ht03d" path="res://Scenes/interactable.tscn" id="4_interactable"]
 [ext_resource type="Texture2D" uid="uid://crhacpd3g0ybc" path="res://Assets/Lobby.png" id="5_bvheq"]
 [ext_resource type="Texture2D" uid="uid://cqadh4fllxamd" path="res://Assets/Shop Man.png" id="7_aghey"]
-[ext_resource type="Texture2D" uid="uid://couyrjtio48bu" path="res://Assets/Cosmetics/wardrobe_mirror.svg" id="8_mirror"]
+[ext_resource type="Texture2D" uid="uid://h4o1ow5gonto" path="res://Assets/Mirror.png" id="9_aghey"]
 
 [sub_resource type="ShaderMaterial" id="ShopOutline"]
 resource_local_to_scene = true
@@ -205,7 +205,7 @@ texture_filter = 1
 material = SubResource("MirrorOutline")
 position = Vector2(-249, 56.000008)
 scale = Vector2(0.72, 0.72)
-texture = ExtResource("8_mirror")
+texture = ExtResource("9_aghey")
 
 [node name="Interactable" parent="WardrobeMirror" unique_id=332687209 instance=ExtResource("4_interactable")]
 

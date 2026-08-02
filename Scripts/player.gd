@@ -26,6 +26,9 @@ signal player_revived()
 @export var roll_duration: float = 0.30
 @export var roll_iframe_duration: float = 0.28
 @export var fire_cooldown: float = 0.16
+@export var bullet_spread_degrees: float = 2.25
+@export var firing_recoil_force: float = 24.0
+@export var weapon_kick_distance: float = 6.0
 @export var fall_recovery_time: float = 1.75
 @export var fall_dash_speed: float = 420.0
 @export var fall_dash_duration: float = 0.34
@@ -72,6 +75,8 @@ var fall_drift_remaining := 0.0
 var fall_drift_velocity := Vector2.ZERO
 var coins := 0
 var weapon_is_drawn := false
+var firing_recoil_velocity := Vector2.ZERO
+var weapon_recoil_offset := Vector2.ZERO
 var base_max_health := 0
 var base_fire_cooldown := 0.0
 
@@ -135,6 +140,8 @@ func _physics_process(delta: float) -> void:
 	# --- RUN ON ALL PEERS ---
 	if is_downed:
 		handle_death_timer(delta) # Must run on remote peers so their local death timers tick down and redraw!
+	if is_falling and not is_multiplayer_authority():
+		update_remote_falling_animation(delta)
 
 	# --- RUN ONLY ON MULTIPLAYER AUTHORITY ---
 	if is_multiplayer_authority():
@@ -151,6 +158,8 @@ func _physics_process(delta: float) -> void:
 			handle_roll_physics()
 
 		if not is_falling:
+			velocity += firing_recoil_velocity
+			firing_recoil_velocity = firing_recoil_velocity.move_toward(Vector2.ZERO, 520.0 * delta)
 			sync_velocity = velocity
 			move_and_slide()
 			if not is_on_tower():
@@ -238,14 +247,24 @@ func handle_falling(delta: float) -> void:
 
 	move_and_slide()
 	sync_velocity = velocity
-	var fall_progress := 1.0 - fall_time_remaining / fall_recovery_time
-	sprite.scale = Vector2.ONE * lerpf(1.0, 0.45, clampf(fall_progress, 0.0, 1.0))
-	sprite.modulate.a = lerpf(1.0, 0.25, clampf(fall_progress, 0.0, 1.0))
+	update_falling_visual()
 
 	if is_on_tower():
 		rpc("land_from_fall_rpc")
 	elif fall_time_remaining <= 0.0:
 		rpc("rescue_from_fall_rpc")
+
+func update_remote_falling_animation(delta: float) -> void:
+	fall_time_remaining = maxf(0.0, fall_time_remaining - delta)
+	update_falling_visual()
+
+func update_falling_visual() -> void:
+	var fall_progress := 1.0 - fall_time_remaining / fall_recovery_time
+	var clamped_progress := clampf(fall_progress, 0.0, 1.0)
+	sprite.scale = Vector2.ONE * lerpf(1.0, 0.45, clamped_progress)
+	sprite.modulate.a = lerpf(1.0, 0.25, clamped_progress)
+	if character_name:
+		character_name.modulate.a = sprite.modulate.a
 
 @rpc("any_peer", "call_local", "reliable")
 func start_falling_rpc(initial_velocity: Vector2) -> void:
@@ -259,6 +278,7 @@ func start_falling_rpc(initial_velocity: Vector2) -> void:
 	fall_drift_remaining = fall_drift_duration
 	fall_drift_velocity = initial_velocity
 	fall_time_remaining = fall_recovery_time
+	update_falling_visual()
 
 func get_fall_recovery_direction() -> Vector2:
 	var arena: Node = get_tree().get_first_node_in_group("tower_arena")
@@ -298,6 +318,8 @@ func land_from_fall_rpc() -> void:
 	velocity = Vector2.ZERO
 	sprite.scale = Vector2.ONE
 	sprite.modulate.a = 1.0
+	if character_name:
+		character_name.modulate.a = 1.0
 
 @rpc("any_peer", "call_local", "reliable")
 func rescue_from_fall_rpc() -> void:
@@ -375,7 +397,8 @@ func update_weapon_aim() -> void:
 		var weapon_direction := sync_aim_direction
 		if weapon_direction == Vector2.ZERO:
 			weapon_direction = Vector2.RIGHT
-		var hover_offset := weapon_direction * 16.0 + Vector2(0.0, sin(Time.get_ticks_msec() * 0.006) * 2.0)
+		weapon_recoil_offset = weapon_recoil_offset.lerp(Vector2.ZERO, 0.28)
+		var hover_offset := weapon_direction * 16.0 + weapon_recoil_offset + Vector2(0.0, sin(Time.get_ticks_msec() * 0.006) * 2.0)
 		weapon_pivot.position = weapon_pivot.position.lerp(hover_offset, 0.24)
 		var target_angle = weapon_direction.angle()
 		weapon_pivot.rotation = target_angle
@@ -414,14 +437,32 @@ func shoot() -> void:
 	next_shot_time = Time.get_ticks_msec() / 1000.0 + fire_cooldown
 		
 	var spawn_pos = muzzle.global_position if muzzle else global_position
-	var fire_angle = aim_direction.angle()
+	var spread_radians := deg_to_rad(randf_range(-bullet_spread_degrees, bullet_spread_degrees))
+	var fire_angle := aim_direction.angle() + spread_radians
+	firing_recoil_velocity -= aim_direction * firing_recoil_force
+	rpc("play_firing_feedback_rpc", aim_direction)
+
+	var bullet_damage := 2 + MetaProgression.get_level("damage")
+	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id(), bullet_damage)
+
+@rpc("any_peer", "call_local", "unreliable")
+func play_firing_feedback_rpc(fire_direction: Vector2) -> void:
+	if not sprite or is_falling or is_downed:
+		return
+	weapon_recoil_offset = -fire_direction * weapon_kick_distance
 	if muzzle:
 		var recoil_tween := create_tween()
 		muzzle.scale = Vector2.ONE * 1.45
 		recoil_tween.tween_property(muzzle, "scale", Vector2.ONE, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	
-	var bullet_damage := 2 + MetaProgression.get_level("damage")
-	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id(), bullet_damage)
+	var horizontal_weight := absf(fire_direction.x)
+	var vertical_weight := absf(fire_direction.y)
+	var firing_scale := Vector2(
+		1.0 + horizontal_weight * 0.11 - vertical_weight * 0.06,
+		1.0 + vertical_weight * 0.11 - horizontal_weight * 0.06
+	)
+	sprite.scale = firing_scale
+	var squash_tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	squash_tween.tween_property(sprite, "scale", Vector2.ONE, 0.12)
 
 @rpc("any_peer", "call_local", "reliable")
 func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int, bullet_damage: int) -> void:

@@ -35,6 +35,11 @@ signal player_revived()
 @export var fall_dash_speed: float = 420.0
 @export var fall_dash_duration: float = 0.34
 @export var fall_drift_duration: float = 0.28
+@export_group("Movement Trail Settings")
+@export var walk_dust_interval := 0.14
+@export var dash_trail_interval := 0.035
+@export var walk_dust_lifetime := 0.24
+@export var dash_trail_lifetime := 0.20
 @export_group("Camera Settings")
 @export var aim_camera_lead_distance: float = 22.0
 @export var aim_camera_lead_smoothness: float = 7.0
@@ -114,6 +119,9 @@ var low_health_effect_tween: Tween
 var low_health_iris_intensity := 0.0
 var low_health_lowpass_cutoff := 20000.0
 var survival_boss_shake_offset := Vector2.ZERO
+var walk_dust_timer := 0.0
+var dash_trail_timer := 0.0
+var footstep_side := -1.0
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
@@ -158,6 +166,7 @@ func sync_name(new_name: String) -> void:
 func _physics_process(delta: float) -> void:
 	# --- RUN ON ALL PEERS ---
 	update_survival_ghost_visibility()
+	update_movement_trails(delta)
 	if is_downed:
 		if in_survival_mode and is_multiplayer_authority():
 			handle_survival_proximity_revive(delta)
@@ -333,6 +342,8 @@ func start_fall_recovery_dash_rpc(direction: Vector2) -> void:
 	fall_dash_used = true
 	fall_dash_active = true
 	fall_dash_direction = direction.normalized()
+	dash_trail_timer = 0.0
+	spawn_dash_start_burst(fall_dash_direction)
 	if sprite.sprite_frames.has_animation("roll"):
 		sprite.play("roll")
 	get_tree().create_timer(fall_dash_duration).timeout.connect(end_fall_recovery_dash)
@@ -404,6 +415,8 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 	is_rolling = true
 	is_invulnerable = true
 	roll_direction = dir
+	dash_trail_timer = 0.0
+	spawn_dash_start_burst(dir)
 	
 	# Temporarily disable enemy bullet collision layer (e.g., Layer 3)
 	var original_mask = collision_mask
@@ -424,6 +437,121 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 
 func handle_roll_physics() -> void:
 	velocity = roll_direction * roll_speed
+
+func update_movement_trails(delta: float) -> void:
+	if is_downed or is_survival_ghost or (is_falling and not fall_dash_active) or not sprite.visible:
+		walk_dust_timer = 0.0
+		dash_trail_timer = 0.0
+		return
+	var visual_velocity := sync_velocity
+	if is_multiplayer_authority():
+		visual_velocity = velocity
+	var is_dashing := is_rolling or fall_dash_active
+	if is_dashing:
+		dash_trail_timer -= delta
+		if dash_trail_timer <= 0.0:
+			dash_trail_timer = dash_trail_interval
+			var dash_direction := visual_velocity.normalized()
+			if dash_direction == Vector2.ZERO:
+				dash_direction = roll_direction
+			spawn_dash_trail_particle(dash_direction)
+		walk_dust_timer = 0.0
+		return
+	dash_trail_timer = 0.0
+	if visual_velocity.length_squared() < speed * speed * 0.08:
+		walk_dust_timer = minf(walk_dust_timer, walk_dust_interval * 0.5)
+		return
+	walk_dust_timer -= delta
+	if walk_dust_timer <= 0.0:
+		var speed_ratio := clampf(visual_velocity.length() / maxf(1.0, speed), 0.65, 1.35)
+		walk_dust_timer = walk_dust_interval / speed_ratio
+		spawn_walk_dust(visual_velocity.normalized())
+
+func spawn_walk_dust(move_direction: Vector2) -> void:
+	if not is_inside_tree() or not get_parent():
+		return
+	footstep_side *= -1.0
+	var sideways := move_direction.orthogonal() * footstep_side
+	var spawn_position := global_position - move_direction * 6.0 + sideways * 3.2 + Vector2(0.0, 5.0)
+	for _puff_index in range(2):
+		var dust := create_pixel_dust(get_movement_trail_color(0.34), randf_range(1.4, 2.4))
+		get_parent().add_child(dust)
+		dust.global_position = spawn_position + Vector2(randf_range(-2.0, 2.0), randf_range(-1.0, 1.5))
+		dust.rotation = randf_range(-0.35, 0.35)
+		var drift := -move_direction * randf_range(3.0, 7.0) + sideways * randf_range(0.5, 2.5)
+		var dust_tween := dust.create_tween().set_parallel()
+		dust_tween.tween_property(dust, "global_position", dust.global_position + drift, walk_dust_lifetime)
+		dust_tween.tween_property(dust, "scale", dust.scale * randf_range(1.45, 1.85), walk_dust_lifetime).set_trans(Tween.TRANS_SINE)
+		dust_tween.tween_property(dust, "modulate:a", 0.0, walk_dust_lifetime)
+		dust_tween.finished.connect(dust.queue_free)
+
+func spawn_dash_start_burst(dash_direction: Vector2) -> void:
+	if not is_inside_tree() or not get_parent():
+		return
+	for _burst_index in range(7):
+		var spread_direction := (-dash_direction).rotated(randf_range(-0.8, 0.8))
+		var dust := create_pixel_dust(get_movement_trail_color(0.52), randf_range(1.8, 3.2))
+		get_parent().add_child(dust)
+		dust.global_position = global_position - dash_direction * 5.0 + Vector2(randf_range(-3.0, 3.0), randf_range(-2.0, 3.0))
+		var burst_distance := randf_range(10.0, 24.0)
+		var burst_tween := dust.create_tween().set_parallel()
+		burst_tween.tween_property(dust, "global_position", dust.global_position + spread_direction * burst_distance, dash_trail_lifetime * 1.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		burst_tween.tween_property(dust, "scale", Vector2.ZERO, dash_trail_lifetime * 1.25)
+		burst_tween.tween_property(dust, "modulate:a", 0.0, dash_trail_lifetime * 1.25)
+		burst_tween.finished.connect(dust.queue_free)
+
+func spawn_dash_trail_particle(dash_direction: Vector2) -> void:
+	if not is_inside_tree() or not get_parent():
+		return
+	var current_frame_texture := sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
+	if current_frame_texture:
+		var afterimage := Sprite2D.new()
+		afterimage.texture = current_frame_texture
+		afterimage.flip_h = sprite.flip_h
+		get_parent().add_child(afterimage)
+		afterimage.global_position = global_position
+		afterimage.rotation = sprite.global_rotation
+		afterimage.scale = sprite.scale
+		afterimage.z_index = z_index - 1
+		afterimage.modulate = get_movement_trail_color(0.22)
+		var image_tween := afterimage.create_tween().set_parallel()
+		image_tween.tween_property(afterimage, "global_position", afterimage.global_position - dash_direction * 7.0, dash_trail_lifetime)
+		image_tween.tween_property(afterimage, "scale", afterimage.scale * Vector2(1.18, 0.82), dash_trail_lifetime)
+		image_tween.tween_property(afterimage, "modulate:a", 0.0, dash_trail_lifetime)
+		image_tween.finished.connect(afterimage.queue_free)
+	var streak := Polygon2D.new()
+	streak.polygon = PackedVector2Array([Vector2(-13.0, -1.1), Vector2(3.0, -2.0), Vector2(6.0, 0.0), Vector2(3.0, 2.0), Vector2(-13.0, 1.1)])
+	streak.color = get_movement_trail_color(0.38)
+	get_parent().add_child(streak)
+	streak.global_position = global_position - dash_direction * 4.0 + Vector2(0.0, 4.0)
+	streak.global_rotation = dash_direction.angle()
+	streak.z_index = z_index - 1
+	var streak_tween := streak.create_tween().set_parallel()
+	streak_tween.tween_property(streak, "scale", Vector2(0.25, 0.55), dash_trail_lifetime)
+	streak_tween.tween_property(streak, "modulate:a", 0.0, dash_trail_lifetime)
+	streak_tween.finished.connect(streak.queue_free)
+
+func create_pixel_dust(color: Color, size: float) -> Polygon2D:
+	var dust := Polygon2D.new()
+	dust.polygon = PackedVector2Array([
+		Vector2(-size, -size * 0.55), Vector2(0.0, -size),
+		Vector2(size, -size * 0.55), Vector2(size, size * 0.55),
+		Vector2(0.0, size), Vector2(-size, size * 0.55)
+	])
+	dust.color = color
+	dust.z_index = z_index - 1
+	return dust
+
+func get_movement_trail_color(alpha: float) -> Color:
+	var base_color := Color(0.78, 0.70, 0.74, alpha)
+	if in_survival_mode:
+		base_color = Color(
+			lerpf(survival_team_color.r, 0.82, 0.55),
+			lerpf(survival_team_color.g, 0.76, 0.55),
+			lerpf(survival_team_color.b, 0.84, 0.55),
+			alpha
+		)
+	return base_color
 
 # --- Weapon & Shooting System ---
 func update_weapon_aim() -> void:

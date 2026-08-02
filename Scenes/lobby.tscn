@@ -7,7 +7,6 @@
 [ext_resource type="Texture2D" uid="uid://bj0a18g86cxly" path="res://Assets/Cloud 2.png" id="4_aghey"]
 [ext_resource type="PackedScene" uid="uid://cyowr518ht03d" path="res://Scenes/interactable.tscn" id="4_interactable"]
 [ext_resource type="Texture2D" uid="uid://crhacpd3g0ybc" path="res://Assets/Lobby.png" id="5_bvheq"]
-[ext_resource type="LabelSettings" uid="uid://1e7sij4k8a8u" path="res://Assets/Capital Bold.tres" id="6_aghey"]
 [ext_resource type="Texture2D" uid="uid://cqadh4fllxamd" path="res://Assets/Shop Man.png" id="7_aghey"]
 
 [sub_resource type="ShaderMaterial" id="ShopOutline"]
@@ -16,6 +15,8 @@ shader = ExtResource("3_outline")
 shader_parameter/outline_colour = Color(1, 1, 1, 1)
 shader_parameter/outline_thickness = 1.0
 shader_parameter/outline_enabled = false
+shader_parameter/enabled = false
+shader_parameter/tint = Color(1, 1, 1, 1)
 
 [sub_resource type="CircleShape2D" id="InteractShape"]
 radius = 22.090721
@@ -26,6 +27,8 @@ shader = ExtResource("3_outline")
 shader_parameter/outline_colour = Color(1, 1, 1, 1)
 shader_parameter/outline_thickness = 1.0
 shader_parameter/outline_enabled = false
+shader_parameter/enabled = false
+shader_parameter/tint = Color(1, 1, 1, 1)
 
 [sub_resource type="ShaderMaterial" id="TeleportOutline"]
 resource_local_to_scene = true
@@ -33,6 +36,8 @@ shader = ExtResource("3_outline")
 shader_parameter/outline_colour = Color(1, 1, 1, 1)
 shader_parameter/outline_thickness = 1.0
 shader_parameter/outline_enabled = false
+shader_parameter/enabled = false
+shader_parameter/tint = Color(1, 1, 1, 1)
 
 [sub_resource type="ShaderMaterial" id="SurvivalTeleportOutline"]
 resource_local_to_scene = true
@@ -40,6 +45,8 @@ shader = ExtResource("3_outline")
 shader_parameter/outline_colour = Color(1, 0.82, 0.2, 1)
 shader_parameter/outline_thickness = 1.0
 shader_parameter/outline_enabled = false
+shader_parameter/enabled = false
+shader_parameter/tint = Color(1, 1, 1, 1)
 
 [node name="Lobby" type="Node2D" unique_id=1887785168]
 script = ExtResource("1_lobby")
@@ -97,15 +104,6 @@ position = Vector2(194, 181)
 texture = ExtResource("5_bvheq")
 region_enabled = true
 region_rect = Rect2(-60.908936, -52.818123, 371.81848, 374.54572)
-
-[node name="Title" type="Label" parent="." unique_id=383439078]
-offset_left = 18.0
-offset_top = 25.0
-offset_right = 248.0
-offset_bottom = 49.0
-text = "SKYHOLD SANCTUARY"
-label_settings = ExtResource("6_aghey")
-horizontal_alignment = 1
 
 [node name="ShopKeeper" type="Node2D" parent="." unique_id=1663674895]
 position = Vector2(139, 133)
@@ -169,21 +167,22 @@ position = Vector2(-2, -69)
 position = Vector2(0.6666565, -7.3333282)
 shape = SubResource("InteractShape")
 
-[node name="SurvivalTeleporter" type="Node2D" parent="."]
+[node name="SurvivalTeleporter" type="Node2D" parent="." unique_id=177130636]
 position = Vector2(410, 166)
 
-[node name="Sprite2D" type="Sprite2D" parent="SurvivalTeleporter"]
+[node name="Sprite2D" type="Sprite2D" parent="SurvivalTeleporter" unique_id=1446689350]
+modulate = Color(1, 0.72, 0.22, 1)
 texture_filter = 1
 material = SubResource("SurvivalTeleportOutline")
-modulate = Color(1, 0.72, 0.22, 1)
-position = Vector2(0, -22)
+position = Vector2(-180.00002, -100.00001)
 scale = Vector2(0.72, 0.72)
 texture = ExtResource("5_bvheq")
 region_enabled = true
 region_rect = Rect2(324.3832, -10.423645, 180.46982, 56.52887)
 
-[node name="Interactable" parent="SurvivalTeleporter" instance=ExtResource("4_interactable")]
+[node name="Interactable" parent="SurvivalTeleporter" unique_id=542507331 instance=ExtResource("4_interactable")]
 position = Vector2(0, -22)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SurvivalTeleporter/Interactable"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SurvivalTeleporter/Interactable" unique_id=1916183749]
+position = Vector2(-184, -78)
 shape = SubResource("InteractShape")

@@ -38,6 +38,7 @@ var game_grade_material: ShaderMaterial
 var post_process_tween: Tween
 var game_grade_darkness := 0.985
 var game_grade_glow := 0.025
+var party_return_in_progress := false
 
 func _ready() -> void:
 	add_to_group("main")
@@ -204,27 +205,15 @@ func request_start_survival_rpc() -> void:
 func start_survival_rpc() -> void:
 	if current_level and current_level.is_in_group("survival_arena"):
 		return
+	party_return_in_progress = false
 	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
 		Networking.set_lobby_joinable(false)
 	load_level(SURVIVAL_ARENA_SCENE)
 
 func leave_survival_mode() -> void:
-	if multiplayer.is_server():
-		return_party_to_lobby()
-	else:
-		call_deferred("leave_survival_client")
-
-func leave_survival_client() -> void:
-	Networking.leave_lobby()
-	for player in players:
-		if is_instance_valid(player):
-			if player.get_parent():
-				player.get_parent().remove_child(player)
-			player.queue_free()
-	players.clear()
-	perform_load_level(default_level_scene)
-	play_scene_transition()
-	spawn_player(1)
+	# Leaving Popcorn returns the connected party through the host. A guest must
+	# never close its Steam peer here or it will create a separate offline lobby.
+	return_party_to_lobby()
 
 @rpc("any_peer", "reliable")
 func request_start_combat_rpc() -> void:
@@ -244,24 +233,36 @@ func start_combat_rpc() -> void:
 
 func return_party_to_lobby() -> void:
 	if multiplayer.is_server():
-		rpc("return_party_to_lobby_rpc")
+		broadcast_party_return_to_lobby()
 	else:
 		rpc_id(1, "request_return_party_to_lobby_rpc")
 
 @rpc("any_peer", "reliable")
 func request_return_party_to_lobby_rpc() -> void:
 	if multiplayer.is_server():
-		rpc("return_party_to_lobby_rpc")
+		broadcast_party_return_to_lobby()
+
+func broadcast_party_return_to_lobby() -> void:
+	if not multiplayer.is_server() or party_return_in_progress:
+		return
+	if not current_level or not current_level.is_in_group("survival_arena"):
+		return
+	party_return_in_progress = true
+	rpc("return_party_to_lobby_rpc")
 
 @rpc("authority", "call_local", "reliable")
 func return_party_to_lobby_rpc() -> void:
+	if party_return_in_progress and current_level and current_level.is_in_group("safe_lobby"):
+		return
+	party_return_in_progress = true
 	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
 		Networking.set_lobby_joinable(true)
 	load_level(default_level_scene)
 	for player in players:
 		if is_instance_valid(player):
 			player.global_position = Vector2(240, 136)
-			player.rpc("reset_for_lobby_rpc")
+			player.call("reset_for_lobby_rpc")
+	get_tree().create_timer(0.8).timeout.connect(func(): party_return_in_progress = false)
 
 # --- LEVEL SWITCHING SYSTEM ---
 

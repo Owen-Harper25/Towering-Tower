@@ -787,6 +787,7 @@ func exit_survival_mode() -> void:
 	health_changed.emit(current_health, max_health)
 
 func handle_survival_proximity_revive(delta: float) -> void:
+	revive_hp_max = survival_revive_duration
 	if survival_team_size <= 1:
 		survival_revive_progress = 0.0
 		revive_hp_current = revive_hp_max
@@ -794,18 +795,17 @@ func handle_survival_proximity_revive(delta: float) -> void:
 		return
 	var helper_nearby := has_nearby_survival_teammate()
 	if helper_nearby:
-		survival_revive_progress += delta
+		revive_hp_current = maxf(0.0, revive_hp_current - delta)
 		pause_timer = maxf(pause_timer, 0.22)
 	else:
-		survival_revive_progress = maxf(0.0, survival_revive_progress - delta * 0.45)
-	revive_hp_max = survival_revive_duration
-	revive_hp_current = maxf(0.0, survival_revive_duration - survival_revive_progress)
+		revive_hp_current = minf(revive_hp_max, revive_hp_current + delta * 0.45)
+	survival_revive_progress = revive_hp_max - revive_hp_current
 	queue_redraw()
 	survival_revive_sync_elapsed += delta
 	if survival_revive_sync_elapsed >= 0.10:
 		survival_revive_sync_elapsed = 0.0
-		rpc("sync_survival_revive_visual_rpc", survival_revive_progress, helper_nearby)
-	if survival_revive_progress >= survival_revive_duration:
+		rpc("sync_survival_revive_visual_rpc", survival_revive_progress, helper_nearby, death_timer_current)
+	if revive_hp_current <= 0.0:
 		survival_revive_progress = 0.0
 		rpc("sync_revive_player_rpc")
 
@@ -822,13 +822,14 @@ func has_nearby_survival_teammate() -> bool:
 			return true
 	return false
 
-@rpc("any_peer", "call_remote", "unreliable")
-func sync_survival_revive_visual_rpc(progress: float, helper_nearby: bool) -> void:
+@rpc("any_peer", "call_remote", "reliable")
+func sync_survival_revive_visual_rpc(progress: float, helper_nearby: bool, death_time_remaining: float) -> void:
 	if not in_survival_mode or not is_downed:
 		return
 	survival_revive_progress = progress
 	revive_hp_max = survival_revive_duration
 	revive_hp_current = maxf(0.0, survival_revive_duration - progress)
+	death_timer_current = clampf(death_time_remaining, 0.0, death_timer_max)
 	if helper_nearby:
 		pause_timer = maxf(pause_timer, 0.22)
 	queue_redraw()
@@ -935,19 +936,19 @@ func create_survival_ghost_ui() -> void:
 	var panel := ColorRect.new()
 	panel.color = Color(0.12, 0.015, 0.04, 0.90)
 	panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	panel.position = Vector2(-125.0, -58.0)
-	panel.size = Vector2(250.0, 48.0)
+	panel.position = Vector2(-145.0, -58.0)
+	panel.size = Vector2(290.0, 48.0)
 	survival_ghost_ui.add_child(panel)
 	var label := Label.new()
 	label.text = "YOU POPPED! GHOST MODE"
 	label.position = Vector2(8.0, 4.0)
-	label.size = Vector2(150.0, 34.0)
+	label.size = Vector2(160.0, 34.0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	panel.add_child(label)
 	var leave_button := Button.new()
-	leave_button.text = "LEAVE"
-	leave_button.position = Vector2(164.0, 8.0)
-	leave_button.size = Vector2(78.0, 32.0)
+	leave_button.text = "RETURN PARTY"
+	leave_button.position = Vector2(170.0, 8.0)
+	leave_button.size = Vector2(112.0, 32.0)
 	leave_button.pressed.connect(func():
 		var main := get_tree().get_first_node_in_group("main")
 		if main and main.has_method("leave_survival_mode"):
@@ -1053,7 +1054,10 @@ func receive_revive_hit_rpc(amount: float) -> void:
 	if not is_downed:
 		return
 
-	revive_hp_current -= amount
+	revive_hp_current = maxf(0.0, revive_hp_current - amount)
+	if in_survival_mode:
+		revive_hp_max = survival_revive_duration
+		survival_revive_progress = revive_hp_max - revive_hp_current
 	pause_timer = pause_on_hit_duration # Set pause timer locally across all clients
 	queue_redraw()
 
@@ -1062,8 +1066,11 @@ func receive_revive_hit_rpc(amount: float) -> void:
 	tween.tween_property(sprite, "modulate", get_survival_display_color() if in_survival_mode else Color.WHITE, 0.05)
 
 	# Authority validates when player gets fully revived
-	if is_multiplayer_authority() and revive_hp_current <= 0:
-		rpc("sync_revive_player_rpc")
+	if is_multiplayer_authority():
+		if in_survival_mode:
+			rpc("sync_survival_revive_visual_rpc", survival_revive_progress, true, death_timer_current)
+		if revive_hp_current <= 0.0:
+			rpc("sync_revive_player_rpc")
 
 func try_receive_enemy_hit(damage: int) -> bool:
 	if not is_downed or not is_multiplayer_authority():

@@ -44,6 +44,7 @@ var boss_move_timer := 0.0
 var boss_dash_cooldown := 0.0
 var boss_dash_pending := false
 var boss_intro_remaining := 0.0
+var eliminated_team_ids: Dictionary = {}
 
 func _ready() -> void:
 	add_to_group("survival_arena")
@@ -62,6 +63,7 @@ func is_wave_active() -> bool:
 func start_server_mode() -> void:
 	if not is_inside_tree():
 		return
+	eliminated_team_ids.clear()
 	initial_human_count = maxi(1, get_human_players().size())
 	survival_team_size = initial_human_count if initial_human_count > 1 else 1
 	create_team_colors(ceili(float(target_participant_count) / float(survival_team_size)))
@@ -78,6 +80,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			interpolate_remote_boss(delta)
 		return
+	resolve_eliminated_teams()
 	bot_sync_elapsed += delta
 	if bot_sync_elapsed >= 0.08:
 		bot_sync_elapsed = 0.0
@@ -103,6 +106,50 @@ func _physics_process(delta: float) -> void:
 	if mode_sync_elapsed >= 0.12:
 		mode_sync_elapsed = 0.0
 		rpc("sync_mode_ui_rpc", boss_index, boss_time_remaining, boss_active, intermission_remaining, boss_position)
+
+func resolve_eliminated_teams() -> void:
+	var teams: Dictionary = {}
+	for candidate in get_tree().get_nodes_in_group("players") + get_tree().get_nodes_in_group("survival_bots"):
+		var participant := candidate as Node2D
+		if not participant:
+			continue
+		var team_id := int(participant.get("survival_team_id"))
+		if team_id < 0 or eliminated_team_ids.has(team_id):
+			continue
+		if not teams.has(team_id):
+			teams[team_id] = []
+		var members: Array = teams[team_id]
+		members.append(participant)
+		teams[team_id] = members
+	for team_key in teams:
+		var team_id := int(team_key)
+		var has_downed_member := false
+		var has_active_member := false
+		for participant_variant in teams[team_id]:
+			var participant := participant_variant as Node2D
+			if not participant:
+				continue
+			var is_ghost := bool(participant.get("is_survival_ghost"))
+			var is_participant_downed := bool(participant.get("is_downed"))
+			has_downed_member = has_downed_member or is_participant_downed
+			has_active_member = has_active_member or (not is_ghost and not is_participant_downed)
+		if has_downed_member and not has_active_member:
+			eliminated_team_ids[team_id] = true
+			rpc("eliminate_survival_team_rpc", team_id)
+
+@rpc("authority", "call_local", "reliable")
+func eliminate_survival_team_rpc(team_id: int) -> void:
+	eliminated_team_ids[team_id] = true
+	for candidate in get_tree().get_nodes_in_group("players") + get_tree().get_nodes_in_group("survival_bots"):
+		var participant := candidate as Node2D
+		if not participant or int(participant.get("survival_team_id")) != team_id:
+			continue
+		if bool(participant.get("is_survival_ghost")):
+			continue
+		if participant.is_in_group("players") and participant.has_method("become_survival_ghost"):
+			participant.call("become_survival_ghost")
+		elif participant.has_method("ghost_bot_rpc"):
+			participant.call("ghost_bot_rpc")
 
 func start_next_boss() -> void:
 	boss_index += 1

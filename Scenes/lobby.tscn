@@ -203,8 +203,8 @@ position = Vector2(383, 111)
 [node name="Sprite2D" type="Sprite2D" parent="WardrobeMirror" unique_id=2128849674]
 texture_filter = 1
 material = SubResource("MirrorOutline")
-position = Vector2(-249, 56.000008)
-scale = Vector2(0.72, 0.72)
+position = Vector2(-249, 62.000008)
+scale = Vector2(1.5, 1.5)
 texture = ExtResource("9_aghey")
 
 [node name="Interactable" parent="WardrobeMirror" unique_id=332687209 instance=ExtResource("4_interactable")]

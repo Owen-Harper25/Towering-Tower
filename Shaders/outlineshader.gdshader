@@ -3,6 +3,8 @@ shader_type canvas_item;
 uniform vec4 outline_colour : source_color = vec4(1.0, 0.0, 0.0, 1.0);
 uniform float outline_thickness : hint_range(1.0, 5.0) = 1.0;
 uniform bool outline_enabled = false;
+uniform bool enabled = false;
+uniform vec4 tint : source_color = vec4(1.0);
 
 float is_solid(float value) {
 	return max(0.0, sign(value));
@@ -25,7 +27,11 @@ float has_solid_neighbor(sampler2D texture_sample, vec2 uv_coord, vec2 pixel_siz
 }
 
 void fragment() {
-	vec4 base = texture(TEXTURE, UV);
+	vec4 vertex_color = COLOR;
+	vec4 base = texture(TEXTURE, UV) * vertex_color;
+	if (enabled) {
+		base.rgb = tint.rgb;
+	}
 	COLOR = base;
 
 	if (!outline_enabled) {

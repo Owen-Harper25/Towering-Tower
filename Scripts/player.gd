@@ -1,6 +1,8 @@
 extends CharacterBody2D
 
 const LOW_HEALTH_IRIS_SHADER := preload("res://Shaders/low_health_iris.gdshader")
+const SURVIVAL_TEAM_MATERIAL := preload("res://Shaders/outlineshader.tres")
+const SURVIVAL_DEATH_SFX := preload("res://SFX/kick.wav")
 
 # --- Signals ---
 signal health_changed(new_health: int, max_health: int)
@@ -81,13 +83,17 @@ var base_max_health := 0
 var base_fire_cooldown := 0.0
 var in_survival_mode := false
 var is_survival_ghost := false
-var survival_bounds := Rect2(40, 40, 820, 520)
+var survival_bounds := Rect2(170, 20, 560, 560)
 var survival_revive_progress := 0.0
 var survival_revive_sync_elapsed := 0.0
 var original_collision_layer := 1
 var original_collision_mask := 11
 var survival_ghost_ui: CanvasLayer
 @export var survival_revive_duration := 2.6
+var survival_team_id := -1
+var survival_team_size := 1
+var survival_team_color := Color.WHITE
+var original_sprite_material: Material
 
 # --- Downed & Revive State (Nightreign Style) ---
 @export var is_downed: bool = false
@@ -107,6 +113,7 @@ var low_health_lowpass: AudioEffectLowPassFilter
 var low_health_effect_tween: Tween
 var low_health_iris_intensity := 0.0
 var low_health_lowpass_cutoff := 20000.0
+var survival_boss_shake_offset := Vector2.ZERO
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
@@ -114,6 +121,7 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	original_collision_layer = collision_layer
 	original_collision_mask = collision_mask
+	original_sprite_material = sprite.material
 	base_max_health = max_health
 	base_fire_cooldown = fire_cooldown
 	apply_meta_upgrades(false)
@@ -199,6 +207,7 @@ func update_aim_camera(delta: float) -> void:
 	var target_offset := Vector2.ZERO
 	if mouse_offset.length() > aim_camera_deadzone:
 		target_offset = mouse_offset.normalized() * aim_camera_lead_distance
+	target_offset += survival_boss_shake_offset
 	var blend := 1.0 - exp(-aim_camera_lead_smoothness * delta)
 	camera.offset = camera.offset.lerp(target_offset, blend)
 
@@ -528,9 +537,12 @@ func apply_meta_upgrades(heal_from_new_vitality: bool) -> void:
 	current_health = mini(max_health, current_health + gained_health)
 	health_changed.emit(current_health, max_health)
 
-func enter_survival_mode(bounds: Rect2, spawn_position: Vector2) -> void:
+func enter_survival_mode(bounds: Rect2, spawn_position: Vector2, team_id: int = 0, team_size: int = 1, team_color: Color = Color.WHITE) -> void:
 	in_survival_mode = true
 	is_survival_ghost = false
+	survival_team_id = team_id
+	survival_team_size = team_size
+	survival_team_color = team_color
 	survival_bounds = bounds
 	survival_revive_progress = 0.0
 	is_downed = false
@@ -549,7 +561,9 @@ func enter_survival_mode(bounds: Rect2, spawn_position: Vector2) -> void:
 	collision_mask = original_collision_mask
 	set_collision_mask_value(1, false)
 	sprite.scale = Vector2.ONE
-	sprite.modulate = Color.WHITE
+	sprite.material = SURVIVAL_TEAM_MATERIAL.duplicate()
+	sprite.modulate = get_survival_display_color()
+	set_survival_outline(false)
 	force_hide_survival_weapon()
 	update_survival_ghost_visibility()
 	if hud and is_multiplayer_authority():
@@ -560,11 +574,15 @@ func enter_survival_mode(bounds: Rect2, spawn_position: Vector2) -> void:
 func exit_survival_mode() -> void:
 	in_survival_mode = false
 	is_survival_ghost = false
+	survival_team_id = -1
+	survival_team_size = 1
+	survival_team_color = Color.WHITE
 	survival_revive_progress = 0.0
 	collision_layer = original_collision_layer
 	collision_mask = original_collision_mask
 	sprite.scale = Vector2.ONE
 	sprite.modulate = Color.WHITE
+	sprite.material = original_sprite_material
 	sprite.visible = true
 	if character_name:
 		character_name.visible = not is_multiplayer_authority()
@@ -578,6 +596,11 @@ func exit_survival_mode() -> void:
 	health_changed.emit(current_health, max_health)
 
 func handle_survival_proximity_revive(delta: float) -> void:
+	if survival_team_size <= 1:
+		survival_revive_progress = 0.0
+		revive_hp_current = revive_hp_max
+		queue_redraw()
+		return
 	var helper_nearby := has_nearby_survival_teammate()
 	if helper_nearby:
 		survival_revive_progress += delta
@@ -599,6 +622,8 @@ func has_nearby_survival_teammate() -> bool:
 	for ally in get_tree().get_nodes_in_group("players") + get_tree().get_nodes_in_group("survival_allies"):
 		var ally_node := ally as Node2D
 		if not ally_node or ally_node == self:
+			continue
+		if int(ally_node.get("survival_team_id")) != survival_team_id:
 			continue
 		if bool(ally_node.get("is_downed")) or bool(ally_node.get("is_survival_ghost")):
 			continue
@@ -628,8 +653,11 @@ func handle_survival_ghost_movement(delta: float) -> void:
 	clamp_to_survival_arena()
 
 func clamp_to_survival_arena() -> void:
-	global_position.x = clampf(global_position.x, survival_bounds.position.x, survival_bounds.end.x)
-	global_position.y = clampf(global_position.y, survival_bounds.position.y, survival_bounds.end.y)
+	var arena_center := survival_bounds.get_center()
+	var playable_radius := minf(survival_bounds.size.x, survival_bounds.size.y) * 0.5 - 10.0
+	var center_offset := global_position - arena_center
+	if center_offset.length_squared() > playable_radius * playable_radius:
+		global_position = arena_center + center_offset.normalized() * playable_radius
 
 func become_survival_ghost() -> void:
 	is_downed = false
@@ -643,12 +671,13 @@ func become_survival_ghost() -> void:
 	collision_layer = 0
 	collision_mask = 0
 	sprite.scale = Vector2.ONE
-	sprite.modulate = Color(0.62, 0.82, 1.0, 0.28)
+	sprite.modulate = Color(survival_team_color.r, survival_team_color.g, survival_team_color.b, 0.28)
 	force_hide_survival_weapon()
 	update_survival_ghost_visibility()
 	update_low_health_iris(max_health, max_health)
 	if is_multiplayer_authority():
 		create_survival_ghost_ui()
+	play_survival_death_sound()
 	queue_redraw()
 
 func update_survival_ghost_visibility() -> void:
@@ -661,6 +690,7 @@ func update_survival_ghost_visibility() -> void:
 		sprite.visible = should_be_visible
 	if character_name:
 		character_name.visible = should_be_visible and not is_multiplayer_authority()
+	set_survival_outline(should_be_visible and not is_multiplayer_authority() and local_survival_player_is_teammate())
 	if in_survival_mode:
 		force_hide_survival_weapon()
 
@@ -670,6 +700,41 @@ func local_survival_player_is_ghost() -> bool:
 		if player and player.is_multiplayer_authority():
 			return bool(player.get("is_survival_ghost"))
 	return false
+
+func local_survival_player_is_teammate() -> bool:
+	if survival_team_size <= 1:
+		return false
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.is_multiplayer_authority():
+			return int(player.get("survival_team_id")) == survival_team_id
+	return false
+
+func set_survival_outline(outline_visible: bool) -> void:
+	if not sprite or not (sprite.material is ShaderMaterial):
+		return
+	var team_material := sprite.material as ShaderMaterial
+	team_material.set_shader_parameter("outline_enabled", outline_visible)
+	team_material.set_shader_parameter("outline_colour", survival_team_color.lightened(0.35))
+	team_material.set_shader_parameter("outline_thickness", 2.0)
+
+func get_survival_display_color() -> Color:
+	return Color(
+		lerpf(survival_team_color.r, 1.0, 0.32),
+		lerpf(survival_team_color.g, 1.0, 0.32),
+		lerpf(survival_team_color.b, 1.0, 0.32),
+		1.0
+	)
+
+func play_survival_death_sound() -> void:
+	var death_audio := AudioStreamPlayer2D.new()
+	death_audio.stream = SURVIVAL_DEATH_SFX
+	death_audio.bus = &"SFX"
+	death_audio.pitch_scale = randf_range(0.72, 0.88)
+	get_parent().add_child(death_audio)
+	death_audio.global_position = global_position
+	death_audio.finished.connect(death_audio.queue_free)
+	death_audio.play()
 
 func create_survival_ghost_ui() -> void:
 	if survival_ghost_ui and is_instance_valid(survival_ghost_ui):
@@ -746,6 +811,8 @@ func revive_from_health_pickup_rpc() -> void:
 	death_timer_current = 0.0
 	pause_timer = 0.0
 	current_health = 1
+	if in_survival_mode:
+		sprite.modulate = get_survival_display_color()
 	health_changed.emit(current_health, max_health)
 	player_revived.emit()
 	if sprite.sprite_frames.has_animation("Idle"):
@@ -801,7 +868,7 @@ func receive_revive_hit_rpc(amount: float) -> void:
 
 	var tween = create_tween()
 	tween.tween_property(sprite, "modulate", Color(0.3, 1.0, 0.3), 0.05)
-	tween.tween_property(sprite, "modulate", Color.WHITE, 0.05)
+	tween.tween_property(sprite, "modulate", get_survival_display_color() if in_survival_mode else Color.WHITE, 0.05)
 
 	# Authority validates when player gets fully revived
 	if is_multiplayer_authority() and revive_hp_current <= 0:
@@ -837,6 +904,15 @@ func play_hit_screen_shake() -> void:
 	shake.tween_property(camera, "offset", Vector2(randf_range(-4.0, 4.0), randf_range(-3.0, 3.0)), 0.035)
 	shake.tween_property(camera, "offset", Vector2(randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)), 0.045)
 	shake.tween_property(camera, "offset", Vector2.ZERO, 0.07)
+
+func play_survival_boss_shake(intensity: float = 5.0) -> void:
+	if not is_multiplayer_authority() or not camera:
+		return
+	var shake := create_tween()
+	for pulse in range(4):
+		var falloff := 1.0 - float(pulse) * 0.18
+		shake.tween_property(self, "survival_boss_shake_offset", Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity)) * falloff, 0.035)
+	shake.tween_property(self, "survival_boss_shake_offset", Vector2.ZERO, 0.07)
 
 func is_dodging_bullets() -> bool:
 	return is_rolling and is_invulnerable
@@ -893,6 +969,8 @@ func revive_player() -> void:
 	survival_revive_progress = 0.0
 	revive_hp_current = 0.0
 	current_health = int(max_health * 0.5)
+	if in_survival_mode:
+		sprite.modulate = get_survival_display_color()
 	health_changed.emit(current_health, max_health)
 	player_revived.emit()
 	

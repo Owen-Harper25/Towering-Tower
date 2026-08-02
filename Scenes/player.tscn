@@ -222,7 +222,7 @@ libraries/ = SubResource("AnimationLibrary_vgqql")
 
 [node name="InteractingComponent" parent="." unique_id=410509540 instance=ExtResource("3_6t5aa")]
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=438642054 groups=["players"]]
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=438642054]
 replication_config = SubResource("SceneReplicationConfig_6t5aa")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1378376637]

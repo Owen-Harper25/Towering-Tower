@@ -1,7 +1,49 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://Scripts/survival_bot.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
+[ext_resource type="Texture2D" path="res://Assets/Crow man.png" id="2_player"]
+
+[sub_resource type="AtlasTexture" id="BotIdle"]
+atlas = ExtResource("2_player")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="BotMove1"]
+atlas = ExtResource("2_player")
+region = Rect2(48, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="BotMove2"]
+atlas = ExtResource("2_player")
+region = Rect2(64, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="BotMove3"]
+atlas = ExtResource("2_player")
+region = Rect2(96, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="BotMove4"]
+atlas = ExtResource("2_player")
+region = Rect2(112, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="BotDowned"]
+atlas = ExtResource("2_player")
+region = Rect2(64, 32, 16, 16)
+
+[sub_resource type="SpriteFrames" id="BotFrames"]
+animations = [{
+"frames": [{"duration": 1.0, "texture": SubResource("BotIdle")}],
+"loop": true,
+"name": &"Idle",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("BotDowned")}],
+"loop": true,
+"name": &"downed",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("BotMove1")}, {"duration": 1.0, "texture": SubResource("BotMove2")}, {"duration": 1.0, "texture": SubResource("BotMove3")}, {"duration": 1.0, "texture": SubResource("BotMove4")}],
+"loop": true,
+"name": &"move",
+"speed": 5.0
+}]
 
 [sub_resource type="CircleShape2D" id="BotShape"]
 radius = 9.0
@@ -11,10 +53,10 @@ collision_layer = 1
 collision_mask = 10
 script = ExtResource("1_script")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 modulate = Color(0.45, 0.95, 1, 1)
-scale = Vector2(0.145, 0.145)
-texture = ExtResource("2_icon")
+sprite_frames = SubResource("BotFrames")
+animation = &"Idle"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("BotShape")

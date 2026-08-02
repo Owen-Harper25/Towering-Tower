@@ -149,6 +149,7 @@ func sync_name(new_name: String) -> void:
 
 func _physics_process(delta: float) -> void:
 	# --- RUN ON ALL PEERS ---
+	update_survival_ghost_visibility()
 	if is_downed:
 		if in_survival_mode and is_multiplayer_authority():
 			handle_survival_proximity_revive(delta)
@@ -418,6 +419,9 @@ func handle_roll_physics() -> void:
 # --- Weapon & Shooting System ---
 func update_weapon_aim() -> void:
 	if weapon_pivot:
+		if in_survival_mode:
+			force_hide_survival_weapon()
+			return
 		set_weapon_drawn(not is_downed and not is_falling and not is_rolling and is_wave_active())
 		var weapon_direction := sync_aim_direction
 		if weapon_direction == Vector2.ZERO:
@@ -455,6 +459,13 @@ func set_weapon_drawn(should_draw: bool) -> void:
 			if not weapon_is_drawn:
 				weapon_pivot.visible = false
 		)
+
+func force_hide_survival_weapon() -> void:
+	weapon_is_drawn = false
+	weapon_recoil_offset = Vector2.ZERO
+	if weapon_pivot:
+		weapon_pivot.visible = false
+		weapon_pivot.scale = Vector2.ZERO
 
 func shoot() -> void:
 	if in_survival_mode or is_downed or not is_wave_active() or not bullet_scene or Time.get_ticks_msec() / 1000.0 < next_shot_time:
@@ -539,7 +550,8 @@ func enter_survival_mode(bounds: Rect2, spawn_position: Vector2) -> void:
 	set_collision_mask_value(1, false)
 	sprite.scale = Vector2.ONE
 	sprite.modulate = Color.WHITE
-	set_weapon_drawn(false)
+	force_hide_survival_weapon()
+	update_survival_ghost_visibility()
 	if hud and is_multiplayer_authority():
 		hud.setup_hearts(max_health, current_health)
 	health_changed.emit(current_health, max_health)
@@ -553,6 +565,9 @@ func exit_survival_mode() -> void:
 	collision_mask = original_collision_mask
 	sprite.scale = Vector2.ONE
 	sprite.modulate = Color.WHITE
+	sprite.visible = true
+	if character_name:
+		character_name.visible = not is_multiplayer_authority()
 	if survival_ghost_ui and is_instance_valid(survival_ghost_ui):
 		survival_ghost_ui.queue_free()
 	survival_ghost_ui = null
@@ -629,11 +644,32 @@ func become_survival_ghost() -> void:
 	collision_mask = 0
 	sprite.scale = Vector2.ONE
 	sprite.modulate = Color(0.62, 0.82, 1.0, 0.28)
-	set_weapon_drawn(false)
+	force_hide_survival_weapon()
+	update_survival_ghost_visibility()
 	update_low_health_iris(max_health, max_health)
 	if is_multiplayer_authority():
 		create_survival_ghost_ui()
 	queue_redraw()
+
+func update_survival_ghost_visibility() -> void:
+	if not in_survival_mode:
+		return
+	var should_be_visible := true
+	if is_survival_ghost:
+		should_be_visible = is_multiplayer_authority() or local_survival_player_is_ghost()
+	if sprite:
+		sprite.visible = should_be_visible
+	if character_name:
+		character_name.visible = should_be_visible and not is_multiplayer_authority()
+	if in_survival_mode:
+		force_hide_survival_weapon()
+
+func local_survival_player_is_ghost() -> bool:
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.is_multiplayer_authority():
+			return bool(player.get("is_survival_ghost"))
+	return false
 
 func create_survival_ghost_ui() -> void:
 	if survival_ghost_ui and is_instance_valid(survival_ghost_ui):

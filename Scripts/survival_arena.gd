@@ -2,9 +2,15 @@ extends Node2D
 
 const BOT_SCENE := preload("res://Scenes/survival_bot.tscn")
 const BULLET_SCENE := preload("res://Scenes/bullet.tscn")
-const BOSS_TEXTURE := preload("res://icon.svg")
 const PARTICLE_TEXTURE := preload("res://Assets/plus particle.png")
 const BOSS_DASH_SFX := preload("res://SFX/flap.mp3")
+const BOSS_LAND_SFX := preload("res://SFX/kick.wav")
+const BOSS_SCENES: Array[PackedScene] = [
+	preload("res://Scenes/popcorn_boss_butterstorm.tscn"),
+	preload("res://Scenes/popcorn_boss_flame.tscn"),
+	preload("res://Scenes/popcorn_boss_magnetron.tscn"),
+	preload("res://Scenes/popcorn_boss_helix.tscn"),
+]
 
 @export var arena_bounds := Rect2(170, 20, 560, 560)
 @export var target_participant_count := 20
@@ -14,7 +20,7 @@ const BOSS_DASH_SFX := preload("res://SFX/flap.mp3")
 @onready var bots: Node2D = $Bots
 @onready var projectiles: Node2D = $Projectiles
 
-var boss_visual: Sprite2D
+var boss_visual: Node2D
 var boss_label: Label
 var boss_timer_label: Label
 var participant_label: Label
@@ -37,6 +43,7 @@ var boss_move_target := Vector2.ZERO
 var boss_move_timer := 0.0
 var boss_dash_cooldown := 0.0
 var boss_dash_pending := false
+var boss_intro_remaining := 0.0
 
 func _ready() -> void:
 	add_to_group("survival_arena")
@@ -66,7 +73,10 @@ func start_server_mode() -> void:
 func _physics_process(delta: float) -> void:
 	if not multiplayer.is_server():
 		interpolate_remote_bots(delta)
-		interpolate_remote_boss(delta)
+		if boss_intro_remaining > 0.0:
+			boss_intro_remaining -= delta
+		else:
+			interpolate_remote_boss(delta)
 		return
 	bot_sync_elapsed += delta
 	if bot_sync_elapsed >= 0.08:
@@ -74,13 +84,18 @@ func _physics_process(delta: float) -> void:
 		rpc("sync_bot_states_rpc", build_bot_states())
 	mode_sync_elapsed += delta
 	if boss_active:
-		update_boss_movement(delta)
-		boss_time_remaining -= delta
-		attack_timer -= delta
-		if attack_timer <= 0.0:
-			perform_boss_attack()
-		if boss_time_remaining <= 0.0:
-			finish_current_boss()
+		if boss_intro_remaining > 0.0:
+			boss_intro_remaining -= delta
+			if boss_intro_remaining <= 0.0:
+				rpc("play_boss_landing_rpc", boss_position, get_boss_color(boss_index))
+		else:
+			update_boss_movement(delta)
+			boss_time_remaining -= delta
+			attack_timer -= delta
+			if attack_timer <= 0.0:
+				perform_boss_attack()
+			if boss_time_remaining <= 0.0:
+				finish_current_boss()
 	elif intermission_remaining > 0.0:
 		intermission_remaining -= delta
 		if intermission_remaining <= 0.0:
@@ -101,6 +116,7 @@ func start_next_boss() -> void:
 	boss_move_timer = 0.5
 	boss_dash_cooldown = maxf(1.8, 5.2 / get_boss_aggression())
 	boss_dash_pending = false
+	boss_intro_remaining = 0.82
 	rpc("start_boss_rpc", boss_index, boss_time_remaining)
 
 func finish_current_boss() -> void:
@@ -111,7 +127,7 @@ func finish_current_boss() -> void:
 	rpc("finish_boss_rpc", boss_index, reward, intermission_remaining)
 
 func perform_boss_attack() -> void:
-	var boss_type := (boss_index - 1) % 3
+	var boss_type := (boss_index - 1) % BOSS_SCENES.size()
 	var difficulty_speed := get_boss_aggression()
 	var attack_variant := randi_range(0, 2)
 	match boss_type:
@@ -130,6 +146,11 @@ func perform_boss_attack() -> void:
 			if attack_variant == 0: fire_magnetron_volley(difficulty_speed)
 			elif attack_variant == 1: fire_rotating_spokes(difficulty_speed)
 			else: fire_targeted_fans(difficulty_speed, Color(0.78, 0.32, 1.0))
+		3:
+			attack_timer = maxf(0.30, 0.92 / difficulty_speed)
+			if attack_variant == 0: fire_dna_helix(difficulty_speed)
+			elif attack_variant == 1: fire_concentric_circles(difficulty_speed)
+			else: fire_rotating_spokes(difficulty_speed)
 
 func fire_butter_ring(difficulty_speed: float) -> void:
 	var projectile_count := mini(30, 16 + boss_index)
@@ -206,6 +227,29 @@ func fire_rotating_spokes(difficulty_speed: float) -> void:
 		var angle := attack_rotation + TAU * float(spoke) / float(spoke_count)
 		rpc("spawn_survival_bullet_rpc", boss_position, angle, 116.0 * difficulty_speed, Color(0.42, 0.78, 1.0))
 	rpc("play_boss_burst_rpc", boss_position, Color(0.42, 0.78, 1.0), spoke_count)
+
+func fire_dna_helix(difficulty_speed: float) -> void:
+	attack_rotation += 0.38
+	for helix_step in range(7):
+		var phase := attack_rotation + float(helix_step) * 0.22
+		var radial_speed := (104.0 + float(helix_step) * 9.0) * difficulty_speed
+		rpc("spawn_survival_bullet_rpc", boss_position, phase, radial_speed, Color(0.08, 0.96, 0.74))
+		rpc("spawn_survival_bullet_rpc", boss_position, phase + PI, radial_speed, Color(1.0, 0.22, 0.70))
+		if helix_step % 2 == 0:
+			rpc("spawn_survival_bullet_rpc", boss_position, phase + PI * 0.5, radial_speed * 0.78, Color(0.72, 0.94, 1.0))
+			rpc("spawn_survival_bullet_rpc", boss_position, phase - PI * 0.5, radial_speed * 0.78, Color(0.72, 0.94, 1.0))
+	rpc("play_boss_burst_rpc", boss_position, Color(0.12, 0.95, 0.72), 18)
+
+func fire_concentric_circles(difficulty_speed: float) -> void:
+	attack_rotation += 0.17
+	for ring_index in range(3):
+		var projectile_count := 10 + ring_index * 4
+		var ring_speed := (92.0 + float(ring_index) * 38.0) * difficulty_speed
+		for bullet_index in range(projectile_count):
+			var angle := attack_rotation * (1.0 if ring_index % 2 == 0 else -1.0) + TAU * float(bullet_index) / float(projectile_count)
+			var color := Color(0.10, 0.92, 0.72) if ring_index % 2 == 0 else Color(1.0, 0.24, 0.72)
+			rpc("spawn_survival_bullet_rpc", boss_position, angle, ring_speed, color)
+	rpc("play_boss_burst_rpc", boss_position, Color(0.90, 0.34, 0.82), 22)
 
 func get_active_participants() -> Array[Node2D]:
 	var result: Array[Node2D] = []
@@ -400,6 +444,22 @@ func execute_boss_dash_rpc(dash_start: Vector2, dash_target: Vector2, color: Col
 			player.call("play_survival_boss_shake", 6.5 + minf(float(boss_index), 5.0) * 0.45)
 
 @rpc("authority", "call_local", "reliable")
+func play_boss_landing_rpc(landing_position: Vector2, color: Color) -> void:
+	play_boss_burst(landing_position, color, 28)
+	var landing_audio := AudioStreamPlayer2D.new()
+	landing_audio.stream = BOSS_LAND_SFX
+	landing_audio.bus = &"SFX"
+	landing_audio.volume_db = -3.0
+	add_child(landing_audio)
+	landing_audio.global_position = landing_position
+	landing_audio.finished.connect(landing_audio.queue_free)
+	landing_audio.play()
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.is_multiplayer_authority() and player.has_method("play_survival_boss_shake"):
+			player.call("play_survival_boss_shake", 8.5)
+
+@rpc("authority", "call_local", "reliable")
 func configure_human_players_rpc(bounds: Rect2, team_size: int, team_color: Color) -> void:
 	survival_team_size = team_size
 	var human_players := get_human_players()
@@ -432,14 +492,12 @@ func start_boss_rpc(new_boss_index: int, duration: float) -> void:
 	boss_index = new_boss_index
 	boss_active = true
 	boss_time_remaining = duration
+	boss_intro_remaining = 0.82
 	boss_position = arena_bounds.get_center()
 	boss_network_position = boss_position
-	boss_visual.show()
-	boss_visual.position = boss_position
-	boss_visual.modulate = get_boss_color(new_boss_index)
-	boss_visual.scale = Vector2.ZERO
-	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(boss_visual, "scale", Vector2.ONE * 0.55, 0.35)
+	set_active_boss_visual(new_boss_index)
+	if boss_visual.has_method("play_fall_entrance"):
+		boss_visual.call("play_fall_entrance", boss_position, get_boss_aggression())
 	update_mode_ui()
 
 @rpc("authority", "call_local", "reliable")
@@ -449,7 +507,7 @@ func finish_boss_rpc(finished_boss_index: int, reward: int, next_time: float) ->
 	boss_dash_pending = false
 	intermission_remaining = next_time
 	clear_projectiles()
-	play_boss_burst(arena_bounds.get_center(), get_boss_color(boss_index), 34)
+	play_boss_burst(boss_position, get_boss_color(boss_index), 34)
 	var tween := create_tween().set_parallel()
 	tween.tween_property(boss_visual, "scale", Vector2.ZERO, 0.42)
 	tween.tween_property(boss_visual, "modulate:a", 0.0, 0.42)
@@ -499,11 +557,16 @@ func show_intermission_rpc(time_remaining: float, next_boss: int) -> void:
 	update_mode_ui()
 
 func create_boss_visual() -> void:
-	boss_visual = Sprite2D.new()
-	boss_visual.texture = BOSS_TEXTURE
-	boss_visual.position = arena_bounds.get_center()
-	boss_visual.scale = Vector2.ONE * 0.55
+	set_active_boss_visual(1)
 	boss_visual.hide()
+
+func set_active_boss_visual(index: int) -> void:
+	if boss_visual and is_instance_valid(boss_visual):
+		boss_visual.queue_free()
+	var scene_index := posmod(index - 1, BOSS_SCENES.size())
+	boss_visual = BOSS_SCENES[scene_index].instantiate() as Node2D
+	boss_visual.position = arena_bounds.get_center()
+	boss_visual.z_index = 6
 	add_child(boss_visual)
 
 func create_mode_ui() -> void:
@@ -561,16 +624,18 @@ func update_mode_ui() -> void:
 		boss_bar_fill.color = Color(0.30, 0.86, 1.0)
 
 func get_boss_name(index: int) -> String:
-	match (index - 1) % 3:
+	match posmod(index - 1, BOSS_SCENES.size()):
 		0: return "BUTTERSTORM"
 		1: return "THE POPPING FLAME"
-		_: return "MAGNETRON PRIME"
+		2: return "MAGNETRON PRIME"
+		_: return "HELIX SOVEREIGN"
 
 func get_boss_color(index: int) -> Color:
-	match (index - 1) % 3:
+	match posmod(index - 1, BOSS_SCENES.size()):
 		0: return Color(1.0, 0.78, 0.18)
 		1: return Color(1.0, 0.20, 0.08)
-		_: return Color(0.66, 0.28, 1.0)
+		2: return Color(0.66, 0.28, 1.0)
+		_: return Color(0.10, 0.92, 0.72)
 
 @rpc("authority", "call_local", "unreliable")
 func play_boss_burst_rpc(origin: Vector2, color: Color, count: int) -> void:

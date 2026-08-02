@@ -3,7 +3,13 @@ extends Node2D
 const RUSHER_SCENE := preload("res://Scenes/standard_bullet_enemy.tscn")
 const SNIPER_SCENE := preload("res://Scenes/sniper_bullet_enemy.tscn")
 const TURRET_SCENE := preload("res://Scenes/turret_enemy.tscn")
-const BOSS_SCENE := preload("res://Scenes/tower_boss.tscn")
+const ASCENSION_BOSS_SCENE := preload("res://Scenes/ascension_popcorn_boss.tscn")
+const BOSS_PRESENTATION_PATHS: Array[String] = [
+	"res://Scenes/popcorn_boss_butterstorm.tscn",
+	"res://Scenes/popcorn_boss_flame.tscn",
+	"res://Scenes/popcorn_boss_magnetron.tscn",
+	"res://Scenes/popcorn_boss_helix.tscn",
+]
 
 @export var arena_bounds: Rect2 = Rect2(28, 30, 424, 220)
 @export var time_between_waves: float = 2.5
@@ -14,6 +20,7 @@ var next_wave_time := 0.0
 var run_started := true
 var enemy_state_sync_elapsed := 0.0
 var next_enemy_id := 1
+var last_boss_kind := -1
 @onready var enemies: Node2D = $Enemies
 var wave_banner: ColorRect
 var wave_label: Label
@@ -73,7 +80,7 @@ func _physics_process(delta: float) -> void:
 		rpc("sync_enemy_states_rpc", build_enemy_states())
 
 	if wave_active:
-		if enemies.get_child_count() == 0:
+		if get_living_enemy_count() == 0:
 			rpc("sync_wave_state_rpc", wave, false)
 			next_wave_time = time_between_waves
 		return
@@ -85,7 +92,7 @@ func _physics_process(delta: float) -> void:
 func start_wave() -> void:
 	wave += 1
 	rpc("sync_wave_state_rpc", wave, true)
-	if wave == 4:
+	if wave % 5 == 0:
 		spawn_boss()
 		return
 	var rusher_count: int = 2 + wave
@@ -100,7 +107,7 @@ func start_wave() -> void:
 func sync_wave_state_rpc(new_wave: int, active: bool) -> void:
 	wave = new_wave
 	wave_active = active
-	update_wave_banner("BOSS" if active and new_wave == 4 else "INCOMING" if active else "CLEAR")
+	update_wave_banner("BOSS" if active and new_wave % 5 == 0 else "INCOMING" if active else "CLEAR")
 
 func spawn_group(scene: PackedScene, count: int) -> void:
 	for index in range(count):
@@ -113,10 +120,38 @@ func spawn_group(scene: PackedScene, count: int) -> void:
 		rpc("spawn_enemy", scene.resource_path, spawn_position, enemy_id)
 
 func spawn_boss() -> void:
-	var spawn_position := arena_bounds.get_center() + Vector2(0.0, -72.0)
+	var spawn_position := arena_bounds.get_center()
 	var enemy_id := "Enemy_%d" % next_enemy_id
+	var boss_kind := randi_range(0, BOSS_PRESENTATION_PATHS.size() - 1)
+	if BOSS_PRESENTATION_PATHS.size() > 1 and boss_kind == last_boss_kind:
+		boss_kind = (boss_kind + randi_range(1, BOSS_PRESENTATION_PATHS.size() - 1)) % BOSS_PRESENTATION_PATHS.size()
+	last_boss_kind = boss_kind
+	var bosses_defeated := maxi(0, floori(float(wave) / 5.0) - 1)
 	next_enemy_id += 1
-	rpc("spawn_enemy", BOSS_SCENE.resource_path, spawn_position, enemy_id)
+	rpc("spawn_ascension_boss_rpc", BOSS_PRESENTATION_PATHS[boss_kind], spawn_position, enemy_id, boss_kind, bosses_defeated)
+
+@rpc("authority", "call_local", "reliable")
+func spawn_ascension_boss_rpc(presentation_path: String, spawn_position: Vector2, enemy_id: String, boss_kind: int, bosses_defeated: int) -> void:
+	create_ascension_boss_instance(presentation_path, spawn_position, enemy_id, boss_kind, bosses_defeated)
+
+func create_ascension_boss_instance(presentation_path: String, spawn_position: Vector2, enemy_id: String, boss_kind: int, bosses_defeated: int) -> void:
+	if enemies.get_node_or_null(enemy_id):
+		return
+	var boss := ASCENSION_BOSS_SCENE.instantiate() as CharacterBody2D
+	boss.name = enemy_id
+	boss.global_position = spawn_position
+	boss.set_meta("arena_bounds", arena_bounds)
+	boss.set_meta("presentation_path", presentation_path)
+	boss.set_meta("boss_kind", boss_kind)
+	boss.set_meta("bosses_defeated", bosses_defeated)
+	enemies.add_child(boss)
+
+func get_living_enemy_count() -> int:
+	var count := 0
+	for child in enemies.get_children():
+		if child.is_in_group("enemies"):
+			count += 1
+	return count
 
 @rpc("authority", "call_local", "reliable")
 func spawn_enemy(scene_path: String, spawn_position: Vector2, enemy_id: String) -> void:
@@ -150,6 +185,9 @@ func build_enemy_states() -> Array[Dictionary]:
 			"position": enemy.global_position,
 			"velocity": enemy.velocity,
 			"flip_h": (enemy.get_node_or_null("Sprite2D") as Sprite2D).flip_h if enemy.get_node_or_null("Sprite2D") else false,
+			"presentation_path": str(enemy.get_meta("presentation_path", "")),
+			"boss_kind": int(enemy.get_meta("boss_kind", 0)),
+			"bosses_defeated": int(enemy.get_meta("bosses_defeated", 0)),
 		})
 	return states
 
@@ -163,7 +201,17 @@ func sync_enemy_states_rpc(states: Array[Dictionary]) -> void:
 		active_ids[enemy_id] = true
 		var enemy := enemies.get_node_or_null(enemy_id) as CharacterBody2D
 		if not enemy:
-			create_enemy_instance(str(state.get("scene", "")), state.get("position", Vector2.ZERO), enemy_id)
+			var scene_path := str(state.get("scene", ""))
+			if scene_path == ASCENSION_BOSS_SCENE.resource_path:
+				create_ascension_boss_instance(
+					str(state.get("presentation_path", BOSS_PRESENTATION_PATHS[0])),
+					state.get("position", Vector2.ZERO),
+					enemy_id,
+					int(state.get("boss_kind", 0)),
+					int(state.get("bosses_defeated", 0))
+				)
+			else:
+				create_enemy_instance(scene_path, state.get("position", Vector2.ZERO), enemy_id)
 			enemy = enemies.get_node_or_null(enemy_id) as CharacterBody2D
 		if not enemy:
 			continue

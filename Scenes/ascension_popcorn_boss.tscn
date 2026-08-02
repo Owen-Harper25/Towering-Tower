@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/ascension_popcorn_boss.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="BossShape"]
+radius = 19.0
+
+[node name="AscensionPopcornBoss" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("BossShape")

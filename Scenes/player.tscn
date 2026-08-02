@@ -189,6 +189,12 @@ properties/6/replication_mode = 1
 properties/7/path = NodePath(".:sync_aim_direction")
 properties/7/spawn = true
 properties/7/replication_mode = 1
+properties/8/path = NodePath(".:equipped_head_cosmetic")
+properties/8/spawn = true
+properties/8/replication_mode = 2
+properties/9/path = NodePath(".:equipped_back_cosmetic")
+properties/9/spawn = true
+properties/9/replication_mode = 2
 
 [sub_resource type="LabelSettings" id="LabelSettings_rup26"]
 font = ExtResource("5_fkybt")
@@ -209,6 +215,19 @@ shape = SubResource("CircleShape2D_cvnsp")
 material = ExtResource("3_x3wgy")
 sprite_frames = SubResource("SpriteFrames_8erm5")
 animation = &"death"
+
+[node name="CosmeticBack" type="Sprite2D" parent="."]
+show_behind_parent = true
+position = Vector2(0, 2)
+scale = Vector2(0.5, 0.5)
+texture_filter = 1
+z_index = -1
+
+[node name="CosmeticHead" type="Sprite2D" parent="."]
+position = Vector2(0, -12)
+scale = Vector2(0.5, 0.5)
+texture_filter = 1
+z_index = 2
 
 [node name="Area2D" type="Area2D" parent="." unique_id=340752829]
 visible = false

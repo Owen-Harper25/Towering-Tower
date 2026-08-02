@@ -8,12 +8,13 @@
 [ext_resource type="PackedScene" uid="uid://cyowr518ht03d" path="res://Scenes/interactable.tscn" id="4_interactable"]
 [ext_resource type="Texture2D" uid="uid://crhacpd3g0ybc" path="res://Assets/Lobby.png" id="5_bvheq"]
 [ext_resource type="Texture2D" uid="uid://cqadh4fllxamd" path="res://Assets/Shop Man.png" id="7_aghey"]
+[ext_resource type="Texture2D" uid="uid://couyrjtio48bu" path="res://Assets/Cosmetics/wardrobe_mirror.svg" id="8_mirror"]
 
 [sub_resource type="ShaderMaterial" id="ShopOutline"]
 resource_local_to_scene = true
 shader = ExtResource("3_outline")
 shader_parameter/outline_colour = Color(1, 1, 1, 1)
-shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_thickness = 2.0000000475
 shader_parameter/outline_enabled = false
 shader_parameter/enabled = false
 shader_parameter/tint = Color(1, 1, 1, 1)
@@ -25,7 +26,7 @@ radius = 22.090721
 resource_local_to_scene = true
 shader = ExtResource("3_outline")
 shader_parameter/outline_colour = Color(1, 1, 1, 1)
-shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_thickness = 2.0000000475
 shader_parameter/outline_enabled = false
 shader_parameter/enabled = false
 shader_parameter/tint = Color(1, 1, 1, 1)
@@ -34,7 +35,7 @@ shader_parameter/tint = Color(1, 1, 1, 1)
 resource_local_to_scene = true
 shader = ExtResource("3_outline")
 shader_parameter/outline_colour = Color(1, 1, 1, 1)
-shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_thickness = 2.0000000475
 shader_parameter/outline_enabled = false
 shader_parameter/enabled = false
 shader_parameter/tint = Color(1, 1, 1, 1)
@@ -42,8 +43,17 @@ shader_parameter/tint = Color(1, 1, 1, 1)
 [sub_resource type="ShaderMaterial" id="SurvivalTeleportOutline"]
 resource_local_to_scene = true
 shader = ExtResource("3_outline")
-shader_parameter/outline_colour = Color(1, 0.82, 0.2, 1)
-shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_colour = Color(1, 1, 1, 1)
+shader_parameter/outline_thickness = 2.0000000475
+shader_parameter/outline_enabled = false
+shader_parameter/enabled = false
+shader_parameter/tint = Color(1, 1, 1, 1)
+
+[sub_resource type="ShaderMaterial" id="MirrorOutline"]
+resource_local_to_scene = true
+shader = ExtResource("3_outline")
+shader_parameter/outline_colour = Color(1, 1, 1, 1)
+shader_parameter/outline_thickness = 2.0
 shader_parameter/outline_enabled = false
 shader_parameter/enabled = false
 shader_parameter/tint = Color(1, 1, 1, 1)
@@ -185,4 +195,20 @@ position = Vector2(0, -22)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SurvivalTeleporter/Interactable" unique_id=1916183749]
 position = Vector2(-184, -78)
+shape = SubResource("InteractShape")
+
+[node name="WardrobeMirror" type="Node2D" parent="." unique_id=1485376983]
+position = Vector2(383, 111)
+
+[node name="Sprite2D" type="Sprite2D" parent="WardrobeMirror" unique_id=2128849674]
+texture_filter = 1
+material = SubResource("MirrorOutline")
+position = Vector2(-249, 56.000008)
+scale = Vector2(0.72, 0.72)
+texture = ExtResource("8_mirror")
+
+[node name="Interactable" parent="WardrobeMirror" unique_id=332687209 instance=ExtResource("4_interactable")]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WardrobeMirror/Interactable" unique_id=823921247]
+position = Vector2(-249, 62)
 shape = SubResource("InteractShape")

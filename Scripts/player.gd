@@ -3,6 +3,7 @@ extends CharacterBody2D
 const LOW_HEALTH_IRIS_SHADER := preload("res://Shaders/low_health_iris.gdshader")
 const SURVIVAL_TEAM_MATERIAL := preload("res://Shaders/outlineshader.tres")
 const SURVIVAL_DEATH_SFX := preload("res://SFX/kick.wav")
+const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
 
 # --- Signals ---
 signal health_changed(new_health: int, max_health: int)
@@ -49,6 +50,16 @@ signal player_revived()
 @onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
 @export var sync_velocity: Vector2 = Vector2.ZERO
 @export var sync_aim_direction: Vector2 = Vector2.RIGHT
+@export var equipped_head_cosmetic := "":
+	set(value):
+		equipped_head_cosmetic = value
+		if is_node_ready():
+			apply_cosmetic_visuals()
+@export var equipped_back_cosmetic := "":
+	set(value):
+		equipped_back_cosmetic = value
+		if is_node_ready():
+			apply_cosmetic_visuals()
 
 # --- Health & Revive Settings ---
 @export_group("Combat Settings")
@@ -64,6 +75,8 @@ signal player_revived()
 @onready var muzzle: Node2D = $WeaponPivot/Muzzle
 @onready var gun_body: Polygon2D = $WeaponPivot/GunBody
 @onready var gun_accent: Polygon2D = $WeaponPivot/GunAccent
+@onready var cosmetic_head: Sprite2D = $CosmeticHead
+@onready var cosmetic_back: Sprite2D = $CosmeticBack
 
 # --- Internal State ---
 var current_health: int
@@ -132,6 +145,7 @@ func _ready() -> void:
 	original_sprite_material = sprite.material
 	base_max_health = max_health
 	base_fire_cooldown = fire_cooldown
+	apply_cosmetic_visuals()
 	apply_meta_upgrades(false)
 	current_health = max_health
 	if is_multiplayer_authority():
@@ -140,6 +154,7 @@ func _ready() -> void:
 		camera.enabled = true
 		player_name = Steam.getPersonaName()
 		rpc("sync_name", player_name)
+		sync_local_cosmetics()
 		
 		if character_name:
 			character_name.visible = false
@@ -166,6 +181,7 @@ func sync_name(new_name: String) -> void:
 func _physics_process(delta: float) -> void:
 	# --- RUN ON ALL PEERS ---
 	update_survival_ghost_visibility()
+	update_cosmetic_motion(delta)
 	update_movement_trails(delta)
 	if is_downed:
 		if in_survival_mode and is_multiplayer_authority():
@@ -415,6 +431,7 @@ func start_dodge_roll_rpc(dir: Vector2) -> void:
 	is_rolling = true
 	is_invulnerable = true
 	roll_direction = dir
+	set_character_facing_from_direction(roll_direction)
 	dash_trail_timer = 0.0
 	spawn_dash_start_burst(dir)
 	
@@ -652,8 +669,54 @@ func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int, bullet_dam
 		get_parent().add_child(bullet)
 
 func _on_meta_progression_changed() -> void:
-	if is_multiplayer_authority() and not in_survival_mode:
+	if not is_multiplayer_authority():
+		return
+	sync_local_cosmetics()
+	if not in_survival_mode:
 		apply_meta_upgrades(true)
+
+func sync_local_cosmetics() -> void:
+	if not is_multiplayer_authority():
+		return
+	rpc("sync_cosmetics_rpc", MetaProgression.equipped_head_cosmetic, MetaProgression.equipped_back_cosmetic)
+
+@rpc("any_peer", "call_local", "reliable")
+func sync_cosmetics_rpc(head_cosmetic: String, back_cosmetic: String) -> void:
+	equipped_head_cosmetic = head_cosmetic
+	equipped_back_cosmetic = back_cosmetic
+	apply_cosmetic_visuals()
+
+func apply_cosmetic_visuals() -> void:
+	if not cosmetic_head or not cosmetic_back:
+		return
+	cosmetic_head.texture = load_cosmetic_texture(equipped_head_cosmetic)
+	cosmetic_back.texture = load_cosmetic_texture(equipped_back_cosmetic)
+	cosmetic_head.visible = cosmetic_head.texture != null and sprite.visible
+	cosmetic_back.visible = cosmetic_back.texture != null and sprite.visible
+
+func load_cosmetic_texture(cosmetic_id: String) -> Texture2D:
+	if cosmetic_id.is_empty():
+		return null
+	var texture_path := COSMETICS.get_texture_path(cosmetic_id)
+	if texture_path.is_empty():
+		return null
+	return load(texture_path) as Texture2D
+
+func update_cosmetic_motion(delta: float) -> void:
+	if not cosmetic_head or not cosmetic_back:
+		return
+	var visible_with_player := sprite.visible
+	cosmetic_head.visible = cosmetic_head.texture != null and visible_with_player
+	cosmetic_back.visible = cosmetic_back.texture != null and visible_with_player
+	cosmetic_head.flip_h = sprite.flip_h
+	# Cape artwork trails in the opposite direction from the character art.
+	cosmetic_back.flip_h = not sprite.flip_h
+	cosmetic_head.modulate.a = sprite.modulate.a
+	cosmetic_back.modulate.a = sprite.modulate.a
+	var bob := sin(Time.get_ticks_msec() * 0.009) * minf(1.0, sync_velocity.length() / maxf(1.0, speed))
+	cosmetic_head.position.y = lerpf(cosmetic_head.position.y, -12.0 + bob, minf(1.0, delta * 14.0))
+	var cape_target_rotation := clampf(-sync_velocity.x / 720.0, -0.24, 0.24)
+	cosmetic_back.rotation = lerp_angle(cosmetic_back.rotation, cape_target_rotation, minf(1.0, delta * 9.0))
 
 func apply_meta_upgrades(heal_from_new_vitality: bool) -> void:
 	var previous_max_health := max_health
@@ -1163,8 +1226,7 @@ func update_animations() -> void:
 	if is_survival_ghost:
 		if sync_velocity.length() > 0.1 and sprite.sprite_frames.has_animation("move"):
 			sprite.play("move")
-			if sync_velocity.x != 0.0:
-				sprite.flip_h = sync_velocity.x < 0.0
+			set_character_facing_from_direction(sync_velocity)
 		elif sprite.sprite_frames.has_animation("Idle"):
 			sprite.play("Idle")
 		return
@@ -1175,22 +1237,29 @@ func update_animations() -> void:
 	if is_falling:
 		if fall_dash_active and sprite.sprite_frames.has_animation("roll"):
 			sprite.play("roll")
+			set_character_facing_from_direction(fall_dash_direction)
 		elif sprite.sprite_frames.has_animation("Idle"):
 			sprite.play("Idle")
 		return
 
 	if is_rolling:
+		set_character_facing_from_direction(roll_direction)
 		return
 
-	# Use sync_velocity so all remote peers see the correct walking/facing animation
+	# Animation speed follows movement, but combat facing follows aim. This prevents
+	# firing recoil (which pushes opposite the aim) from turning the player around.
 	if sync_velocity.length() > 0.1:
 		if sprite.animation != "move":
 			sprite.play("move")
-		if sync_velocity.x != 0:
-			sprite.flip_h = (sync_velocity.x < 0)
 	else:
 		if sprite.animation != "Idle":
 			sprite.play("Idle")
+	var facing_direction := sync_velocity if in_survival_mode else sync_aim_direction
+	set_character_facing_from_direction(facing_direction)
+
+func set_character_facing_from_direction(direction: Vector2) -> void:
+	if absf(direction.x) > 0.01:
+		sprite.flip_h = direction.x < 0.0
 
 func _draw() -> void:
 	if not is_downed or revive_hp_max <= 0:

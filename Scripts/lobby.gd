@@ -1,12 +1,17 @@
 extends Node2D
 
+const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
+
 @onready var shop_interactable: Area2D = $ShopKeeper/Interactable
 @onready var tree_interactable: Area2D = $SkillTree/Interactable
 @onready var teleporter_interactable: Area2D = $Teleporter/Interactable
 @onready var survival_interactable: Area2D = $SurvivalTeleporter/Interactable
+@onready var mirror_interactable: Area2D = $WardrobeMirror/Interactable
 
 var panel: Panel
 var panel_content: VBoxContainer
+var overlay_root: Control
+var requested_panel_size := Vector2(300.0, 224.0)
 
 func _ready() -> void:
 	add_to_group("safe_lobby")
@@ -14,6 +19,7 @@ func _ready() -> void:
 	configure_interactable(tree_interactable, "E - RUNE TREE", open_skill_tree)
 	configure_interactable(teleporter_interactable, "E - ENTER THE TOWER", enter_tower)
 	configure_interactable(survival_interactable, "E - KERNEL SURVIVAL", enter_survival)
+	configure_interactable(mirror_interactable, "E - CHANGE OUTFIT", open_wardrobe)
 	create_overlay()
 
 func configure_interactable(interactable: Area2D, prompt: String, action: Callable) -> void:
@@ -23,16 +29,15 @@ func configure_interactable(interactable: Area2D, prompt: String, action: Callab
 func create_overlay() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 50
-	var root := Control.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_STOP
-	layer.add_child(root)
+	overlay_root = Control.new()
+	overlay_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(overlay_root)
 	panel = Panel.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-150.0, -112.0)
-	panel.size = Vector2(300.0, 224.0)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.hide()
-	root.add_child(panel)
+	overlay_root.add_child(panel)
 	panel_content = VBoxContainer.new()
 	panel_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel_content.offset_left = 14.0
@@ -42,11 +47,29 @@ func create_overlay() -> void:
 	panel_content.add_theme_constant_override("separation", 6)
 	panel.add_child(panel_content)
 	add_child(layer)
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	set_panel_size(requested_panel_size)
 
 func clear_panel() -> void:
 	for child in panel_content.get_children():
 		panel_content.remove_child(child)
 		child.queue_free()
+
+func set_panel_size(new_size: Vector2) -> void:
+	requested_panel_size = new_size
+	var viewport_size := get_viewport_rect().size
+	var safe_size := Vector2(
+		minf(new_size.x, maxf(260.0, viewport_size.x - 24.0)),
+		minf(new_size.y, maxf(180.0, viewport_size.y - 24.0))
+	)
+	panel.offset_left = -safe_size.x * 0.5
+	panel.offset_top = -safe_size.y * 0.5
+	panel.offset_right = safe_size.x * 0.5
+	panel.offset_bottom = safe_size.y * 0.5
+
+func _on_viewport_size_changed() -> void:
+	if panel:
+		set_panel_size(requested_panel_size)
 
 func add_title(text: String) -> void:
 	var title := Label.new()
@@ -64,9 +87,10 @@ func add_close_button() -> void:
 
 func open_shop() -> void:
 	clear_panel()
+	set_panel_size(Vector2(420.0, 340.0))
 	add_title("THE TOWER MERCHANT")
 	var text := Label.new()
-	text.text = "Coins from runs become permanent Tower Coins."
+	text.text = "Permanent outfits. Purchased with Tower Coins."
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.custom_minimum_size = Vector2(0.0, 38.0)
 	panel_content.add_child(text)
@@ -75,8 +99,90 @@ func open_shop() -> void:
 	balance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	balance.custom_minimum_size = Vector2(0.0, 22.0)
 	panel_content.add_child(balance)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0.0, 72.0)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_content.add_child(scroll)
+	var shop_grid := GridContainer.new()
+	shop_grid.columns = 2
+	shop_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shop_grid.add_theme_constant_override("h_separation", 6)
+	shop_grid.add_theme_constant_override("v_separation", 6)
+	scroll.add_child(shop_grid)
+	for cosmetic_id in COSMETICS.get_ids():
+		add_cosmetic_shop_button(shop_grid, cosmetic_id)
 	add_close_button()
 	panel.show()
+
+func add_cosmetic_shop_button(grid: GridContainer, cosmetic_id: String) -> void:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(184.0, 58.0)
+	button.expand_icon = false
+	button.icon = load(COSMETICS.get_texture_path(cosmetic_id)) as Texture2D
+	var owned := MetaProgression.owns_cosmetic(cosmetic_id)
+	button.text = "%s\n%s" % [COSMETICS.get_display_name(cosmetic_id), "OWNED" if owned else "%d GOLD" % COSMETICS.get_cost(cosmetic_id)]
+	button.disabled = owned or MetaProgression.currency < COSMETICS.get_cost(cosmetic_id)
+	button.pressed.connect(func():
+		if MetaProgression.purchase_cosmetic(cosmetic_id):
+			open_shop()
+	)
+	grid.add_child(button)
+
+func open_wardrobe() -> void:
+	clear_panel()
+	set_panel_size(Vector2(440.0, 350.0))
+	add_title("WARDROBE MIRROR")
+	var instructions := Label.new()
+	instructions.text = "SELECT AN UNLOCKED COSMETIC TO EQUIP IT."
+	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	instructions.custom_minimum_size = Vector2(0.0, 20.0)
+	panel_content.add_child(instructions)
+	var inventory_scroll := ScrollContainer.new()
+	inventory_scroll.custom_minimum_size = Vector2(0.0, 72.0)
+	inventory_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_content.add_child(inventory_scroll)
+	var inventory_grid := GridContainer.new()
+	inventory_grid.columns = 3
+	inventory_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inventory_grid.add_theme_constant_override("h_separation", 6)
+	inventory_grid.add_theme_constant_override("v_separation", 6)
+	inventory_scroll.add_child(inventory_grid)
+	if MetaProgression.unlocked_cosmetics.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "THE MERCHANT HAS COSMETICS FOR SALE."
+		empty_label.custom_minimum_size = Vector2(390.0, 70.0)
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		inventory_grid.add_child(empty_label)
+	else:
+		for cosmetic_id in MetaProgression.unlocked_cosmetics:
+			add_wardrobe_button(inventory_grid, cosmetic_id)
+	var clear_button := Button.new()
+	clear_button.text = "CLEAR OUTFIT"
+	clear_button.custom_minimum_size = Vector2(0.0, 27.0)
+	clear_button.pressed.connect(func():
+		MetaProgression.clear_equipped_cosmetics()
+		open_wardrobe()
+	)
+	panel_content.add_child(clear_button)
+	add_close_button()
+	panel.show()
+
+func add_wardrobe_button(grid: GridContainer, cosmetic_id: String) -> void:
+	var slot := COSMETICS.get_slot(cosmetic_id)
+	var equipped := cosmetic_id == MetaProgression.equipped_head_cosmetic or cosmetic_id == MetaProgression.equipped_back_cosmetic
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(126.0, 76.0)
+	button.expand_icon = false
+	button.icon = load(COSMETICS.get_texture_path(cosmetic_id)) as Texture2D
+	button.text = "%s\n%s" % [COSMETICS.get_display_name(cosmetic_id), "EQUIPPED" if equipped else slot.to_upper()]
+	button.pressed.connect(func():
+		if equipped:
+			MetaProgression.unequip_cosmetic_slot(slot)
+		else:
+			MetaProgression.equip_cosmetic(cosmetic_id)
+		open_wardrobe()
+	)
+	grid.add_child(button)
 
 func open_skill_tree() -> void:
 	clear_panel()

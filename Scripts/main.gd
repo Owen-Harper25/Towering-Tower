@@ -20,6 +20,7 @@ const GAME_GRADE_SHADER := preload("res://Shaders/game_grade.gdshader")
 # --- Level & Player References ---
 @export var default_level_scene: PackedScene = preload("res://Scenes/lobby.tscn")
 const ARENA_SCENE := preload("res://Scenes/arena.tscn")
+const SURVIVAL_ARENA_SCENE := preload("res://Scenes/survival_arena.tscn")
 @onready var level_container: Node = $"Level Container"
 @onready var players_container: Node2D = $"Level Container/Players"
 
@@ -188,6 +189,43 @@ func start_combat_from_lobby() -> void:
 	else:
 		rpc_id(1, "request_start_combat_rpc")
 
+func start_survival_from_lobby() -> void:
+	if multiplayer.is_server():
+		rpc("start_survival_rpc")
+	else:
+		rpc_id(1, "request_start_survival_rpc")
+
+@rpc("any_peer", "reliable")
+func request_start_survival_rpc() -> void:
+	if multiplayer.is_server():
+		rpc("start_survival_rpc")
+
+@rpc("authority", "call_local", "reliable")
+func start_survival_rpc() -> void:
+	if current_level and current_level.is_in_group("survival_arena"):
+		return
+	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
+		Networking.set_lobby_joinable(false)
+	load_level(SURVIVAL_ARENA_SCENE)
+
+func leave_survival_mode() -> void:
+	if multiplayer.is_server():
+		return_party_to_lobby()
+	else:
+		call_deferred("leave_survival_client")
+
+func leave_survival_client() -> void:
+	Networking.leave_lobby()
+	for player in players:
+		if is_instance_valid(player):
+			if player.get_parent():
+				player.get_parent().remove_child(player)
+			player.queue_free()
+	players.clear()
+	perform_load_level(default_level_scene)
+	play_scene_transition()
+	spawn_player(1)
+
 @rpc("any_peer", "reliable")
 func request_start_combat_rpc() -> void:
 	if multiplayer.is_server():
@@ -241,7 +279,7 @@ func perform_load_level(level_scene: PackedScene) -> void:
 		
 	current_level = level_scene.instantiate()
 	level_container.add_child(current_level)
-	update_game_post_process(current_level.is_in_group("tower_arena"))
+	update_game_post_process(current_level.is_in_group("tower_arena") or current_level.is_in_group("survival_arena"))
 	
 	if current_level.has_node("SpawnPoint"):
 		$SpawnPoint.global_position = current_level.get_node("SpawnPoint").global_position

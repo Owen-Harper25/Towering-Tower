@@ -34,6 +34,13 @@ shader_parameter/outline_colour = Color(1, 1, 1, 1)
 shader_parameter/outline_thickness = 1.0
 shader_parameter/outline_enabled = false
 
+[sub_resource type="ShaderMaterial" id="SurvivalTeleportOutline"]
+resource_local_to_scene = true
+shader = ExtResource("3_outline")
+shader_parameter/outline_colour = Color(1, 0.82, 0.2, 1)
+shader_parameter/outline_thickness = 1.0
+shader_parameter/outline_enabled = false
+
 [node name="Lobby" type="Node2D" unique_id=1887785168]
 script = ExtResource("1_lobby")
 
@@ -160,4 +167,23 @@ position = Vector2(-2, -69)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Teleporter/Interactable" unique_id=1188656516]
 position = Vector2(0.6666565, -7.3333282)
+shape = SubResource("InteractShape")
+
+[node name="SurvivalTeleporter" type="Node2D" parent="."]
+position = Vector2(410, 166)
+
+[node name="Sprite2D" type="Sprite2D" parent="SurvivalTeleporter"]
+texture_filter = 1
+material = SubResource("SurvivalTeleportOutline")
+modulate = Color(1, 0.72, 0.22, 1)
+position = Vector2(0, -22)
+scale = Vector2(0.72, 0.72)
+texture = ExtResource("5_bvheq")
+region_enabled = true
+region_rect = Rect2(324.3832, -10.423645, 180.46982, 56.52887)
+
+[node name="Interactable" parent="SurvivalTeleporter" instance=ExtResource("4_interactable")]
+position = Vector2(0, -22)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SurvivalTeleporter/Interactable"]
 shape = SubResource("InteractShape")

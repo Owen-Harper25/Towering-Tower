@@ -5,6 +5,7 @@ signal changed
 const SAVE_PATH := "user://meta_progression.cfg"
 
 var currency := 0
+var kernel_currency := 0
 var upgrades := {
 	"damage": 0,
 	"vitality": 0,
@@ -34,6 +35,13 @@ func add_currency(amount: int) -> void:
 	save_progression()
 	changed.emit()
 
+func add_kernel_currency(amount: int) -> void:
+	if amount <= 0:
+		return
+	kernel_currency += amount
+	save_progression()
+	changed.emit()
+
 func purchase(upgrade_id: String) -> bool:
 	if not upgrades.has(upgrade_id) or get_level(upgrade_id) >= MAX_LEVEL:
 		return false
@@ -49,6 +57,7 @@ func purchase(upgrade_id: String) -> bool:
 func save_progression() -> void:
 	var config := ConfigFile.new()
 	config.set_value("progression", "currency", currency)
+	config.set_value("progression", "kernel_currency", kernel_currency)
 	for upgrade_id in upgrades:
 		config.set_value("upgrades", upgrade_id, get_level(upgrade_id))
 	config.save(SAVE_PATH)
@@ -58,5 +67,6 @@ func load_progression() -> void:
 	if config.load(SAVE_PATH) != OK:
 		return
 	currency = int(config.get_value("progression", "currency", 0))
+	kernel_currency = int(config.get_value("progression", "kernel_currency", 0))
 	for upgrade_id in upgrades:
 		upgrades[upgrade_id] = int(config.get_value("upgrades", upgrade_id, 0))

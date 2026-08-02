@@ -79,6 +79,15 @@ var firing_recoil_velocity := Vector2.ZERO
 var weapon_recoil_offset := Vector2.ZERO
 var base_max_health := 0
 var base_fire_cooldown := 0.0
+var in_survival_mode := false
+var is_survival_ghost := false
+var survival_bounds := Rect2(40, 40, 820, 520)
+var survival_revive_progress := 0.0
+var survival_revive_sync_elapsed := 0.0
+var original_collision_layer := 1
+var original_collision_mask := 11
+var survival_ghost_ui: CanvasLayer
+@export var survival_revive_duration := 2.6
 
 # --- Downed & Revive State (Nightreign Style) ---
 @export var is_downed: bool = false
@@ -103,6 +112,8 @@ func _enter_tree() -> void:
 	set_multiplayer_authority(name.to_int())
 
 func _ready() -> void:
+	original_collision_layer = collision_layer
+	original_collision_mask = collision_mask
 	base_max_health = max_health
 	base_fire_cooldown = fire_cooldown
 	apply_meta_upgrades(false)
@@ -139,9 +150,18 @@ func sync_name(new_name: String) -> void:
 func _physics_process(delta: float) -> void:
 	# --- RUN ON ALL PEERS ---
 	if is_downed:
+		if in_survival_mode and is_multiplayer_authority():
+			handle_survival_proximity_revive(delta)
 		handle_death_timer(delta) # Must run on remote peers so their local death timers tick down and redraw!
 	if is_falling and not is_multiplayer_authority():
 		update_remote_falling_animation(delta)
+	if is_survival_ghost:
+		if is_multiplayer_authority():
+			handle_survival_ghost_movement(delta)
+		update_animations()
+		update_weapon_aim()
+		update_aim_camera(delta)
+		return
 
 	# --- RUN ONLY ON MULTIPLAYER AUTHORITY ---
 	if is_multiplayer_authority():
@@ -162,7 +182,9 @@ func _physics_process(delta: float) -> void:
 			firing_recoil_velocity = firing_recoil_velocity.move_toward(Vector2.ZERO, 520.0 * delta)
 			sync_velocity = velocity
 			move_and_slide()
-			if not is_on_tower():
+			if in_survival_mode:
+				clamp_to_survival_arena()
+			elif not is_on_tower():
 				rpc("start_falling_rpc", velocity)
 
 	update_animations()
@@ -195,6 +217,9 @@ func handle_death_timer(delta: float) -> void:
 
 @rpc("any_peer", "call_local", "reliable")
 func player_fully_died_rpc() -> void:
+	if in_survival_mode:
+		become_survival_ghost()
+		return
 	is_downed = false
 	sprite.play("death")
 	player_died.emit()
@@ -432,7 +457,7 @@ func set_weapon_drawn(should_draw: bool) -> void:
 		)
 
 func shoot() -> void:
-	if is_downed or not is_wave_active() or not bullet_scene or Time.get_ticks_msec() / 1000.0 < next_shot_time:
+	if in_survival_mode or is_downed or not is_wave_active() or not bullet_scene or Time.get_ticks_msec() / 1000.0 < next_shot_time:
 		return
 	next_shot_time = Time.get_ticks_msec() / 1000.0 + fire_cooldown
 		
@@ -479,7 +504,7 @@ func spawn_bullet_rpc(spawn_pos: Vector2, angle: float, shooter: int, bullet_dam
 		get_parent().add_child(bullet)
 
 func _on_meta_progression_changed() -> void:
-	if is_multiplayer_authority():
+	if is_multiplayer_authority() and not in_survival_mode:
 		apply_meta_upgrades(true)
 
 func apply_meta_upgrades(heal_from_new_vitality: bool) -> void:
@@ -491,6 +516,153 @@ func apply_meta_upgrades(heal_from_new_vitality: bool) -> void:
 	var gained_health := maxi(0, max_health - previous_max_health)
 	current_health = mini(max_health, current_health + gained_health)
 	health_changed.emit(current_health, max_health)
+
+func enter_survival_mode(bounds: Rect2, spawn_position: Vector2) -> void:
+	in_survival_mode = true
+	is_survival_ghost = false
+	survival_bounds = bounds
+	survival_revive_progress = 0.0
+	is_downed = false
+	is_falling = false
+	is_rolling = false
+	is_invulnerable = false
+	down_count = 0
+	death_timer_current = 0.0
+	pause_timer = 0.0
+	max_health = 6
+	current_health = 6
+	global_position = spawn_position
+	velocity = Vector2.ZERO
+	sync_velocity = Vector2.ZERO
+	collision_layer = original_collision_layer
+	collision_mask = original_collision_mask
+	set_collision_mask_value(1, false)
+	sprite.scale = Vector2.ONE
+	sprite.modulate = Color.WHITE
+	set_weapon_drawn(false)
+	if hud and is_multiplayer_authority():
+		hud.setup_hearts(max_health, current_health)
+	health_changed.emit(current_health, max_health)
+	queue_redraw()
+
+func exit_survival_mode() -> void:
+	in_survival_mode = false
+	is_survival_ghost = false
+	survival_revive_progress = 0.0
+	collision_layer = original_collision_layer
+	collision_mask = original_collision_mask
+	sprite.scale = Vector2.ONE
+	sprite.modulate = Color.WHITE
+	if survival_ghost_ui and is_instance_valid(survival_ghost_ui):
+		survival_ghost_ui.queue_free()
+	survival_ghost_ui = null
+	apply_meta_upgrades(false)
+	current_health = max_health
+	if hud and is_multiplayer_authority():
+		hud.setup_hearts(max_health, current_health)
+	health_changed.emit(current_health, max_health)
+
+func handle_survival_proximity_revive(delta: float) -> void:
+	var helper_nearby := has_nearby_survival_teammate()
+	if helper_nearby:
+		survival_revive_progress += delta
+		pause_timer = maxf(pause_timer, 0.22)
+	else:
+		survival_revive_progress = maxf(0.0, survival_revive_progress - delta * 0.45)
+	revive_hp_max = survival_revive_duration
+	revive_hp_current = maxf(0.0, survival_revive_duration - survival_revive_progress)
+	queue_redraw()
+	survival_revive_sync_elapsed += delta
+	if survival_revive_sync_elapsed >= 0.10:
+		survival_revive_sync_elapsed = 0.0
+		rpc("sync_survival_revive_visual_rpc", survival_revive_progress, helper_nearby)
+	if survival_revive_progress >= survival_revive_duration:
+		survival_revive_progress = 0.0
+		rpc("sync_revive_player_rpc")
+
+func has_nearby_survival_teammate() -> bool:
+	for ally in get_tree().get_nodes_in_group("players") + get_tree().get_nodes_in_group("survival_allies"):
+		var ally_node := ally as Node2D
+		if not ally_node or ally_node == self:
+			continue
+		if bool(ally_node.get("is_downed")) or bool(ally_node.get("is_survival_ghost")):
+			continue
+		if global_position.distance_to(ally_node.global_position) <= 52.0:
+			return true
+	return false
+
+@rpc("any_peer", "call_remote", "unreliable")
+func sync_survival_revive_visual_rpc(progress: float, helper_nearby: bool) -> void:
+	if not in_survival_mode or not is_downed:
+		return
+	survival_revive_progress = progress
+	revive_hp_max = survival_revive_duration
+	revive_hp_current = maxf(0.0, survival_revive_duration - progress)
+	if helper_nearby:
+		pause_timer = maxf(pause_timer, 0.22)
+	queue_redraw()
+
+func handle_survival_ghost_movement(delta: float) -> void:
+	input_dir = Vector2(
+		Input.get_axis("Left", "Right"),
+		Input.get_axis("Up", "Down")
+	).normalized()
+	velocity = input_dir * speed * 0.72
+	sync_velocity = velocity
+	global_position += velocity * delta
+	clamp_to_survival_arena()
+
+func clamp_to_survival_arena() -> void:
+	global_position.x = clampf(global_position.x, survival_bounds.position.x, survival_bounds.end.x)
+	global_position.y = clampf(global_position.y, survival_bounds.position.y, survival_bounds.end.y)
+
+func become_survival_ghost() -> void:
+	is_downed = false
+	is_survival_ghost = true
+	is_rolling = false
+	is_invulnerable = false
+	velocity = Vector2.ZERO
+	sync_velocity = Vector2.ZERO
+	death_timer_current = 0.0
+	pause_timer = 0.0
+	collision_layer = 0
+	collision_mask = 0
+	sprite.scale = Vector2.ONE
+	sprite.modulate = Color(0.62, 0.82, 1.0, 0.28)
+	set_weapon_drawn(false)
+	update_low_health_iris(max_health, max_health)
+	if is_multiplayer_authority():
+		create_survival_ghost_ui()
+	queue_redraw()
+
+func create_survival_ghost_ui() -> void:
+	if survival_ghost_ui and is_instance_valid(survival_ghost_ui):
+		return
+	survival_ghost_ui = CanvasLayer.new()
+	survival_ghost_ui.layer = 46
+	var panel := ColorRect.new()
+	panel.color = Color(0.12, 0.015, 0.04, 0.90)
+	panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	panel.position = Vector2(-125.0, -58.0)
+	panel.size = Vector2(250.0, 48.0)
+	survival_ghost_ui.add_child(panel)
+	var label := Label.new()
+	label.text = "YOU POPPED! GHOST MODE"
+	label.position = Vector2(8.0, 4.0)
+	label.size = Vector2(150.0, 34.0)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	panel.add_child(label)
+	var leave_button := Button.new()
+	leave_button.text = "LEAVE"
+	leave_button.position = Vector2(164.0, 8.0)
+	leave_button.size = Vector2(78.0, 32.0)
+	leave_button.pressed.connect(func():
+		var main := get_tree().get_first_node_in_group("main")
+		if main and main.has_method("leave_survival_mode"):
+			main.call("leave_survival_mode")
+	)
+	panel.add_child(leave_button)
+	add_child(survival_ghost_ui)
 
 # --- Health, Downed & Revive Mechanics ---
 func take_damage(amount: int) -> void:
@@ -558,10 +730,14 @@ func enter_downed_state_rpc() -> void:
 	death_timer_current = death_timer_max
 	pause_timer = 0.0
 	
-	match down_count:
-		1: revive_hp_max = 30.0
-		2: revive_hp_max = 60.0
-		_: revive_hp_max = 120.0
+	if in_survival_mode:
+		survival_revive_progress = 0.0
+		revive_hp_max = survival_revive_duration
+	else:
+		match down_count:
+			1: revive_hp_max = 30.0
+			2: revive_hp_max = 60.0
+			_: revive_hp_max = 120.0
 			
 	revive_hp_current = revive_hp_max
 	player_downed.emit()
@@ -678,6 +854,8 @@ func sync_revive_player_rpc() -> void:
 
 func revive_player() -> void:
 	is_downed = false
+	survival_revive_progress = 0.0
+	revive_hp_current = 0.0
 	current_health = int(max_health * 0.5)
 	health_changed.emit(current_health, max_health)
 	player_revived.emit()
@@ -689,6 +867,8 @@ func revive_player() -> void:
 
 @rpc("any_peer", "call_local", "reliable")
 func reset_for_lobby_rpc() -> void:
+	if in_survival_mode or is_survival_ghost:
+		exit_survival_mode()
 	is_downed = false
 	is_falling = false
 	is_rolling = false
@@ -730,7 +910,7 @@ func start_invulnerability_rpc(duration: float) -> void:
 		set_collision_mask_value(2, original_enemy_mask)
 		if tween and tween.is_running():
 			tween.kill()
-		if sprite:
+		if sprite and not is_survival_ghost:
 			sprite.modulate.a = 1.0
 			if sprite.material is ShaderMaterial:
 				(sprite.material as ShaderMaterial).set_shader_parameter("enabled", false)
@@ -738,6 +918,14 @@ func start_invulnerability_rpc(duration: float) -> void:
 
 # --- Visuals & Animations ---
 func update_animations() -> void:
+	if is_survival_ghost:
+		if sync_velocity.length() > 0.1 and sprite.sprite_frames.has_animation("move"):
+			sprite.play("move")
+			if sync_velocity.x != 0.0:
+				sprite.flip_h = sync_velocity.x < 0.0
+		elif sprite.sprite_frames.has_animation("Idle"):
+			sprite.play("Idle")
+		return
 	if is_downed:
 		if sprite.animation != "downed" and sprite.sprite_frames.has_animation("downed"):
 			sprite.play("downed")

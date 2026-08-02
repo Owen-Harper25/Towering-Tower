@@ -3,6 +3,7 @@ extends Node2D
 @onready var shop_interactable: Area2D = $ShopKeeper/Interactable
 @onready var tree_interactable: Area2D = $SkillTree/Interactable
 @onready var teleporter_interactable: Area2D = $Teleporter/Interactable
+@onready var survival_interactable: Area2D = $SurvivalTeleporter/Interactable
 
 var panel: Panel
 var panel_content: VBoxContainer
@@ -12,6 +13,7 @@ func _ready() -> void:
 	configure_interactable(shop_interactable, "E - TALK WITH TOWER MERCHANT", open_shop)
 	configure_interactable(tree_interactable, "E - RUNE TREE", open_skill_tree)
 	configure_interactable(teleporter_interactable, "E - ENTER THE TOWER", enter_tower)
+	configure_interactable(survival_interactable, "E - KERNEL SURVIVAL", enter_survival)
 	create_overlay()
 
 func configure_interactable(interactable: Area2D, prompt: String, action: Callable) -> void:
@@ -69,7 +71,7 @@ func open_shop() -> void:
 	text.custom_minimum_size = Vector2(0.0, 38.0)
 	panel_content.add_child(text)
 	var balance := Label.new()
-	balance.text = "TOWER COINS: %d" % MetaProgression.currency
+	balance.text = "TOWER COINS: %d   KERNELS: %d" % [MetaProgression.currency, MetaProgression.kernel_currency]
 	balance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	balance.custom_minimum_size = Vector2(0.0, 22.0)
 	panel_content.add_child(balance)
@@ -113,7 +115,7 @@ func refresh_skill_tree() -> void:
 		return
 	var balance := panel_content.get_node_or_null("Balance") as Label
 	if balance:
-		balance.text = "TOWER COINS: %d" % MetaProgression.currency
+		balance.text = "TOWER COINS: %d   KERNELS: %d" % [MetaProgression.currency, MetaProgression.kernel_currency]
 	for child in panel_content.get_children():
 		var button := child as Button
 		if not button or button.name == "":
@@ -136,3 +138,8 @@ func enter_tower() -> void:
 	var main := get_tree().get_first_node_in_group("main")
 	if main and main.has_method("start_combat_from_lobby"):
 		main.start_combat_from_lobby()
+
+func enter_survival() -> void:
+	var main := get_tree().get_first_node_in_group("main")
+	if main and main.has_method("start_survival_from_lobby"):
+		main.start_survival_from_lobby()

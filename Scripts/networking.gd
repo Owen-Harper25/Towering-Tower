@@ -6,7 +6,7 @@ signal lobby_list_received(lobbies: Array)
 
 # 1. Changed to PUBLIC so Steam's requestLobbyList() can see it
 const LOBBY_TYPE := Steam.LOBBY_TYPE_PUBLIC
-const MAX_MEMBERS := 4
+const MAX_MEMBERS := 20
 
 var peer: SteamMultiplayerPeer
 var active_lobby_id := 0
@@ -36,6 +36,15 @@ func request_lobbies() -> void:
 func set_lobby_joinable(joinable: bool) -> void:
 	if active_lobby_id != 0:
 		Steam.setLobbyJoinable(active_lobby_id, joinable)
+
+func leave_lobby() -> void:
+	if active_lobby_id != 0:
+		Steam.leaveLobby(active_lobby_id)
+	active_lobby_id = 0
+	if peer:
+		peer.close()
+		peer = null
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 
 func on_lobby_created(connect_res: int, lobby_id: int) -> void:
 	if connect_res != Steam.RESULT_OK:

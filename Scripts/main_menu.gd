@@ -79,7 +79,7 @@ func configure_reel_button(button: Button, button_index: int) -> void:
 	button.flat = true
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.add_theme_font_override("font", CAPITAL_BOLD_FONT)
-	button.add_theme_font_size_override("font_size", 13)
+	button.add_theme_font_size_override("font_size", 15)
 	button.add_theme_color_override("font_color", Color(0.90, 0.92, 0.94))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_focus_color", Color.WHITE)

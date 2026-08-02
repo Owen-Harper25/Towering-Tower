@@ -63,7 +63,7 @@ func create_boon_debug_button() -> void:
 	debug_button.offset_right = -8.0
 	debug_button.offset_bottom = 38.0
 	debug_button.add_theme_font_override("font", CAPITAL_BOLD_FONT)
-	debug_button.add_theme_font_size_override("font_size", 10)
+	debug_button.add_theme_font_size_override("font_size", 12)
 	debug_button.pressed.connect(open_boon_debug_draft)
 	overlay_root.add_child(debug_button)
 

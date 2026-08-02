@@ -25,19 +25,21 @@ Networking="*uid://c7tyosrvmyyfx"
 MetaProgression="*res://Scripts/meta_progression.gd"
 UIJuice="*res://Scripts/ui_button_juice.gd"
 
-[gui]
-
-theme/default_theme="res://Themes/tower_ui_theme.tres"
-
 [display]
 
 window/size/viewport_width=480
 window/size/viewport_height=270
 window/stretch/mode="viewport"
+window/stretch/aspect="keep"
+window/stretch/scale_mode="integer"
 
 [global_group]
 
 players=""
+
+[gui]
+
+theme/default_theme="res://Themes/tower_ui_theme.tres"
 
 [input]
 

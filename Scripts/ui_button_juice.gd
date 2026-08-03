@@ -219,6 +219,9 @@ func find_first_available_button(node: Node) -> BaseButton:
 func setup_button(button: BaseButton) -> void:
 	if not button or button.has_meta("tower_ui_juiced") or button.has_meta("reel_menu_button") or button.has_meta("custom_card_animation"):
 		return
+	# The press animation scales the Control itself. Trigger immediately so a
+	# smaller transformed hitbox cannot invalidate an otherwise good click.
+	button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	# Keep all text buttons consistent, including controls created at runtime.
 	if button is Button:
 		var text_button := button as Button

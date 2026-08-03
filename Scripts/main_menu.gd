@@ -75,6 +75,7 @@ func build_reel_menu_presentation() -> void:
 
 func configure_reel_button(button: Button, button_index: int) -> void:
 	button.set_meta("reel_menu_button", true)
+	button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	button.set_meta("reel_button_index", button_index)
 	button.text = button.text.strip_edges().to_upper()
 	button.custom_minimum_size = Vector2(210.0, 29.0)

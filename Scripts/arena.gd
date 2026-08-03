@@ -90,6 +90,7 @@ func create_boon_book_button() -> void:
 	boon_book_button = Button.new()
 	boon_book_button.name = "AscensionCodexButton"
 	boon_book_button.text = "CODEX"
+	boon_book_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	boon_book_button.tooltip_text = "VIEW YOUR ASCENSION CARDS"
 	boon_book_button.icon = create_boon_book_texture()
 	boon_book_button.expand_icon = false
@@ -243,6 +244,7 @@ func create_boon_book_overlay(acquired_value: Variant) -> void:
 	var close_button := Button.new()
 	close_button.set_meta("custom_card_animation", true)
 	close_button.text = "CLOSE  [ESC]"
+	close_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	close_button.custom_minimum_size = Vector2(0.0, 25.0)
 	close_button.add_theme_font_override("font", CAPITAL_BOLD_FONT)
 	close_button.add_theme_font_size_override("font_size", 9)
@@ -257,6 +259,7 @@ func create_boon_book_card(parent: GridContainer, boon_id: String, rarity: int, 
 	var paper_color := Color(0.90, 0.84, 0.68).lerp(rarity_color, 0.08)
 	var card := Button.new()
 	card.set_meta("custom_card_animation", true)
+	card.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	card.custom_minimum_size = Vector2(98.0, 126.0)
 	card.focus_mode = Control.FOCUS_NONE
 	card.disabled = true
@@ -562,6 +565,7 @@ func create_boon_tarot_card(parent: HBoxContainer, boon_id: String, rarity: int,
 	var ink_color := Color(0.12, 0.055, 0.16)
 	var card := Button.new()
 	card.set_meta("custom_card_animation", true)
+	card.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	card.custom_minimum_size = Vector2(126.0, 174.0)
 	card.focus_mode = Control.FOCUS_ALL
 	card.disabled = true
@@ -690,15 +694,17 @@ func flip_dealt_card(card: Button, card_back: PanelContainer, rarity_color: Colo
 	flip_tween.tween_callback(card_back.hide)
 	flip_tween.tween_callback(func(): spawn_card_reveal_sparkles(card, rarity_color))
 	flip_tween.tween_property(card, "scale:x", 1.0, 0.17).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	flip_tween.tween_callback(func(): enable_revealed_card(card))
 	flip_tween.tween_property(card, "scale", Vector2(1.04, 1.04), 0.07)
 	flip_tween.tween_property(card, "scale", Vector2.ONE, 0.09)
-	flip_tween.tween_callback(func():
-		if is_instance_valid(card):
-			card.disabled = false
-			card.z_index = 0
-			if UIJuice.keyboard_navigation_active and not get_viewport().gui_get_focus_owner():
-				card.grab_focus()
-	)
+
+func enable_revealed_card(card: Button) -> void:
+	if not is_instance_valid(card):
+		return
+	card.disabled = false
+	card.z_index = 0
+	if UIJuice.keyboard_navigation_active and not get_viewport().gui_get_focus_owner():
+		card.grab_focus()
 
 func spawn_card_reveal_sparkles(card: Control, rarity_color: Color) -> void:
 	for sparkle_index in range(10):

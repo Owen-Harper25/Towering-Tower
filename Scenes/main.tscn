@@ -235,7 +235,7 @@ one_shot = true
 
 [node name="Music" type="Node2D" parent="." unique_id=506695460]
 
-[node name="GothicMenuTheme" type="AudioStreamPlayer" parent="Music"]
+[node name="GothicMenuTheme" type="AudioStreamPlayer" parent="Music" unique_id=1095156753]
 stream = ExtResource("9_gothic")
 bus = &"Music"
 

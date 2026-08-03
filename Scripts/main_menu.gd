@@ -138,22 +138,39 @@ func create_reel_diamond(position_value: Vector2) -> Polygon2D:
 	diamond.modulate.a = 0.0
 	return diamond
 
-func play_reel_menu_entrance() -> void:
+func play_reel_menu_entrance(from_screen_left: bool = false, play_arrival_sfx: bool = false) -> void:
 	# Let the VBox finish reflowing after runtime-only buttons change visibility.
 	# Reusing the boot-menu positions here caused the in-game menu to overlap.
 	await get_tree().process_frame
+	var visible_index := 0
 	for button_index in range(reel_buttons.size()):
 		var button := reel_buttons[button_index]
 		if not is_instance_valid(button) or not button.visible:
 			continue
 		button.set_meta("reel_base_position", button.position)
-		button.position.x += 22.0
-		button.scale = Vector2(0.84, 0.84)
+		var target_x := button.position.x
+		if from_screen_left:
+			# Convert the distance to the viewport edge into the button's local
+			# coordinates so it begins completely off-screen at any resolution.
+			button.position.x = target_x - button.global_position.x - button.size.x - 28.0
+		else:
+			button.position.x += 22.0
+		button.scale = Vector2(0.78, 0.78) if from_screen_left else Vector2(0.84, 0.84)
 		button.modulate.a = 0.0
+		var delay := float(visible_index) * (0.125 if from_screen_left else 0.055)
+		var duration := 0.42 if from_screen_left else 0.30
 		var tween := button.create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tween.tween_property(button, "position:x", float((button.get_meta("reel_base_position") as Vector2).x), 0.30).set_delay(float(button_index) * 0.055)
-		tween.tween_property(button, "scale", Vector2.ONE, 0.30).set_delay(float(button_index) * 0.055)
-		tween.tween_property(button, "modulate:a", 1.0, 0.18).set_delay(float(button_index) * 0.055)
+		tween.tween_property(button, "position:x", target_x, duration).set_delay(delay)
+		tween.tween_property(button, "scale", Vector2.ONE, duration).set_delay(delay)
+		tween.tween_property(button, "modulate:a", 1.0, 0.18).set_delay(delay)
+		if play_arrival_sfx:
+			play_reel_arrival_sfx(delay + duration * 0.72)
+		visible_index += 1
+
+func play_reel_arrival_sfx(delay: float) -> void:
+	await get_tree().create_timer(delay).timeout
+	if is_visible_in_tree():
+		UIJuice.play_navigation_sound()
 
 func highlight_reel_button(button: Button) -> void:
 	if not is_instance_valid(button) or button.disabled:

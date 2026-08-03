@@ -3,6 +3,7 @@ extends Node2D
 const PLAYER = preload("uid://dflfyebeka06d")
 const IRIS_TRANSITION_SHADER := preload("res://Shaders/iris_transition.gdshader")
 const GAME_GRADE_SHADER := preload("res://Shaders/game_grade.gdshader")
+const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 
 # --- UI References (Matching Exact Scene Tree) ---
 @onready var menu_canvas_layer: CanvasLayer = $"CanvasLayer/Main Menu/CanvasLayer"
@@ -56,7 +57,8 @@ func _ready() -> void:
 	multiplayer.peer_connected.connect(spawn_player)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 
-	menu_canvas_layer.show()
+	# The launch card owns the screen until it hands off to the menu.
+	menu_canvas_layer.hide()
 	create_scene_transition_overlay()
 	create_game_post_process()
 	
@@ -72,6 +74,101 @@ func _ready() -> void:
 	menu_music.bus = &"Music"
 	break_timer.timeout.connect(play_next_random_song)
 	play_menu_music(false)
+	play_studio_titlecard()
+
+func play_studio_titlecard() -> void:
+	var splash_layer := CanvasLayer.new()
+	splash_layer.name = "CircularStudiosTitlecard"
+	splash_layer.layer = 300
+	splash_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	var splash_root := Control.new()
+	splash_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	splash_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	splash_layer.add_child(splash_root)
+
+	var backdrop := ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color("070a0f")
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	splash_root.add_child(backdrop)
+
+	var presentation := VBoxContainer.new()
+	presentation.set_anchors_preset(Control.PRESET_CENTER)
+	presentation.offset_left = -150.0
+	presentation.offset_top = -60.0
+	presentation.offset_right = 150.0
+	presentation.offset_bottom = 60.0
+	presentation.alignment = BoxContainer.ALIGNMENT_CENTER
+	presentation.add_theme_constant_override("separation", 5)
+	presentation.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	presentation.modulate.a = 0.0
+	splash_root.add_child(presentation)
+
+	var emblem := TextureRect.new()
+	emblem.texture = create_circular_studios_emblem()
+	emblem.custom_minimum_size = Vector2(48.0, 48.0)
+	emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	presentation.add_child(emblem)
+
+	var studio_name := Label.new()
+	studio_name.text = "CIRCULAR STUDIOS"
+	studio_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	studio_name.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	studio_name.add_theme_font_size_override("font_size", 18)
+	studio_name.add_theme_color_override("font_color", Color("e8f5ff"))
+	studio_name.add_theme_color_override("font_shadow_color", Color(0.20, 0.75, 0.92, 0.36))
+	studio_name.add_theme_constant_override("shadow_offset_x", 1)
+	studio_name.add_theme_constant_override("shadow_offset_y", 2)
+	studio_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	presentation.add_child(studio_name)
+
+	var presents := Label.new()
+	presents.text = "PRESENTS"
+	presents.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	presents.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	presents.add_theme_font_size_override("font_size", 7)
+	presents.modulate = Color(0.55, 0.68, 0.76, 0.78)
+	presents.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	presentation.add_child(presents)
+
+	add_child(splash_layer)
+	await get_tree().process_frame
+	presentation.pivot_offset = presentation.size * 0.5
+	presentation.scale = Vector2.ONE * 0.92
+	var reveal := create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	reveal.tween_property(presentation, "modulate:a", 1.0, 0.42)
+	reveal.tween_property(presentation, "scale", Vector2.ONE, 0.62)
+	await reveal.finished
+	await get_tree().create_timer(1.55).timeout
+	# Reveal the prepared menu underneath the still-opaque title card so the
+	# project clear color can never appear between the two presentations.
+	menu_canvas_layer.show()
+	if main_menu.has_method("play_reel_menu_entrance"):
+		main_menu.call("play_reel_menu_entrance", true, true)
+	var dismiss := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	dismiss.tween_property(splash_root, "modulate:a", 0.0, 0.42)
+	dismiss.tween_property(presentation, "scale", Vector2.ONE * 1.035, 0.42)
+	await dismiss.finished
+	if is_instance_valid(splash_layer):
+		splash_layer.queue_free()
+
+func create_circular_studios_emblem() -> ImageTexture:
+	var image := Image.create_empty(32, 32, false, Image.FORMAT_RGBA8)
+	image.fill(Color.TRANSPARENT)
+	var center := Vector2(15.5, 15.5)
+	for y in range(32):
+		for x in range(32):
+			var distance := Vector2(float(x), float(y)).distance_to(center)
+			if distance >= 10.5 and distance <= 13.6:
+				image.set_pixel(x, y, Color("dff7ff"))
+			elif distance >= 6.7 and distance <= 8.2:
+				image.set_pixel(x, y, Color("4fc3dc"))
+			elif distance <= 2.2:
+				image.set_pixel(x, y, Color("f0d17d"))
+	return ImageTexture.create_from_image(image)
 
 # --- STEAM LOBBY BROWSER SYSTEM ---
 

@@ -1,7 +1,6 @@
 extends Node2D
 
 const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
-const ARENA_SCRIPT := preload("res://Scripts/arena.gd")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 
 @onready var shop_interactable: Area2D = $ShopKeeper/Interactable
@@ -14,7 +13,6 @@ var panel: Panel
 var panel_content: VBoxContainer
 var overlay_root: Control
 var requested_panel_size := Vector2(300.0, 224.0)
-var boon_debug_renderer: Node2D
 
 func _ready() -> void:
 	add_to_group("safe_lobby")
@@ -65,32 +63,6 @@ func create_overlay() -> void:
 	add_child(layer)
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	set_panel_size(requested_panel_size)
-	create_boon_debug_button()
-
-func create_boon_debug_button() -> void:
-	var debug_button := Button.new()
-	debug_button.text = "DEBUG: BOON CARDS"
-	debug_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	debug_button.offset_left = -170.0
-	debug_button.offset_top = 8.0
-	debug_button.offset_right = -8.0
-	debug_button.offset_bottom = 38.0
-	debug_button.add_theme_font_override("font", CAPITAL_BOLD_FONT)
-	debug_button.add_theme_font_size_override("font_size", 12)
-	debug_button.pressed.connect(open_boon_debug_draft)
-	overlay_root.add_child(debug_button)
-
-func open_boon_debug_draft() -> void:
-	if not boon_debug_renderer or not is_instance_valid(boon_debug_renderer):
-		boon_debug_renderer = Node2D.new()
-		boon_debug_renderer.name = "BoonDebugRenderer"
-		boon_debug_renderer.set_meta("boon_debug_ui_only", true)
-		boon_debug_renderer.set_script(ARENA_SCRIPT)
-		var dummy_enemies := Node2D.new()
-		dummy_enemies.name = "Enemies"
-		boon_debug_renderer.add_child(dummy_enemies)
-		add_child(boon_debug_renderer)
-	boon_debug_renderer.call("show_debug_boon_draft")
 
 func clear_panel() -> void:
 	for child in panel_content.get_children():

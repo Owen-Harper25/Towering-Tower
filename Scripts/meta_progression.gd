@@ -4,7 +4,9 @@ const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
 
 signal changed
 
-const SAVE_PATH := "user://meta_progression.cfg"
+const CLOUD_SAVE_DIRECTORY := "user://steam_cloud"
+const SAVE_PATH := CLOUD_SAVE_DIRECTORY + "/meta_progression.cfg"
+const LEGACY_SAVE_PATH := "user://meta_progression.cfg"
 
 var currency := 0
 var kernel_currency := 0
@@ -25,7 +27,14 @@ const UPGRADE_COSTS := {
 const MAX_LEVEL := 5
 
 func _ready() -> void:
+	ensure_cloud_save_directory()
 	load_progression()
+
+func ensure_cloud_save_directory() -> void:
+	var absolute_path := ProjectSettings.globalize_path(CLOUD_SAVE_DIRECTORY)
+	var error := DirAccess.make_dir_recursive_absolute(absolute_path)
+	if error != OK and error != ERR_ALREADY_EXISTS:
+		push_error("Could not create Steam Cloud save directory: %s" % error_string(error))
 
 func get_level(upgrade_id: String) -> int:
 	return int(upgrades.get(upgrade_id, 0))
@@ -100,6 +109,7 @@ func clear_equipped_cosmetics() -> void:
 	changed.emit()
 
 func save_progression() -> void:
+	ensure_cloud_save_directory()
 	var config := ConfigFile.new()
 	config.set_value("progression", "currency", currency)
 	config.set_value("progression", "kernel_currency", kernel_currency)
@@ -108,11 +118,18 @@ func save_progression() -> void:
 	config.set_value("cosmetics", "equipped_back", equipped_back_cosmetic)
 	for upgrade_id in upgrades:
 		config.set_value("upgrades", upgrade_id, get_level(upgrade_id))
-	config.save(SAVE_PATH)
+	var error := config.save(SAVE_PATH)
+	if error != OK:
+		push_error("Could not save metaprogression: %s" % error_string(error))
 
 func load_progression() -> void:
 	var config := ConfigFile.new()
-	if config.load(SAVE_PATH) != OK:
+	var load_path := SAVE_PATH
+	var migrated_legacy_save := false
+	if not FileAccess.file_exists(SAVE_PATH) and FileAccess.file_exists(LEGACY_SAVE_PATH):
+		load_path = LEGACY_SAVE_PATH
+		migrated_legacy_save = true
+	if config.load(load_path) != OK:
 		return
 	currency = int(config.get_value("progression", "currency", 0))
 	kernel_currency = int(config.get_value("progression", "kernel_currency", 0))
@@ -131,3 +148,7 @@ func load_progression() -> void:
 		equipped_back_cosmetic = ""
 	for upgrade_id in upgrades:
 		upgrades[upgrade_id] = int(config.get_value("upgrades", upgrade_id, 0))
+	if migrated_legacy_save:
+		# Keep the old file as a recovery backup and write the active copy into the
+		# dedicated directory configured for Steam Auto-Cloud.
+		save_progression()

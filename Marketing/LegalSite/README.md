@@ -7,8 +7,8 @@ Static, dependency-free pages for Towering Tower:
 
 ## Required before publishing
 
-1. Own or configure the domain you plan to use. The draft assumes `circularstudios.games`.
-2. Create and monitor `privacy@circularstudios.games` and `support@circularstudios.games`, or replace both addresses in the HTML with real monitored addresses.
+1. Confirm the final public URL supplied by the hosting provider or connect a custom domain later.
+2. Monitor `circulargamestudios@outlook.com`; it is the published privacy, support, accessibility, and safety contact.
 3. Review `DATA_AUDIT.md`, especially the Steamworks portal settings that cannot be verified from this repository.
 4. Confirm the effective date and have the privacy wording reviewed for the countries where the game will be offered. This draft is not a substitute for legal advice.
 5. Deploy the contents of this directory as the site root and test every link over HTTPS.
@@ -17,12 +17,14 @@ Static, dependency-free pages for Towering Tower:
 
 The site has no build step and can be deployed to any static host. A custom domain with Cloudflare Pages, GitHub Pages, or another reputable provider is sufficient.
 
-For clean Steam URLs, publish it so these addresses resolve directly:
+The included GitHub Pages workflow publishes this directory as the site root. Without a custom domain, the expected project-site addresses are:
 
 ```text
-https://circularstudios.games/privacy/
-https://circularstudios.games/health/
+https://owen-harper25.github.io/Towering-Tower/privacy/
+https://owen-harper25.github.io/Towering-Tower/health/
 ```
+
+In the GitHub repository, open **Settings → Pages** and set **Source** to **GitHub Actions** once. The workflow at `.github/workflows/deploy-legal-site.yml` handles later deployments from `main` automatically.
 
 The site intentionally includes no JavaScript, analytics, forms, remote fonts, or cookies. If those are added later, update both the privacy policy and `DATA_AUDIT.md` before deployment.
 

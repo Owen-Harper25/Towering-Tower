@@ -14,8 +14,9 @@ This is the implementation record supporting the public privacy-policy draft. Re
 - Player Steam persona names are synchronized to other participants.
 - Gameplay state is exchanged through Godot RPCs, including movement, combat, health/revive status, teams, cosmetics, boon choices, enemies, and scene changes.
 - Local settings are stored at `user://settings.cfg`.
-- Metaprogression, currency, upgrades, and cosmetics are stored at `user://meta_progression.cfg`.
-- An older/local resource save exists at `user://CrowManSaveFile.tres`.
+- Metaprogression, currency, upgrades, and cosmetics are stored at `user://steam_cloud/meta_progression.cfg`, with one-time migration from `user://meta_progression.cfg`.
+- The older resource save path is prepared at `user://steam_cloud/CrowManSaveFile.tres`, with one-time migration from `user://CrowManSaveFile.tres` if that system is re-enabled.
+- Machine-specific settings remain at `user://settings.cfg` and should not be synchronized through Steam Cloud.
 - No analytics SDK, advertising SDK, HTTP request client, voice capture, text-chat storage, developer account system, or automated crash-report upload was found in project scripts.
 - Export privacy declarations currently mark crash data and other reviewed platform categories as not collected.
 
@@ -35,7 +36,7 @@ This is the implementation record supporting the public privacy-policy draft. Re
 
 The following must be checked manually in Steamworks before publication:
 
-- Whether Steam Auto-Cloud is enabled and which files it synchronizes.
+- Whether Steam Auto-Cloud is enabled and configured to synchronize only the `user://steam_cloud/` directory.
 - Steamworks stats and achievements configured only in the partner portal.
 - Any Steamworks crash-dump or error-reporting features configured outside the game code.
 - Store support contact information and external service links.

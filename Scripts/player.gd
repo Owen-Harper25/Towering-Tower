@@ -74,8 +74,6 @@ signal player_revived()
 @onready var character_name: Label = $CharacterName
 @onready var weapon_pivot: Node2D = $WeaponPivot
 @onready var muzzle: Node2D = $WeaponPivot/Muzzle
-@onready var gun_body: Polygon2D = $WeaponPivot/GunBody
-@onready var gun_accent: Polygon2D = $WeaponPivot/GunAccent
 @onready var cosmetic_head: Sprite2D = $CosmeticHead
 @onready var cosmetic_back: Sprite2D = $CosmeticBack
 
@@ -629,8 +627,13 @@ func update_weapon_aim() -> void:
 		var target_angle = weapon_direction.angle()
 		weapon_pivot.rotation = target_angle
 		var vertical_flip := -1.0 if weapon_direction.x < 0.0 else 1.0
-		gun_body.scale.y = vertical_flip
-		gun_accent.scale.y = vertical_flip
+		# Flip every polygon that makes up the gun, including accents added in the
+		# editor later. Keeping the pivot's scale free prevents this from fighting
+		# the draw/holster tween and recoil animation.
+		for child in weapon_pivot.get_children():
+			var gun_polygon := child as Polygon2D
+			if gun_polygon:
+				gun_polygon.scale.y = absf(gun_polygon.scale.y) * vertical_flip
 
 func is_wave_active() -> bool:
 	if get_tree().get_first_node_in_group("safe_lobby"):

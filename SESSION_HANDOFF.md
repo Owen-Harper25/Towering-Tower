@@ -44,9 +44,9 @@ Updated: August 2, 2026
   - `Marketing/LegalSite/assets/site.css`
 - Deployment/setup instructions: `Marketing/LegalSite/README.md`.
 - Code-backed privacy findings: `Marketing/LegalSite/DATA_AUDIT.md`.
-- Intended public URLs:
-  - `https://circularstudios.games/privacy/`
-  - `https://circularstudios.games/health/`
+- Intended GitHub Pages URLs until a custom domain is acquired:
+  - `https://owen-harper25.github.io/Towering-Tower/privacy/`
+  - `https://owen-harper25.github.io/Towering-Tower/health/`
 - The site deliberately uses no JavaScript, remote fonts, forms, analytics, advertising, or cookies.
 
 ## Privacy audit findings
@@ -60,19 +60,16 @@ Updated: August 2, 2026
 
 ## Required decisions before publishing the legal site
 
-1. Confirm ownership of `circularstudios.games`, or replace the assumed domain throughout the site.
-2. Create and monitor:
-   - `privacy@circularstudios.games`
-   - `support@circularstudios.games`
-   Alternatively, replace both addresses with real monitored accounts.
+1. Enable GitHub Pages with **GitHub Actions** as its source, or configure another static host.
+2. Monitor `circulargamestudios@outlook.com`, which is now used for privacy, support, accessibility, and safety contact.
 3. Choose a static host. Cloudflare Pages or GitHub Pages with a custom domain are suitable.
 4. Review the policy for the final release territories. The current copy is an implementation-based draft, not formal legal advice.
 5. After HTTPS deployment, enter the privacy and health URLs in Steamworks and test them in a logged-out browser.
 
 ## Recommended next concrete steps
 
-1. Ask the user whether they own `circularstudios.games` and whether the two email inboxes exist.
-2. If hosting is requested, configure the selected static host and custom domain; do not publish under an assumed domain without confirmation.
+1. Confirm the GitHub Pages deployment succeeds and copy its final HTTPS URLs into Steamworks.
+2. If a custom domain is acquired later, configure it on the selected static host and update the published URLs.
 3. Inspect Steamworks portal settings with the user for Auto-Cloud and crash-reporting configuration, then adjust the privacy copy if necessary.
 4. Add reduced-screen-shake and reduced-flash gameplay settings. The health page accurately states that these dedicated accessibility controls do not yet exist.
 5. Run the full Godot project and multiplayer smoke test after launch/menu changes. Godot was not available on the command-line PATH in this session, so no headless project validation was run.

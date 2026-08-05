@@ -16,9 +16,6 @@ var keyboard_navigation_active := false
 var controller_input_active := false
 var cursor_sprite: Sprite2D
 var cursor_layer: CanvasLayer
-var cursor_trail_root: Node2D
-var cursor_trail_timer := 0.0
-var last_cursor_position := Vector2.ZERO
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -36,8 +33,6 @@ func create_scaled_cursor() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
 	cursor_layer = CanvasLayer.new()
 	cursor_layer.layer = 200
-	cursor_trail_root = Node2D.new()
-	cursor_layer.add_child(cursor_trail_root)
 	cursor_sprite = Sprite2D.new()
 	cursor_sprite.texture = CURSOR_TEXTURE
 	cursor_sprite.centered = false
@@ -46,38 +41,11 @@ func create_scaled_cursor() -> void:
 	cursor_layer.add_child(cursor_sprite)
 	add_child(cursor_layer)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if cursor_sprite:
 		var hotspot := CURSOR_TEXTURE.get_size() * CURSOR_SCALE * 0.5
 		var cursor_position := get_viewport().get_mouse_position() - hotspot
 		cursor_sprite.position = cursor_position
-		cursor_trail_timer -= delta
-		if is_reel_menu_visible() and cursor_trail_timer <= 0.0 and cursor_position.distance_to(last_cursor_position) > 2.0:
-			cursor_trail_timer = 0.028
-			spawn_cursor_trail(cursor_position + hotspot * 0.5)
-		last_cursor_position = cursor_position
-
-func is_reel_menu_visible() -> bool:
-	var menu := get_tree().get_first_node_in_group("reel_menu_active") as CanvasItem
-	return menu != null and menu.is_visible_in_tree()
-
-func spawn_cursor_trail(position_value: Vector2) -> void:
-	if not cursor_trail_root:
-		return
-	var diamond := Polygon2D.new()
-	var radius := randf_range(1.0, 2.1)
-	diamond.polygon = PackedVector2Array([
-		Vector2(0.0, -radius), Vector2(radius, 0.0),
-		Vector2(0.0, radius), Vector2(-radius, 0.0),
-	])
-	diamond.position = position_value
-	diamond.color = Color.from_hsv(fmod(Time.get_ticks_msec() * 0.00012, 1.0), 0.42, 1.0, 0.72)
-	cursor_trail_root.add_child(diamond)
-	var tween := diamond.create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(diamond, "position:y", diamond.position.y + 7.0, 0.24)
-	tween.tween_property(diamond, "scale", Vector2.ZERO, 0.24)
-	tween.tween_property(diamond, "modulate:a", 0.0, 0.24)
-	tween.finished.connect(diamond.queue_free)
 
 func create_audio_players() -> void:
 	navigation_player = AudioStreamPlayer.new()
@@ -125,8 +93,6 @@ func _input(event: InputEvent) -> void:
 func set_cursor_visible(visible: bool) -> void:
 	if cursor_sprite:
 		cursor_sprite.visible = visible
-	if cursor_trail_root:
-		cursor_trail_root.visible = visible
 
 func configure_controller_actions() -> void:
 	add_controller_axis(&"Up", JOY_AXIS_LEFT_Y, -1.0)

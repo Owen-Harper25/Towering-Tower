@@ -2,6 +2,7 @@ extends Node2D
 
 const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
+const TREE_ENVIRONMENT := preload("res://Scripts/alien_tree_environment.gd")
 
 @onready var shop_interactable: Area2D = $ShopKeeper/Interactable
 @onready var tree_interactable: Area2D = $SkillTree/Interactable
@@ -16,12 +17,43 @@ var requested_panel_size := Vector2(300.0, 224.0)
 
 func _ready() -> void:
 	add_to_group("safe_lobby")
-	configure_interactable(shop_interactable, "E - TALK WITH TOWER MERCHANT", open_shop)
-	configure_interactable(tree_interactable, "E - RUNE TREE", open_skill_tree)
-	configure_interactable(teleporter_interactable, "E - ENTER THE TOWER", enter_tower)
-	configure_interactable(survival_interactable, "E - KERNEL SURVIVAL", enter_survival)
+	configure_interactable(shop_interactable, "E - TALK TO THE QUARTERMASTER", open_shop)
+	configure_interactable(tree_interactable, "E - REVIEW AGENCY RESEARCH", open_skill_tree)
+	configure_interactable(teleporter_interactable, "E - BEGIN TREE EXPEDITION", enter_tower)
+	configure_interactable(survival_interactable, "E - RETURN TO THE ROOTS", enter_survival)
 	configure_interactable(mirror_interactable, "E - CHANGE OUTFIT", open_wardrobe)
 	create_overlay()
+	create_headquarters_environment()
+	create_agency_briefing_ui()
+
+func create_headquarters_environment() -> void:
+	for legacy_name in ["Ground", "Parallax2D2", "Parallax2D", "Parallax2D3"]:
+		var legacy_visual := get_node_or_null(legacy_name) as CanvasItem
+		if legacy_visual:
+			legacy_visual.hide()
+	var headquarters := TREE_ENVIRONMENT.new() as Node2D
+	add_child(headquarters)
+	headquarters.call("configure", TREE_ENVIRONMENT.Context.HEADQUARTERS, {
+		"dark": Color("090f18"), "color": Color("315d72"), "accent": Color("9fe7f5")
+	}, 1)
+
+func create_agency_briefing_ui() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 4
+	var plaque := ColorRect.new()
+	plaque.color = Color(0.025, 0.045, 0.07, 0.88)
+	plaque.position = Vector2(8.0, 8.0)
+	plaque.size = Vector2(218.0, 38.0)
+	var title := Label.new()
+	title.text = "AGENCY FOR EXOTIC BIOLOGY\nTREE EXPEDITION HEADQUARTERS"
+	title.position = Vector2(7.0, 5.0)
+	title.size = Vector2(204.0, 28.0)
+	title.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	title.add_theme_font_size_override("font_size", 7)
+	title.modulate = Color("bcecff")
+	plaque.add_child(title)
+	layer.add_child(plaque)
+	add_child(layer)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if panel and panel.visible and event.is_action_pressed("ui_cancel"):
@@ -128,9 +160,9 @@ func set_local_player_ui_locked(locked: bool) -> void:
 func open_shop() -> void:
 	clear_panel()
 	set_panel_size(Vector2(420.0, 340.0))
-	add_title("THE TOWER MERCHANT")
+	add_title("AGENCY QUARTERMASTER")
 	var text := Label.new()
-	text.text = "Permanent outfits. Purchased with Tower Coins."
+	text.text = "FIELD EQUIPMENT AND COSMETICS. PURCHASED WITH RECOVERED GOLD."
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.custom_minimum_size = Vector2(0.0, 38.0)
 	panel_content.add_child(text)

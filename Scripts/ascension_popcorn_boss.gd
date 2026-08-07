@@ -106,7 +106,7 @@ func _physics_process(delta: float) -> void:
 
 func handle_idle(delta: float) -> void:
 	var to_target := target_player.global_position - global_position
-	var desired_distance := 82.0 if boss_kind == 0 else 128.0
+	var desired_distance := 76.0 if boss_kind == 0 else 104.0 if boss_kind == 4 else 128.0
 	velocity = to_target.normalized() * 58.0 * aggression if to_target.length() > desired_distance else Vector2.ZERO
 	move_and_slide()
 	clamp_to_arena()
@@ -134,6 +134,8 @@ func refill_signature_attack_bag() -> void:
 		[AttackType.FIRE_LANES, AttackType.FIRE_LANES, AttackType.WALL, AttackType.FAN, AttackType.SLIDE],
 		[AttackType.MAGNET_SPREAD, AttackType.MAGNET_SPREAD, AttackType.CROSS, AttackType.SPIRAL, AttackType.GATLING],
 		[AttackType.TRI_DNA, AttackType.TRI_DNA, AttackType.DNA, AttackType.RING, AttackType.SPIRAL],
+		[AttackType.SLIDE, AttackType.CROSS, AttackType.FIRE_LANES, AttackType.GATLING, AttackType.RING],
+		[AttackType.TRI_DNA, AttackType.RING, AttackType.FAN, AttackType.CROSS, AttackType.SPIRAL, AttackType.GATLING],
 	]
 	var deck: Array = attack_decks[clampi(boss_kind, 0, attack_decks.size() - 1)].duplicate()
 	deck.shuffle()

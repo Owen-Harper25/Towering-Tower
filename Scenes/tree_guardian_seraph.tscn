@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/tree_guardian_visual.gd" id="1"]
+
+[node name="NestSeraph" type="Node2D"]
+script = ExtResource("1")
+guardian_kind = 5
+guardian_name = "SERAPH OF THE LAST NEST"
+base_color = Color(0.9098, 0.8118, 0.5216, 1)
+accent_color = Color(1, 0.9569, 0.7608, 1)

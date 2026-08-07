@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/tree_guardian_visual.gd" id="1"]
+
+[node name="ChoirOfTeeth" type="Node2D"]
+script = ExtResource("1")
+guardian_kind = 2
+guardian_name = "CHOIR OF TEETH"
+base_color = Color(0.7412, 0.298, 0.3804, 1)
+accent_color = Color(1, 0.6039, 0.5137, 1)

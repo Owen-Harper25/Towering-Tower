@@ -296,6 +296,9 @@ func player_fully_died_rpc() -> void:
 	sprite.play("death")
 	player_died.emit()
 	if is_multiplayer_authority():
+		var expedition := get_tree().get_first_node_in_group("tower_arena")
+		if expedition and expedition.has_method("return_soul_to_tree"):
+			expedition.call("return_soul_to_tree")
 		var main := get_tree().get_first_node_in_group("main")
 		if main and main.has_method("return_party_to_lobby"):
 			main.return_party_to_lobby()

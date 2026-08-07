@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/tree_guardian_visual.gd" id="1"]
+
+[node name="PrismWidow" type="Node2D"]
+script = ExtResource("1")
+guardian_kind = 3
+guardian_name = "THE PRISM WIDOW"
+base_color = Color(0.3216, 0.4196, 0.8314, 1)
+accent_color = Color(0.4549, 0.8941, 0.9098, 1)

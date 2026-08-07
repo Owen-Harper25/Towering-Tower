@@ -12,6 +12,7 @@ const LOOT_PICKUP := preload("res://Scenes/loot_pickup.tscn")
 @export var attack_cooldown: float = 2.2    # Longer interval between shots
 @export var projectile_speed: float = 220.0 # Must match the bullet scene's speed
 @export_range(0.0, 1.0) var coin_drop_chance := 1.0
+@export_range(0.0, 1.0) var characteristic_drop_chance := 0.78
 @export_range(0.0, 1.0) var health_drop_chance := 0.25
 @export var bullet_scene: PackedScene
 @export var hit_sound: AudioStream
@@ -199,16 +200,20 @@ func take_damage(amount: int) -> void:
 
 func drop_loot() -> void:
 	if randf() <= coin_drop_chance:
-		rpc("spawn_loot_rpc", get_safe_loot_position(global_position), 0)
+		rpc("spawn_loot_rpc", get_safe_loot_position(global_position), 0, "%s_Coin" % name)
 	if randf() <= health_drop_chance:
-		rpc("spawn_loot_rpc", get_safe_loot_position(global_position + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0))), 1)
+		rpc("spawn_loot_rpc", get_safe_loot_position(global_position + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0))), 1, "%s_Health" % name)
+	if randf() <= characteristic_drop_chance:
+		rpc("spawn_loot_rpc", get_safe_loot_position(global_position + Vector2(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))), 2, "%s_Characteristic" % name)
 
 func drop_loot_at_arena_edge() -> void:
 	var drop_position := get_safe_loot_position(global_position)
 	if randf() <= coin_drop_chance:
-		rpc("spawn_loot_rpc", drop_position, 0)
+		rpc("spawn_loot_rpc", drop_position, 0, "%s_Coin" % name)
 	if randf() <= health_drop_chance:
-		rpc("spawn_loot_rpc", drop_position + Vector2(randf_range(-5.0, 5.0), randf_range(-5.0, 5.0)), 1)
+		rpc("spawn_loot_rpc", drop_position + Vector2(randf_range(-5.0, 5.0), randf_range(-5.0, 5.0)), 1, "%s_Health" % name)
+	if randf() <= characteristic_drop_chance:
+		rpc("spawn_loot_rpc", drop_position, 2, "%s_Characteristic" % name)
 
 func get_safe_loot_position(requested_position: Vector2) -> Vector2:
 	var bounds := get_arena_bounds()
@@ -223,11 +228,14 @@ func get_safe_loot_position(requested_position: Vector2) -> Vector2:
 	return center + offset
 
 @rpc("authority", "call_local", "reliable")
-func spawn_loot_rpc(drop_position: Vector2, loot_type: int) -> void:
-	call_deferred("spawn_loot_deferred", drop_position, loot_type)
+func spawn_loot_rpc(drop_position: Vector2, loot_type: int, loot_id: String) -> void:
+	call_deferred("spawn_loot_deferred", drop_position, loot_type, loot_id)
 
-func spawn_loot_deferred(drop_position: Vector2, loot_type: int) -> void:
+func spawn_loot_deferred(drop_position: Vector2, loot_type: int, loot_id: String) -> void:
+	if get_parent().get_node_or_null(loot_id):
+		return
 	var loot := LOOT_PICKUP.instantiate() as Node2D
+	loot.name = loot_id
 	loot.global_position = drop_position
 	loot.call("configure", loot_type)
 	get_parent().add_child(loot)

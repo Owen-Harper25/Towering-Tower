@@ -5,6 +5,8 @@ const SNIPER_SCENE := preload("res://Scenes/sniper_bullet_enemy.tscn")
 const TURRET_SCENE := preload("res://Scenes/turret_enemy.tscn")
 const ASCENSION_BOSS_SCENE := preload("res://Scenes/ascension_popcorn_boss.tscn")
 const BOONS := preload("res://Scripts/boon_catalog.gd")
+const EXPEDITION := preload("res://Scripts/expedition_catalog.gd")
+const TREE_ENVIRONMENT := preload("res://Scripts/alien_tree_environment.gd")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 const CARD_FOIL_SHADER := preload("res://Shaders/card_foil.gdshader")
 const CARD_DEAL_SFX := preload("res://SFX/oxidvideos-placing-playing-card-522514.mp3")
@@ -14,10 +16,12 @@ const CARD_SELECT_SFX := preload("res://SFX/confrimation.mp3")
 const CODEX_OPEN_SFX := preload("res://SFX/freesound_community-menu-selection-102220.mp3")
 const CODEX_CLOSE_SFX := preload("res://SFX/close.mp3")
 const BOSS_PRESENTATION_PATHS: Array[String] = [
-	"res://Scenes/popcorn_boss_butterstorm.tscn",
-	"res://Scenes/popcorn_boss_flame.tscn",
-	"res://Scenes/popcorn_boss_magnetron.tscn",
-	"res://Scenes/popcorn_boss_helix.tscn",
+	"res://Scenes/tree_guardian_sap.tscn",
+	"res://Scenes/tree_guardian_marrow.tscn",
+	"res://Scenes/tree_guardian_choir.tscn",
+	"res://Scenes/tree_guardian_prism.tscn",
+	"res://Scenes/tree_guardian_apostle.tscn",
+	"res://Scenes/tree_guardian_seraph.tscn",
 ]
 
 @export var arena_bounds: Rect2 = Rect2(28, 30, 424, 220)
@@ -44,6 +48,13 @@ var boon_book_open := false
 var boon_book_button: Button
 var starting_boon_pending := false
 var starting_boon_draft := false
+var characteristic_level := 1
+var characteristic_xp := 0
+var pending_characteristic_draws := 0
+var campaign_completed := false
+var characteristic_label: Label
+var characteristic_bar: ProgressBar
+var environment: Node2D
 
 func _ready() -> void:
 	if bool(get_meta("boon_debug_ui_only", false)):
@@ -52,10 +63,10 @@ func _ready() -> void:
 	add_to_group("tower_arena")
 	create_wave_banner()
 	create_boon_book_button()
+	create_characteristic_hud()
+	create_expedition_environment()
 	if multiplayer.is_server():
-		starting_boon_pending = true
-		next_wave_time = INF
-		get_tree().create_timer(0.75, false).timeout.connect(begin_starting_boon_draft)
+		next_wave_time = 1.2
 
 func begin_starting_boon_draft() -> void:
 	if not is_inside_tree() or not multiplayer.is_server() or not starting_boon_pending:
@@ -89,9 +100,9 @@ func create_boon_book_button() -> void:
 	layer.layer = 13
 	boon_book_button = Button.new()
 	boon_book_button.name = "AscensionCodexButton"
-	boon_book_button.text = "CODEX"
+	boon_book_button.text = "FIELD CODEX"
 	boon_book_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
-	boon_book_button.tooltip_text = "VIEW YOUR ASCENSION CARDS"
+	boon_book_button.tooltip_text = "VIEW RECOVERED CHARACTERISTICS"
 	boon_book_button.icon = create_boon_book_texture()
 	boon_book_button.expand_icon = false
 	boon_book_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -115,7 +126,7 @@ func update_boon_book_button_count() -> void:
 		var acquired_value: Variant = local_player.get("acquired_boons")
 		if acquired_value is Array:
 			card_count = (acquired_value as Array).size()
-	boon_book_button.text = "CODEX  %d" % card_count if card_count > 0 else "CODEX"
+	boon_book_button.text = "CODEX  %d" % card_count if card_count > 0 else "FIELD CODEX"
 
 func create_boon_book_texture() -> ImageTexture:
 	var image := Image.create_empty(18, 14, false, Image.FORMAT_RGBA8)
@@ -199,13 +210,13 @@ func create_boon_book_overlay(acquired_value: Variant) -> void:
 	content.add_theme_constant_override("separation", 5)
 	panel.add_child(content)
 	var title := Label.new()
-	title.text = "ASCENSION BOOK"
+	title.text = "FIELD CHARACTERISTIC CODEX"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_override("font", CAPITAL_BOLD_FONT)
 	title.add_theme_font_size_override("font_size", 15)
 	content.add_child(title)
 	var subtitle := Label.new()
-	subtitle.text = "YOUR CURRENT CARDS"
+	subtitle.text = "TRAITS RECOVERED FROM THE TREE"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.modulate = Color(0.86, 0.72, 0.45)
 	subtitle.add_theme_font_override("font", CAPITAL_BOLD_FONT)
@@ -383,7 +394,7 @@ func create_card_back_overlay(card: Control, accent: Color) -> PanelContainer:
 	book_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	back_layout.add_child(book_icon)
 	var back_title := Label.new()
-	back_title.text = "ASCENSION"
+	back_title.text = "CHARACTERISTIC"
 	back_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	back_title.add_theme_font_override("font", CAPITAL_BOLD_FONT)
 	back_title.add_theme_font_size_override("font_size", 7)
@@ -397,12 +408,15 @@ func create_wave_banner() -> void:
 	banner_layer.layer = 11
 	wave_banner = ColorRect.new()
 	wave_banner.color = Color(0.04, 0.08, 0.16, 0.92)
-	wave_banner.size = Vector2(176, 34)
-	wave_banner.position = Vector2(get_viewport_rect().size.x - 184.0, -42.0)
+	wave_banner.size = Vector2(224, 42)
+	wave_banner.position = Vector2(get_viewport_rect().size.x - 232.0, -50.0)
 	wave_label = Label.new()
-	wave_label.position = Vector2(8, 7)
-	wave_label.size = Vector2(160, 22)
+	wave_label.position = Vector2(8, 5)
+	wave_label.size = Vector2(208, 32)
 	wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wave_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	wave_label.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	wave_label.add_theme_font_size_override("font_size", 8)
 	wave_banner.add_child(wave_label)
 	banner_layer.add_child(wave_banner)
 	add_child(banner_layer)
@@ -411,11 +425,88 @@ func create_wave_banner() -> void:
 func update_wave_banner(status: String) -> void:
 	if not wave_banner or not wave_label:
 		return
-	wave_label.text = "WAVE %d  %s" % [wave, status]
-	var target_position := Vector2(get_viewport_rect().size.x - 184.0, 8.0)
-	wave_banner.position = Vector2(target_position.x, -42.0)
+	var branch: Dictionary = EXPEDITION.get_branch(maxi(1, wave))
+	var floor_text := "FINAL NEST" if EXPEDITION.is_final_floor(wave) else "FLOOR %d/10" % EXPEDITION.get_floor_in_branch(maxi(1, wave))
+	wave_label.text = "%s  //  %s\n%s  %s" % [str(branch.get("short_name", "EXPEDITION")), floor_text, EXPEDITION.get_room_name(maxi(1, wave)), status]
+	wave_banner.color = (branch.get("dark", Color("101425")) as Color).lightened(0.04)
+	var target_position := Vector2(get_viewport_rect().size.x - 232.0, 8.0)
+	wave_banner.position = Vector2(target_position.x, -50.0)
 	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(wave_banner, "position", target_position, 0.35)
+
+func create_expedition_environment() -> void:
+	for legacy_name in ["Ground", "Parallax2D2", "Parallax2D", "Parallax2D3", "Tower"]:
+		var legacy_visual := get_node_or_null(legacy_name) as CanvasItem
+		if legacy_visual:
+			legacy_visual.hide()
+	environment = TREE_ENVIRONMENT.new() as Node2D
+	add_child(environment)
+	update_expedition_environment(maxi(1, wave))
+
+func update_expedition_environment(floor_number: int) -> void:
+	if not environment or not environment.has_method("configure"):
+		return
+	var context_value := TREE_ENVIRONMENT.Context.CROWN_NEST if EXPEDITION.is_final_floor(floor_number) else TREE_ENVIRONMENT.Context.EXPEDITION
+	var visual_data: Dictionary = EXPEDITION.get_branch(floor_number).duplicate()
+	visual_data["arena_bounds"] = arena_bounds
+	environment.call("configure", context_value, visual_data, floor_number)
+
+func create_characteristic_hud() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 12
+	var panel := ColorRect.new()
+	panel.color = Color(0.025, 0.04, 0.075, 0.90)
+	panel.position = Vector2(8.0, 8.0)
+	panel.size = Vector2(154.0, 32.0)
+	characteristic_label = Label.new()
+	characteristic_label.position = Vector2(7.0, 3.0)
+	characteristic_label.size = Vector2(140.0, 12.0)
+	characteristic_label.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	characteristic_label.add_theme_font_size_override("font_size", 7)
+	panel.add_child(characteristic_label)
+	characteristic_bar = ProgressBar.new()
+	characteristic_bar.position = Vector2(7.0, 18.0)
+	characteristic_bar.size = Vector2(140.0, 7.0)
+	characteristic_bar.show_percentage = false
+	panel.add_child(characteristic_bar)
+	layer.add_child(panel)
+	add_child(layer)
+	update_characteristic_hud()
+
+func update_characteristic_hud() -> void:
+	if not characteristic_label or not characteristic_bar:
+		return
+	var threshold: int = EXPEDITION.get_characteristic_threshold(characteristic_level)
+	characteristic_label.text = "SOUL CHARACTERISTICS  LV.%d  %d/%d" % [characteristic_level, characteristic_xp, threshold]
+	characteristic_bar.max_value = float(threshold)
+	characteristic_bar.value = float(characteristic_xp)
+
+func collect_characteristic(amount: int) -> void:
+	if not multiplayer.is_server() or campaign_completed or amount <= 0:
+		return
+	characteristic_xp += amount
+	var threshold: int = EXPEDITION.get_characteristic_threshold(characteristic_level)
+	while characteristic_xp >= threshold:
+		characteristic_xp -= threshold
+		characteristic_level += 1
+		pending_characteristic_draws += 1
+		threshold = EXPEDITION.get_characteristic_threshold(characteristic_level)
+	rpc("sync_characteristics_rpc", characteristic_level, characteristic_xp, pending_characteristic_draws)
+
+func return_soul_to_tree() -> void:
+	if not multiplayer.is_server():
+		return
+	characteristic_level = 1
+	characteristic_xp = 0
+	pending_characteristic_draws = 0
+	rpc("sync_characteristics_rpc", characteristic_level, characteristic_xp, pending_characteristic_draws)
+
+@rpc("authority", "call_local", "reliable")
+func sync_characteristics_rpc(level_value: int, xp_value: int, pending_draws: int) -> void:
+	characteristic_level = level_value
+	characteristic_xp = xp_value
+	pending_characteristic_draws = pending_draws
+	update_characteristic_hud()
 
 func is_on_tower(world_position: Vector2, edge_padding: float = 0.0) -> bool:
 	var ellipse_center := arena_bounds.get_center()
@@ -444,10 +535,15 @@ func _physics_process(delta: float) -> void:
 
 	if wave_active:
 		if get_living_enemy_count() == 0:
-			if wave % 5 == 0:
+			if EXPEDITION.is_final_floor(wave):
+				complete_expedition()
+				return
+			if EXPEDITION.is_guardian_floor(wave):
+				rpc("announce_severed_branch_rpc", str(EXPEDITION.get_branch(wave).get("name", "UNKNOWN BRANCH")))
+			rpc("sync_wave_state_rpc", wave, false)
+			if pending_characteristic_draws > 0:
 				begin_boon_draft(false)
 				return
-			rpc("sync_wave_state_rpc", wave, false)
 			next_wave_time = time_between_waves
 			return
 		return
@@ -460,14 +556,22 @@ func _physics_process(delta: float) -> void:
 		start_wave()
 
 func start_wave() -> void:
+	if wave >= EXPEDITION.FINAL_FLOOR:
+		return
 	wave += 1
 	rpc("sync_wave_state_rpc", wave, true)
-	if wave % 5 == 0:
+	if EXPEDITION.is_guardian_floor(wave):
 		spawn_boss()
 		return
-	var rusher_count: int = 2 + wave
-	var sniper_count: int = 1 + floori(float(wave) * 0.5)
-	var turret_count: int = maxi(0, floori(float(wave - 2) * 0.5))
+	var branch_index: int = EXPEDITION.get_branch_index(wave)
+	var floor_in_branch: int = EXPEDITION.get_floor_in_branch(wave)
+	var rusher_count: int = 2 + floori(float(floor_in_branch) * 0.55) + branch_index
+	var sniper_count: int = maxi(0, floori(float(floor_in_branch + branch_index) * 0.32))
+	var turret_count: int = maxi(0, floori(float(floor_in_branch - 2) * 0.24) + floori(float(branch_index) * 0.5))
+	match (floor_in_branch - 1) % 3:
+		0: rusher_count += 2
+		1: turret_count += 2
+		2: sniper_count += 2
 
 	spawn_group(RUSHER_SCENE, rusher_count)
 	spawn_group(SNIPER_SCENE, sniper_count)
@@ -510,7 +614,13 @@ func check_boon_draft_completion() -> void:
 	boon_draft_active = false
 	starting_boon_pending = false
 	starting_boon_draft = false
-	next_wave_time = time_between_waves
+	pending_characteristic_draws = maxi(0, pending_characteristic_draws - 1)
+	rpc("sync_characteristics_rpc", characteristic_level, characteristic_xp, pending_characteristic_draws)
+	if pending_characteristic_draws > 0:
+		next_wave_time = INF
+		get_tree().create_timer(0.28, false).timeout.connect(func(): begin_boon_draft(false))
+	else:
+		next_wave_time = time_between_waves
 	rpc("finish_boon_draft_rpc")
 
 @rpc("authority", "call_local", "reliable")
@@ -540,7 +650,7 @@ func create_boon_draft_ui(options: Array[Dictionary], is_starting_draw: bool = f
 	layout.add_theme_constant_override("separation", 7)
 	center.add_child(layout)
 	var title := Label.new()
-	title.text = "CHOOSE YOUR STARTING BOON" if is_starting_draw else "CHOOSE AN ASCENSION BOON"
+	title.text = "SELECT A RECOVERED CHARACTERISTIC"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_override("font", CAPITAL_BOLD_FONT)
 	title.add_theme_font_size_override("font_size", 14)
@@ -552,7 +662,7 @@ func create_boon_draft_ui(options: Array[Dictionary], is_starting_draw: bool = f
 		var option := options[option_index]
 		create_boon_tarot_card(cards, str(option.get("id", "")), int(option.get("rarity", 0)), option_index)
 	var hint := Label.new()
-	hint.text = "WAVE 1 WAITS FOR EVERY PLAYER" if is_starting_draw else "THE NEXT FLOOR WAITS FOR EVERY PLAYER"
+	hint.text = "THE EXPEDITION WAITS FOR EVERY AGENT"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_override("font", CAPITAL_BOLD_FONT)
 	hint.add_theme_font_size_override("font_size", 9)
@@ -903,7 +1013,8 @@ func finish_boon_draft_rpc() -> void:
 func sync_wave_state_rpc(new_wave: int, active: bool) -> void:
 	wave = new_wave
 	wave_active = active
-	update_wave_banner("BOSS" if active and new_wave % 5 == 0 else "INCOMING" if active else "CLEAR")
+	update_expedition_environment(maxi(1, new_wave))
+	update_wave_banner("GUARDIAN" if active and EXPEDITION.is_guardian_floor(new_wave) else "CONTACT" if active else "SECURED")
 
 func spawn_group(scene: PackedScene, count: int) -> void:
 	for index in range(count):
@@ -918,20 +1029,64 @@ func spawn_group(scene: PackedScene, count: int) -> void:
 func spawn_boss() -> void:
 	var spawn_position := arena_bounds.get_center()
 	var enemy_id := "Enemy_%d" % next_enemy_id
-	if boss_kind_bag.is_empty():
-		for kind_index in range(BOSS_PRESENTATION_PATHS.size()):
-			boss_kind_bag.append(kind_index)
-		boss_kind_bag.shuffle()
-		if boss_kind_bag.size() > 1 and boss_kind_bag[0] == last_boss_kind:
-			var swap_index := randi_range(1, boss_kind_bag.size() - 1)
-			var first_kind := boss_kind_bag[0]
-			boss_kind_bag[0] = boss_kind_bag[swap_index]
-			boss_kind_bag[swap_index] = first_kind
-	var boss_kind: int = int(boss_kind_bag.pop_front())
+	var boss_kind: int = EXPEDITION.BRANCH_COUNT if EXPEDITION.is_final_floor(wave) else EXPEDITION.get_branch_index(wave)
 	last_boss_kind = boss_kind
-	var bosses_defeated := maxi(0, floori(float(wave) / 5.0) - 1)
+	var bosses_defeated := boss_kind
 	next_enemy_id += 1
 	rpc("spawn_ascension_boss_rpc", BOSS_PRESENTATION_PATHS[boss_kind], spawn_position, enemy_id, boss_kind, bosses_defeated)
+
+func complete_expedition() -> void:
+	if campaign_completed or not multiplayer.is_server():
+		return
+	campaign_completed = true
+	rpc("sync_wave_state_rpc", wave, false)
+	rpc("show_expedition_complete_rpc")
+	get_tree().create_timer(4.2, false).timeout.connect(func():
+		var main := get_tree().get_first_node_in_group("main")
+		if main and main.has_method("return_party_to_lobby"):
+			main.call("return_party_to_lobby")
+	)
+
+@rpc("authority", "call_local", "reliable")
+func show_expedition_complete_rpc() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 90
+	var shade := ColorRect.new()
+	shade.color = Color(0.02, 0.018, 0.04, 0.78)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(shade)
+	var message := Label.new()
+	message.text = "THE LAST NEST IS SILENT\nTHE WORLD HAS BEEN GIVEN BACK"
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	message.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	message.add_theme_font_size_override("font_size", 17)
+	message.modulate = Color("fff4c2")
+	shade.add_child(message)
+	add_child(layer)
+
+@rpc("authority", "call_local", "reliable")
+func announce_severed_branch_rpc(branch_name: String) -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 30
+	var message := Label.new()
+	message.text = "%s\nSEVERED — THE TREE IS RETREATING" % branch_name
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message.position = Vector2(70.0, 104.0)
+	message.size = Vector2(340.0, 58.0)
+	message.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	message.add_theme_font_size_override("font_size", 12)
+	message.modulate = Color("d8f2ff")
+	message.modulate.a = 0.0
+	layer.add_child(message)
+	add_child(layer)
+	var tween := message.create_tween()
+	tween.tween_property(message, "modulate:a", 1.0, 0.12)
+	tween.tween_interval(1.1)
+	tween.tween_property(message, "modulate:a", 0.0, 0.42)
+	tween.finished.connect(layer.queue_free)
 
 @rpc("authority", "call_local", "reliable")
 func spawn_ascension_boss_rpc(presentation_path: String, spawn_position: Vector2, enemy_id: String, boss_kind: int, bosses_defeated: int) -> void:
@@ -974,7 +1129,32 @@ func create_enemy_instance(scene_path: String, spawn_position: Vector2, enemy_id
 	enemy.name = enemy_id
 	enemy.global_position = spawn_position
 	enemy.set_meta("arena_bounds", arena_bounds)
+	enemy.set_meta("expedition_branch", EXPEDITION.get_branch_index(maxi(1, wave)))
 	enemies.add_child(enemy)
+	decorate_expedition_enemy(enemy, EXPEDITION.get_branch_index(maxi(1, wave)))
+
+func decorate_expedition_enemy(enemy: CharacterBody2D, branch_index: int) -> void:
+	var branch: Dictionary = EXPEDITION.BRANCHES[clampi(branch_index, 0, EXPEDITION.BRANCH_COUNT - 1)]
+	var branch_color: Color = branch.get("color", Color.WHITE)
+	var accent_color: Color = branch.get("accent", Color.WHITE)
+	var sprite := enemy.get_node_or_null("Sprite2D") as Sprite2D
+	if sprite:
+		sprite.modulate = Color.WHITE.lerp(branch_color, 0.42)
+	var crystal := Polygon2D.new()
+	crystal.name = "CharacteristicGrowth"
+	crystal.polygon = PackedVector2Array([Vector2(0.0, -8.0), Vector2(4.0, -1.0), Vector2(0.0, 4.0), Vector2(-4.0, -1.0)])
+	crystal.color = accent_color
+	crystal.position = Vector2(0.0, -12.0)
+	crystal.z_index = 3
+	enemy.add_child(crystal)
+	if "max_health" in enemy:
+		var scaled_health := roundi(float(enemy.get("max_health")) * (1.0 + float(branch_index) * 0.22))
+		enemy.set("max_health", scaled_health)
+		enemy.set("current_health", scaled_health)
+	if "speed" in enemy and float(enemy.get("speed")) > 0.0:
+		var branch_speed_multipliers: Array[float] = [1.0, 0.88, 1.18, 1.06, 1.24]
+		var speed_multiplier: float = branch_speed_multipliers[clampi(branch_index, 0, 4)]
+		enemy.set("speed", float(enemy.get("speed")) * speed_multiplier)
 
 func build_enemy_states() -> Array[Dictionary]:
 	var states: Array[Dictionary] = []

@@ -6,10 +6,10 @@ const PARTICLE_TEXTURE := preload("res://Assets/plus particle.png")
 const BOSS_DASH_SFX := preload("res://SFX/flap.mp3")
 const BOSS_LAND_SFX := preload("res://SFX/kick.wav")
 const BOSS_SCENES: Array[PackedScene] = [
-	preload("res://Scenes/popcorn_boss_butterstorm.tscn"),
-	preload("res://Scenes/popcorn_boss_flame.tscn"),
-	preload("res://Scenes/popcorn_boss_magnetron.tscn"),
-	preload("res://Scenes/popcorn_boss_helix.tscn"),
+	preload("res://Scenes/tree_guardian_sap.tscn"),
+	preload("res://Scenes/tree_guardian_marrow.tscn"),
+	preload("res://Scenes/tree_guardian_choir.tscn"),
+	preload("res://Scenes/tree_guardian_prism.tscn"),
 ]
 
 @export var arena_bounds := Rect2(170, 20, 560, 560)
@@ -576,7 +576,7 @@ func award_local_kernel_currency(amount: int) -> bool:
 
 func show_kernel_reward(amount: int) -> void:
 	var label := Label.new()
-	label.text = "+%d KERNEL%s" % [amount, "" if amount == 1 else "S"]
+	label.text = "+%d RESEARCH DATA" % amount
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.position = arena_bounds.get_center() - Vector2(75.0, 12.0)
 	label.size = Vector2(150.0, 24.0)
@@ -659,23 +659,23 @@ func update_mode_ui() -> void:
 	var mode_name := "SOLO" if survival_team_size <= 1 else "TEAMS OF %d" % survival_team_size
 	participant_label.text = "%d / %d  %s" % [get_active_participants().size(), target_participant_count, mode_name]
 	if boss_active:
-		boss_label.text = "BOSS %d  //  %s" % [boss_index, get_boss_name(boss_index)]
+		boss_label.text = "ROOT SIM %d  //  %s" % [boss_index, get_boss_name(boss_index)]
 		boss_timer_label.text = "%04.1f" % maxf(0.0, boss_time_remaining)
 		var duration := boss_duration + minf(float(boss_index - 1) * 2.0, 12.0)
 		boss_bar_fill.size.x = 294.0 * clampf(boss_time_remaining / duration, 0.0, 1.0)
 		boss_bar_fill.color = get_boss_color(boss_index)
 	else:
-		boss_label.text = "NEXT BOSS %d" % (boss_index + 1)
+		boss_label.text = "NEXT SIMULATION %d" % (boss_index + 1)
 		boss_timer_label.text = "%04.1f" % maxf(0.0, intermission_remaining)
 		boss_bar_fill.size.x = 294.0 * clampf(intermission_remaining / maxf(0.01, intermission_duration), 0.0, 1.0)
 		boss_bar_fill.color = Color(0.30, 0.86, 1.0)
 
 func get_boss_name(index: int) -> String:
 	match posmod(index - 1, BOSS_SCENES.size()):
-		0: return "BUTTERSTORM"
-		1: return "THE POPPING FLAME"
-		2: return "MAGNETRON PRIME"
-		_: return "HELIX SOVEREIGN"
+		0: return "SAP-BEARER PROJECTION"
+		1: return "MARROW STAG PROJECTION"
+		2: return "TEETH CHOIR PROJECTION"
+		_: return "PRISM WIDOW PROJECTION"
 
 func get_boss_color(index: int) -> Color:
 	match posmod(index - 1, BOSS_SCENES.size()):

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/tree_guardian_visual.gd" id="1"]
+
+[node name="MarrowStag" type="Node2D"]
+script = ExtResource("1")
+guardian_kind = 1
+guardian_name = "MARROW STAG"
+base_color = Color(0.8471, 0.8353, 0.7412, 1)
+accent_color = Color(0.9569, 0.9333, 0.8078, 1)

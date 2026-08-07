@@ -1,82 +1,108 @@
 # Towering Tower session handoff
 
-Updated: August 2, 2026
+Updated: August 6, 2026
 
-## Repository state
+## Current repository state
 
 - Branch: `main`
-- HEAD: `bb38672` (`Profesh`), matching `origin/main` at handoff time.
-- The committed working tree is clean.
-- Two unrelated user-created files are untracked and must be preserved:
-  - `Marketing/Steam/CircularStudios/Smiley.aseprite`
-  - `Marketing/Steam/CircularStudios/Smiley.png`
-- Do not add, overwrite, remove, or commit those two files unless the user explicitly asks.
+- HEAD: `ca26aa2` (`Steam Stable`)
+- `main` matches `origin/main`.
+- AppID is committed as `5051570` in `project.godot`.
+- The lobby boon-card debug button removal is committed in `ca26aa2`.
+- The legal/privacy site and Steam Cloud save changes are committed and pushed in `c9f2b7f`.
 
-## Work completed in the latest session
+### Uncommitted working-tree state
 
-### Circular Studios branding
+- Modified: `export_presets.cfg`
+  - Adds the Windows `Steam` export preset.
+  - External export path: `../Towering-Tower-Builds/Steam/Windows/ToweringTower.exe`
+  - File/product version: `0.1.0.0`
+  - Company: `Circular Studios`
+- Untracked and intended: `Tools/SteamPipe/app_build_5051570.vdf`
+- Untracked and intended: `Tools/SteamPipe/depot_build_5051571.vdf`
+- Modified: `.gitignore`
+  - Prevents accidental root-level Windows exports from being committed.
+  - Ignores only tilde-prefixed GodotSteam DLL swap artifacts, not the real extension DLLs.
+- Five tracked tilde/TMP GodotSteam scratch copies are intentionally deleted after their hashes matched the real debug DLL. Godot recreates and removes its hot-reload copy as needed; the real debug/release DLLs and `steam_api64.dll` remain intact.
+- The three accidental root export files were removed after the newer external Steam build was verified intact.
+- `SESSION_HANDOFF.md` is modified by this handoff update.
 
-- Generated a Steam/community branding pack in `Marketing/Steam/CircularStudios/`.
-- Pack includes Steam creator logo/header, community avatar, high-resolution logo masters, preview image, and an Aseprite source.
-- A packaged archive is at `Marketing/Steam/CircularStudios_Steam_Branding.zip`.
-- Regeneration script: `Tools/generate_circular_studios_branding.py`.
-- `Marketing/.gdignore` prevents marketing files from being imported into Godot.
+## Steamworks identifiers and successful first upload
 
-### Launch presentation
+- Game: Towering Tower
+- AppID: `5051570`
+- Windows content Depot ID: `5051571`
+- First uploaded SteamPipe BuildID: `24566582`
+- The build was set live for private pre-release testing.
+- Steam initially reported `Invalid game configuration` because no valid published launch option was available.
+- General Installation was corrected to launch `ToweringTower.exe` on Windows and the Steamworks configuration was published.
+- Result: the Steam-installed build launches successfully.
 
-- `Scripts/main.gd`, `Scripts/main_menu.gd`, and `Scenes/main.tscn` contain the recent Circular Studios title-card, launch-music, fade, and sequential menu-button entrance work.
-- Recent commits immediately before the branding work also include menu/controller/music and button-input fixes (`6632b2c` and `b7ae48a`).
+## Local build and SDK locations
 
-### Steamworks account guidance
+- Godot Windows export directory:
+  - `C:\Users\Owen\Documents\Towering-Tower-Builds\Steam\Windows`
+- Expected build files:
+  - `ToweringTower.exe`
+  - `steam_api64.dll`
+  - `libgodotsteam.windows.template_release.x86_64.dll`
+- Steamworks SDK:
+  - `C:\steamworks_sdk_165`
+- SteamCMD:
+  - `C:\steamworks_sdk_165\sdk\tools\ContentBuilder\builder\steamcmd.exe`
+- SteamPipe scripts were copied to:
+  - `C:\steamworks_sdk_165\sdk\tools\ContentBuilder\scripts\app_build_5051570.vdf`
+  - `C:\steamworks_sdk_165\sdk\tools\ContentBuilder\scripts\depot_build_5051571.vdf`
+- SteamPipe output/cache:
+  - `C:\Users\Owen\Documents\Towering-Tower-Builds\SteamPipeOutput`
 
-- The user currently onboards through a personal Steamworks partner identity.
-- Guidance given: keep the legal Steamworks identity as the user's legal name if banking/tax onboarding is as an individual or sole proprietor.
-- Use `Circular Studios` as the public developer/publisher and Creator Homepage identity.
-- Do not change the legal partner identity to Circular Studios unless it becomes the registered entity that owns the game and matches banking/tax records.
+## Repeatable upload workflow
 
-### Privacy and health-warning site
+1. In Godot, export the `Steam` Windows preset. Ensure the save location remains the external `Towering-Tower-Builds\Steam\Windows` folder and `Export With Debug` is off.
+2. Launch SteamCMD from the SDK builder folder.
+3. At the `Steam>` prompt run:
 
-- Created a dependency-free static site at `Marketing/LegalSite/`.
-- Pages:
-  - `Marketing/LegalSite/index.html`
-  - `Marketing/LegalSite/privacy/index.html`
-  - `Marketing/LegalSite/health/index.html`
-  - `Marketing/LegalSite/assets/site.css`
-- Deployment/setup instructions: `Marketing/LegalSite/README.md`.
-- Code-backed privacy findings: `Marketing/LegalSite/DATA_AUDIT.md`.
-- Intended GitHub Pages URLs until a custom domain is acquired:
-  - `https://owen-harper25.github.io/Towering-Tower/privacy/`
-  - `https://owen-harper25.github.io/Towering-Tower/health/`
-- The site deliberately uses no JavaScript, remote fonts, forms, analytics, advertising, or cookies.
+   ```text
+   login piston_worx
+   run_app_build ..\scripts\app_build_5051570.vdf
+   quit
+   ```
 
-## Privacy audit findings
+4. Supply the password and Steam Guard code interactively; never save them in VDF files.
+5. In Steamworks, open `https://partner.steamgames.com/apps/builds/5051570` and set the new BuildID live on the desired test/default branch.
+6. Install/update through the Steam client and test the Steam-installed copy.
 
-- Steam public lobbies, Steam persona information, and `SteamMultiplayerPeer` relay networking are used.
-- The public host lobby name contains the host's Steam persona name.
-- Gameplay state is exchanged between peers for synchronization.
-- Settings, metaprogression, currencies, upgrades, cosmetics, and older save information are stored locally under `user://` paths.
-- No Circular Studios HTTP backend, analytics SDK, advertising SDK, account system, voice capture, stored chat, or automatic crash-report upload was found in project scripts.
-- Steamworks portal-only configuration cannot be verified from the repository. Before publication, manually check Steam Auto-Cloud, stats/achievements, crash reporting, and support/contact settings.
+## Steamworks and website state
 
-## Required decisions before publishing the legal site
+- Public studio identity: Circular Studios.
+- Support/privacy email: `circulargamestudios@outlook.com`.
+- Static legal site lives in `Marketing/LegalSite/` and has been pushed/deployed through GitHub Pages.
+- Privacy and health-warning pages were prepared for Steamworks external-link fields.
+- Steam Auto-Cloud settings were discussed, but the portal configuration should still be rechecked during the Steam-installed smoke test.
 
-1. Enable GitHub Pages with **GitHub Actions** as its source, or configure another static host.
-2. Monitor `circulargamestudios@outlook.com`, which is now used for privacy, support, accessibility, and safety contact.
-3. Choose a static host. Cloudflare Pages or GitHub Pages with a custom domain are suitable.
-4. Review the policy for the final release territories. The current copy is an implementation-based draft, not formal legal advice.
-5. After HTTPS deployment, enter the privacy and health URLs in Steamworks and test them in a logged-out browser.
+## Known issues resolved in this session
 
-## Recommended next concrete steps
+- Godot `Invalid product version`: fixed by using four-part numeric versions (`0.1.0.0`) for both file and product version.
+- Export accidentally written into the repository root: corrected by restoring the external export path.
+- SteamCMD/SDK confusion: SteamCMD was located and initialized successfully.
+- SteamPipe upload completed successfully.
+- Steam `Invalid game configuration`: fixed via the published General Installation launch option.
 
-1. Confirm the GitHub Pages deployment succeeds and copy its final HTTPS URLs into Steamworks.
-2. If a custom domain is acquired later, configure it on the selected static host and update the published URLs.
-3. Inspect Steamworks portal settings with the user for Auto-Cloud and crash-reporting configuration, then adjust the privacy copy if necessary.
-4. Add reduced-screen-shake and reduced-flash gameplay settings. The health page accurately states that these dedicated accessibility controls do not yet exist.
-5. Run the full Godot project and multiplayer smoke test after launch/menu changes. Godot was not available on the command-line PATH in this session, so no headless project validation was run.
+## Next concrete steps
+
+1. Run a Steam-installed smoke test:
+   - overlay opens;
+   - hosting/lobby discovery and friend joining work;
+   - two-player synchronization works;
+   - Steam Cloud persists settings/metaprogression across restart;
+   - Nintendo Pro Controller and menu/gameplay controls work;
+   - scene transitions and audio buses behave correctly.
+2. Decide whether to commit the Windows export preset, `.gitignore` cleanup, temporary-DLL deletions, and `Tools/SteamPipe/*.vdf` scripts. The VDF contains Owen's absolute local paths and may be better parameterized or documented before committing.
+3. After multiplayer/Cloud verification, export and upload a fresh test build using the repeatable workflow above.
 
 ## Verification performed
 
-- Confirmed all static-site files exist.
-- Confirmed each HTML page contains a title, responsive viewport, main landmark, and H1.
-- Confirmed the legal site and branding were committed in `bb38672`.
-- No new runtime error was reported during this session.
+- Confirmed the external Windows export contains the executable and both required Steam/GodotSteam DLLs.
+- Confirmed SteamCMD initialized and authenticated as `piston_worx`.
+- Confirmed SteamPipe uploaded AppID `5051570`, Depot `5051571`, producing BuildID `24566582`.
+- User confirmed the game launches successfully from Steam after launch configuration was corrected.

@@ -259,12 +259,12 @@ func _input(event: InputEvent) -> void:
 	if not navigation_event and not (event is InputEventJoypadButton):
 		return
 	if settings_panel.visible:
-		call_deferred("focus_first_settings_control")
+		focus_first_settings_control()
 		return
 	if server_browser and server_browser.visible:
-		call_deferred("focus_server_browser")
+		focus_server_browser()
 	else:
-		call_deferred("focus_first_visible_reel_button")
+		focus_first_visible_reel_button()
 
 func focus_server_browser() -> void:
 	var focus_owner := get_viewport().gui_get_focus_owner()

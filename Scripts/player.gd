@@ -46,6 +46,8 @@ signal player_revived()
 @export var aim_camera_lead_distance: float = 22.0
 @export var aim_camera_lead_smoothness: float = 7.0
 @export var aim_camera_deadzone: float = 8.0
+@export_range(0.0, 0.9, 0.01) var controller_aim_deadzone: float = 0.24
+@export_range(1.0, 30.0, 0.5) var controller_aim_smoothness: float = 13.0
 @onready var shootsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Shoot")
 @onready var hurtsfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Hurt")
 @onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
@@ -83,6 +85,7 @@ var is_rolling: bool = false
 var is_invulnerable: bool = false
 var roll_direction: Vector2 = Vector2.DOWN
 var aim_direction: Vector2 = Vector2.RIGHT
+var controller_aim_strength: float = 0.0
 var next_shot_time := 0.0
 var arena_bounds := Rect2(28, 30, 424, 220)
 var is_falling := false
@@ -238,7 +241,7 @@ func _physics_process(delta: float) -> void:
 		elif is_downed:
 			handle_crawling_movement()
 		elif not is_rolling:
-			handle_movement_and_actions()
+			handle_movement_and_actions(delta)
 		else:
 			handle_roll_physics()
 
@@ -261,7 +264,7 @@ func update_aim_camera(delta: float) -> void:
 		return
 	var target_offset := Vector2.ZERO
 	if UIJuice.controller_input_active:
-		target_offset = aim_direction * aim_camera_lead_distance
+		target_offset = aim_direction * aim_camera_lead_distance * controller_aim_strength
 	else:
 		var mouse_offset := get_global_mouse_position() - global_position
 		if mouse_offset.length() > aim_camera_deadzone:
@@ -299,19 +302,34 @@ func player_fully_died_rpc() -> void:
 	# Add any death despawn/spectate logic here
 
 # --- Movement & Input Handling ---
-func handle_movement_and_actions() -> void:
+func handle_movement_and_actions(delta: float) -> void:
 	input_dir = Vector2(
 		Input.get_axis("Left", "Right"),
 		Input.get_axis("Up", "Down")
 	).normalized()
 
-	var controller_aim := Input.get_vector("AimLeft", "AimRight", "AimUp", "AimDown")
-	if UIJuice.controller_input_active:
-		if controller_aim.length_squared() > 0.04:
-			aim_direction = controller_aim.normalized()
-		elif aim_direction == Vector2.ZERO:
+	var controller_aim: Vector2 = UIJuice.get_controller_aim_vector()
+	var controller_magnitude := controller_aim.length()
+	if controller_magnitude > controller_aim_deadzone:
+		UIJuice.note_controller_activity()
+		controller_aim_strength = clampf(
+			(controller_magnitude - controller_aim_deadzone) / maxf(0.001, 1.0 - controller_aim_deadzone),
+			0.0,
+			1.0
+		)
+		var target_aim := controller_aim.normalized()
+		var aim_blend := 1.0 - exp(-controller_aim_smoothness * delta)
+		if aim_direction == Vector2.ZERO:
+			aim_direction = target_aim
+		else:
+			var smoothed_angle := lerp_angle(aim_direction.angle(), target_aim.angle(), aim_blend)
+			aim_direction = Vector2.from_angle(smoothed_angle)
+	elif UIJuice.controller_input_active:
+		controller_aim_strength = move_toward(controller_aim_strength, 0.0, delta * 8.0)
+		if aim_direction == Vector2.ZERO:
 			aim_direction = input_dir if input_dir != Vector2.ZERO else Vector2.RIGHT
 	else:
+		controller_aim_strength = 0.0
 		aim_direction = (get_global_mouse_position() - global_position).normalized()
 	sync_aim_direction = aim_direction
 

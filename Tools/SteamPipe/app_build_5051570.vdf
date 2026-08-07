@@ -1,0 +1,13 @@
+"AppBuild"
+{
+	"AppID" "5051570"
+	"Desc" "Towering Tower Windows test build"
+	"ContentRoot" "C:\Users\Owen\Documents\Towering-Tower-Builds\Steam\Windows"
+	"BuildOutput" "C:\Users\Owen\Documents\Towering-Tower-Builds\SteamPipeOutput"
+	"Preview" "0"
+
+	"Depots"
+	{
+		"5051571" "depot_build_5051571.vdf"
+	}
+}

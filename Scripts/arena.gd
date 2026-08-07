@@ -5,8 +5,9 @@ const SNIPER_SCENE := preload("res://Scenes/sniper_bullet_enemy.tscn")
 const TURRET_SCENE := preload("res://Scenes/turret_enemy.tscn")
 const ASCENSION_BOSS_SCENE := preload("res://Scenes/ascension_popcorn_boss.tscn")
 const BOONS := preload("res://Scripts/boon_catalog.gd")
-const EXPEDITION := preload("res://Scripts/expedition_catalog.gd")
 const TREE_ENVIRONMENT := preload("res://Scripts/alien_tree_environment.gd")
+const EXPEDITION_DIRECTOR_SCENE := preload("res://Scenes/Expedition/expedition_director.tscn")
+const TREE_TRAVERSAL_MAP_SCENE := preload("res://Scenes/UI/tree_traversal_map.tscn")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 const CARD_FOIL_SHADER := preload("res://Shaders/card_foil.gdshader")
 const CARD_DEAL_SFX := preload("res://SFX/oxidvideos-placing-playing-card-522514.mp3")
@@ -55,18 +56,62 @@ var campaign_completed := false
 var characteristic_label: Label
 var characteristic_bar: ProgressBar
 var environment: Node2D
+var expedition_director: ExpeditionDirector
+var traversal_map: TreeTraversalMap
+var floor_transition_active := false
+var current_room_definition: Dictionary = {}
 
 func _ready() -> void:
 	if bool(get_meta("boon_debug_ui_only", false)):
 		boon_debug_ui_only = true
 		return
 	add_to_group("tower_arena")
+	create_expedition_nodes()
 	create_wave_banner()
 	create_boon_book_button()
 	create_characteristic_hud()
 	create_expedition_environment()
 	if multiplayer.is_server():
 		next_wave_time = 1.2
+
+func create_expedition_nodes() -> void:
+	expedition_director = get_node_or_null("ExpeditionDirector") as ExpeditionDirector
+	if not expedition_director:
+		expedition_director = EXPEDITION_DIRECTOR_SCENE.instantiate() as ExpeditionDirector
+		expedition_director.name = "ExpeditionDirector"
+		add_child(expedition_director)
+	traversal_map = get_node_or_null("TreeTraversalMap") as TreeTraversalMap
+	if not traversal_map:
+		traversal_map = TREE_TRAVERSAL_MAP_SCENE.instantiate() as TreeTraversalMap
+		traversal_map.name = "TreeTraversalMap"
+		add_child(traversal_map)
+
+func get_expedition_branch(floor_number: int) -> Dictionary:
+	return expedition_director.get_branch(floor_number) if expedition_director else {}
+
+func get_expedition_branch_index(floor_number: int) -> int:
+	return expedition_director.get_branch_index(floor_number) if expedition_director else 0
+
+func get_expedition_floor_in_branch(floor_number: int) -> int:
+	return expedition_director.get_floor_in_branch(floor_number) if expedition_director else maxi(1, floor_number)
+
+func get_expedition_room_name(floor_number: int) -> String:
+	return expedition_director.get_room_name(floor_number) if expedition_director else "UNKNOWN CHAMBER"
+
+func get_expedition_room_definition(floor_number: int) -> Dictionary:
+	return expedition_director.get_room_definition(floor_number) if expedition_director else {"name": "UNKNOWN CHAMBER"}
+
+func is_expedition_guardian_floor(floor_number: int) -> bool:
+	return expedition_director.is_guardian_floor(floor_number) if expedition_director else false
+
+func is_expedition_final_floor(floor_number: int) -> bool:
+	return expedition_director.is_final_floor(floor_number) if expedition_director else false
+
+func get_expedition_final_floor() -> int:
+	return expedition_director.get_final_floor() if expedition_director else 51
+
+func get_characteristic_threshold(level_value: int) -> int:
+	return expedition_director.get_characteristic_threshold(level_value) if expedition_director else 6 + maxi(0, level_value - 1) * 4
 
 func begin_starting_boon_draft() -> void:
 	if not is_inside_tree() or not multiplayer.is_server() or not starting_boon_pending:
@@ -425,9 +470,9 @@ func create_wave_banner() -> void:
 func update_wave_banner(status: String) -> void:
 	if not wave_banner or not wave_label:
 		return
-	var branch: Dictionary = EXPEDITION.get_branch(maxi(1, wave))
-	var floor_text := "FINAL NEST" if EXPEDITION.is_final_floor(wave) else "FLOOR %d/10" % EXPEDITION.get_floor_in_branch(maxi(1, wave))
-	wave_label.text = "%s  //  %s\n%s  %s" % [str(branch.get("short_name", "EXPEDITION")), floor_text, EXPEDITION.get_room_name(maxi(1, wave)), status]
+	var branch: Dictionary = get_expedition_branch(maxi(1, wave))
+	var floor_text := "FINAL NEST" if is_expedition_final_floor(wave) else "FLOOR %d/10" % get_expedition_floor_in_branch(maxi(1, wave))
+	wave_label.text = "%s  //  %s\n%s  %s" % [str(branch.get("short_name", "EXPEDITION")), floor_text, get_expedition_room_name(maxi(1, wave)), status]
 	wave_banner.color = (branch.get("dark", Color("101425")) as Color).lightened(0.04)
 	var target_position := Vector2(get_viewport_rect().size.x - 232.0, 8.0)
 	wave_banner.position = Vector2(target_position.x, -50.0)
@@ -446,8 +491,8 @@ func create_expedition_environment() -> void:
 func update_expedition_environment(floor_number: int) -> void:
 	if not environment or not environment.has_method("configure"):
 		return
-	var context_value := TREE_ENVIRONMENT.Context.CROWN_NEST if EXPEDITION.is_final_floor(floor_number) else TREE_ENVIRONMENT.Context.EXPEDITION
-	var visual_data: Dictionary = EXPEDITION.get_branch(floor_number).duplicate()
+	var context_value := TREE_ENVIRONMENT.Context.CROWN_NEST if is_expedition_final_floor(floor_number) else TREE_ENVIRONMENT.Context.EXPEDITION
+	var visual_data: Dictionary = get_expedition_branch(floor_number).duplicate()
 	visual_data["arena_bounds"] = arena_bounds
 	environment.call("configure", context_value, visual_data, floor_number)
 
@@ -476,7 +521,7 @@ func create_characteristic_hud() -> void:
 func update_characteristic_hud() -> void:
 	if not characteristic_label or not characteristic_bar:
 		return
-	var threshold: int = EXPEDITION.get_characteristic_threshold(characteristic_level)
+	var threshold: int = get_characteristic_threshold(characteristic_level)
 	characteristic_label.text = "SOUL CHARACTERISTICS  LV.%d  %d/%d" % [characteristic_level, characteristic_xp, threshold]
 	characteristic_bar.max_value = float(threshold)
 	characteristic_bar.value = float(characteristic_xp)
@@ -485,12 +530,12 @@ func collect_characteristic(amount: int) -> void:
 	if not multiplayer.is_server() or campaign_completed or amount <= 0:
 		return
 	characteristic_xp += amount
-	var threshold: int = EXPEDITION.get_characteristic_threshold(characteristic_level)
+	var threshold: int = get_characteristic_threshold(characteristic_level)
 	while characteristic_xp >= threshold:
 		characteristic_xp -= threshold
 		characteristic_level += 1
 		pending_characteristic_draws += 1
-		threshold = EXPEDITION.get_characteristic_threshold(characteristic_level)
+		threshold = get_characteristic_threshold(characteristic_level)
 	rpc("sync_characteristics_rpc", characteristic_level, characteristic_xp, pending_characteristic_draws)
 
 func return_soul_to_tree() -> void:
@@ -535,11 +580,11 @@ func _physics_process(delta: float) -> void:
 
 	if wave_active:
 		if get_living_enemy_count() == 0:
-			if EXPEDITION.is_final_floor(wave):
+			if is_expedition_final_floor(wave):
 				complete_expedition()
 				return
-			if EXPEDITION.is_guardian_floor(wave):
-				rpc("announce_severed_branch_rpc", str(EXPEDITION.get_branch(wave).get("name", "UNKNOWN BRANCH")))
+			if is_expedition_guardian_floor(wave):
+				rpc("announce_severed_branch_rpc", str(get_expedition_branch(wave).get("name", "UNKNOWN BRANCH")))
 			rpc("sync_wave_state_rpc", wave, false)
 			if pending_characteristic_draws > 0:
 				begin_boon_draft(false)
@@ -556,26 +601,56 @@ func _physics_process(delta: float) -> void:
 		start_wave()
 
 func start_wave() -> void:
-	if wave >= EXPEDITION.FINAL_FLOOR:
+	if floor_transition_active or wave >= get_expedition_final_floor():
 		return
-	wave += 1
+	var target_floor := wave + 1
+	floor_transition_active = true
+	next_wave_time = INF
+	rpc("show_floor_traversal_rpc", wave, target_floor)
+	var transition_time := traversal_map.get_total_duration() if traversal_map else 2.35
+	get_tree().create_timer(transition_time, false).timeout.connect(func(): start_floor_encounter(target_floor))
+
+func start_floor_encounter(target_floor: int) -> void:
+	if not multiplayer.is_server() or campaign_completed:
+		return
+	floor_transition_active = false
+	wave = target_floor
+	current_room_definition = get_expedition_room_definition(wave)
 	rpc("sync_wave_state_rpc", wave, true)
-	if EXPEDITION.is_guardian_floor(wave):
+	if is_expedition_guardian_floor(wave):
 		spawn_boss()
 		return
-	var branch_index: int = EXPEDITION.get_branch_index(wave)
-	var floor_in_branch: int = EXPEDITION.get_floor_in_branch(wave)
+	var branch_index: int = get_expedition_branch_index(wave)
+	var floor_in_branch: int = get_expedition_floor_in_branch(wave)
 	var rusher_count: int = 2 + floori(float(floor_in_branch) * 0.55) + branch_index
 	var sniper_count: int = maxi(0, floori(float(floor_in_branch + branch_index) * 0.32))
 	var turret_count: int = maxi(0, floori(float(floor_in_branch - 2) * 0.24) + floori(float(branch_index) * 0.5))
-	match (floor_in_branch - 1) % 3:
-		0: rusher_count += 2
-		1: turret_count += 2
-		2: sniper_count += 2
+	rusher_count += int(current_room_definition.get("rusher_bonus", 0))
+	sniper_count += int(current_room_definition.get("sniper_bonus", 0))
+	turret_count += int(current_room_definition.get("turret_bonus", 0))
 
 	spawn_group(RUSHER_SCENE, rusher_count)
 	spawn_group(SNIPER_SCENE, sniper_count)
 	spawn_group(TURRET_SCENE, turret_count)
+
+@rpc("authority", "call_local", "reliable")
+func show_floor_traversal_rpc(from_floor: int, target_floor: int) -> void:
+	floor_transition_active = true
+	wave_active = false
+	var branch := get_expedition_branch(target_floor)
+	if traversal_map:
+		traversal_map.show_floor_transition(
+			from_floor,
+			target_floor,
+			get_expedition_branch_index(target_floor),
+			get_expedition_floor_in_branch(target_floor),
+			str(branch.get("name", "UNKNOWN BRANCH")),
+			get_expedition_room_name(target_floor),
+			is_expedition_guardian_floor(target_floor)
+		)
+	var local_player := get_local_player()
+	if local_player:
+		local_player.set("ui_input_locked", true)
 
 func begin_boon_draft(is_starting_draw: bool = false) -> void:
 	if not multiplayer.is_server() or boon_draft_active:
@@ -1013,8 +1088,14 @@ func finish_boon_draft_rpc() -> void:
 func sync_wave_state_rpc(new_wave: int, active: bool) -> void:
 	wave = new_wave
 	wave_active = active
+	current_room_definition = get_expedition_room_definition(maxi(1, new_wave))
+	if active:
+		floor_transition_active = false
+		var local_player := get_local_player()
+		if local_player:
+			local_player.set("ui_input_locked", false)
 	update_expedition_environment(maxi(1, new_wave))
-	update_wave_banner("GUARDIAN" if active and EXPEDITION.is_guardian_floor(new_wave) else "CONTACT" if active else "SECURED")
+	update_wave_banner("GUARDIAN" if active and is_expedition_guardian_floor(new_wave) else "CONTACT" if active else "SECURED")
 
 func spawn_group(scene: PackedScene, count: int) -> void:
 	for index in range(count):
@@ -1029,11 +1110,12 @@ func spawn_group(scene: PackedScene, count: int) -> void:
 func spawn_boss() -> void:
 	var spawn_position := arena_bounds.get_center()
 	var enemy_id := "Enemy_%d" % next_enemy_id
-	var boss_kind: int = EXPEDITION.BRANCH_COUNT if EXPEDITION.is_final_floor(wave) else EXPEDITION.get_branch_index(wave)
+	var boss_kind := int(get_expedition_branch(wave).get("attack_profile", get_expedition_branch_index(wave)))
 	last_boss_kind = boss_kind
 	var bosses_defeated := boss_kind
 	next_enemy_id += 1
-	rpc("spawn_ascension_boss_rpc", BOSS_PRESENTATION_PATHS[boss_kind], spawn_position, enemy_id, boss_kind, bosses_defeated)
+	var presentation_path := expedition_director.get_guardian_path(wave) if expedition_director else BOSS_PRESENTATION_PATHS[clampi(boss_kind, 0, BOSS_PRESENTATION_PATHS.size() - 1)]
+	rpc("spawn_ascension_boss_rpc", presentation_path, spawn_position, enemy_id, boss_kind, bosses_defeated)
 
 func complete_expedition() -> void:
 	if campaign_completed or not multiplayer.is_server():
@@ -1129,12 +1211,12 @@ func create_enemy_instance(scene_path: String, spawn_position: Vector2, enemy_id
 	enemy.name = enemy_id
 	enemy.global_position = spawn_position
 	enemy.set_meta("arena_bounds", arena_bounds)
-	enemy.set_meta("expedition_branch", EXPEDITION.get_branch_index(maxi(1, wave)))
+	enemy.set_meta("expedition_branch", get_expedition_branch_index(maxi(1, wave)))
 	enemies.add_child(enemy)
-	decorate_expedition_enemy(enemy, EXPEDITION.get_branch_index(maxi(1, wave)))
+	decorate_expedition_enemy(enemy, get_expedition_branch_index(maxi(1, wave)))
 
 func decorate_expedition_enemy(enemy: CharacterBody2D, branch_index: int) -> void:
-	var branch: Dictionary = EXPEDITION.BRANCHES[clampi(branch_index, 0, EXPEDITION.BRANCH_COUNT - 1)]
+	var branch: Dictionary = get_expedition_branch(maxi(1, wave))
 	var branch_color: Color = branch.get("color", Color.WHITE)
 	var accent_color: Color = branch.get("accent", Color.WHITE)
 	var sprite := enemy.get_node_or_null("Sprite2D") as Sprite2D
@@ -1148,13 +1230,17 @@ func decorate_expedition_enemy(enemy: CharacterBody2D, branch_index: int) -> voi
 	crystal.z_index = 3
 	enemy.add_child(crystal)
 	if "max_health" in enemy:
-		var scaled_health := roundi(float(enemy.get("max_health")) * (1.0 + float(branch_index) * 0.22))
+		var room_health_multiplier := float(current_room_definition.get("health_multiplier", 1.0))
+		var scaled_health := roundi(float(enemy.get("max_health")) * (1.0 + float(branch_index) * 0.22) * room_health_multiplier)
 		enemy.set("max_health", scaled_health)
 		enemy.set("current_health", scaled_health)
 	if "speed" in enemy and float(enemy.get("speed")) > 0.0:
 		var branch_speed_multipliers: Array[float] = [1.0, 0.88, 1.18, 1.06, 1.24]
-		var speed_multiplier: float = branch_speed_multipliers[clampi(branch_index, 0, 4)]
+		var speed_multiplier: float = branch_speed_multipliers[clampi(branch_index, 0, 4)] * float(current_room_definition.get("speed_multiplier", 1.0))
 		enemy.set("speed", float(enemy.get("speed")) * speed_multiplier)
+	if "characteristic_drop_chance" in enemy:
+		var drop_multiplier := float(current_room_definition.get("drop_multiplier", 1.0))
+		enemy.set("characteristic_drop_chance", clampf(float(enemy.get("characteristic_drop_chance")) * drop_multiplier, 0.0, 1.0))
 
 func build_enemy_states() -> Array[Dictionary]:
 	var states: Array[Dictionary] = []

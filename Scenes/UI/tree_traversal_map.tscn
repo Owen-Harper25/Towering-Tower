@@ -1,0 +1,154 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://Scripts/tree_traversal_map.gd" id="1"]
+[ext_resource type="Texture2D" path="res://Assets/Expedition/tree_concept_reference.png" id="2"]
+[ext_resource type="FontFile" path="res://Assets/Capital Bold - Normal.ttf" id="3"]
+[ext_resource type="AudioStream" path="res://SFX/openMenu.wav" id="4"]
+[ext_resource type="AudioStream" path="res://SFX/oxidvideos-placing-playing-card-522514.mp3" id="5"]
+[ext_resource type="AudioStream" path="res://SFX/Confirm.wav" id="6"]
+
+[sub_resource type="AtlasTexture" id="TreeCrop"]
+atlas = ExtResource("2")
+region = Rect2(0, 0, 76, 57)
+
+[sub_resource type="Curve2D" id="WeepingCurve"]
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 34, 174, 0, 0, 0, 0, 72, 143, 0, 0, 0, 0, 111, 115, 0, 0, 0, 0, 148, 72)}
+point_count = 4
+
+[sub_resource type="Curve2D" id="MarrowCurve"]
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 46, 180, 0, 0, 0, 0, 79, 141, 0, 0, 0, 0, 128, 103, 0, 0, 0, 0, 195, 82)}
+point_count = 4
+
+[sub_resource type="Curve2D" id="VermilionCurve"]
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 66, 183, 0, 0, 0, 0, 93, 130, 0, 0, 0, 0, 171, 111, 0, 0, 0, 0, 236, 54)}
+point_count = 4
+
+[sub_resource type="Curve2D" id="AzureCurve"]
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 65, 183, 0, 0, 0, 0, 102, 139, 0, 0, 0, 0, 182, 136, 0, 0, 0, 0, 260, 108)}
+point_count = 4
+
+[sub_resource type="Curve2D" id="EclipsedCurve"]
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 63, 183, 0, 0, 0, 0, 111, 150, 0, 0, 0, 0, 198, 158, 0, 0, 0, 0, 287, 151)}
+point_count = 4
+
+[sub_resource type="Curve2D" id="NestCurve"]
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 62, 184, 0, 0, 0, 0, 105, 124, 0, 0, 0, 0, 162, 70, 0, 0, 0, 0, 224, 30)}
+point_count = 4
+
+[node name="TreeTraversalMap" type="CanvasLayer"]
+layer = 68
+script = ExtResource("1")
+
+[node name="Shade" type="ColorRect" parent="."]
+offset_right = 480.0
+offset_bottom = 270.0
+color = Color(0.008, 0.012, 0.027, 0.94)
+mouse_filter = 2
+
+[node name="MapPanel" type="Control" parent="Shade"]
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 270.0
+
+[node name="PhotoFrame" type="ColorRect" parent="Shade/MapPanel"]
+offset_left = 18.0
+offset_top = 37.0
+offset_right = 332.0
+offset_bottom = 237.0
+color = Color(0.047, 0.071, 0.118, 1)
+mouse_filter = 2
+
+[node name="TreePhoto" type="TextureRect" parent="Shade/MapPanel/PhotoFrame"]
+texture_filter = 1
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 306.0
+offset_bottom = 192.0
+texture = SubResource("TreeCrop")
+expand_mode = 1
+stretch_mode = 6
+modulate = Color(0.72, 0.86, 1, 0.72)
+mouse_filter = 2
+
+[node name="BranchPaths" type="Node2D" parent="Shade/MapPanel"]
+position = Vector2(26, 44)
+
+[node name="WeepingRootPath" type="Path2D" parent="Shade/MapPanel/BranchPaths"]
+curve = SubResource("WeepingCurve")
+
+[node name="OssifiedBoughPath" type="Path2D" parent="Shade/MapPanel/BranchPaths"]
+curve = SubResource("MarrowCurve")
+
+[node name="VermilionVeinPath" type="Path2D" parent="Shade/MapPanel/BranchPaths"]
+curve = SubResource("VermilionCurve")
+
+[node name="AzureCrownPath" type="Path2D" parent="Shade/MapPanel/BranchPaths"]
+curve = SubResource("AzureCurve")
+
+[node name="EclipsedLimbPath" type="Path2D" parent="Shade/MapPanel/BranchPaths"]
+curve = SubResource("EclipsedCurve")
+
+[node name="CrownNestPath" type="Path2D" parent="Shade/MapPanel/BranchPaths"]
+curve = SubResource("NestCurve")
+
+[node name="Title" type="Label" parent="Shade/MapPanel"]
+offset_left = 18.0
+offset_top = 10.0
+offset_right = 462.0
+offset_bottom = 29.0
+theme_override_fonts/font = ExtResource("3")
+theme_override_font_sizes/font_size = 12
+text = "AGENCY EXPEDITION MAP"
+horizontal_alignment = 1
+
+[node name="Destination" type="Label" parent="Shade/MapPanel"]
+offset_left = 342.0
+offset_top = 66.0
+offset_right = 470.0
+offset_bottom = 124.0
+theme_override_colors/font_color = Color(0.67, 0.9, 1, 1)
+theme_override_fonts/font = ExtResource("3")
+theme_override_font_sizes/font_size = 11
+text = "THE WEEPING ROOT"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Floor" type="Label" parent="Shade/MapPanel"]
+offset_left = 342.0
+offset_top = 126.0
+offset_right = 470.0
+offset_bottom = 198.0
+theme_override_fonts/font = ExtResource("3")
+theme_override_font_sizes/font_size = 8
+text = "FLOOR 1 // SPLIT ROOT"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Hint" type="Label" parent="Shade/MapPanel"]
+offset_left = 340.0
+offset_top = 210.0
+offset_right = 472.0
+offset_bottom = 235.0
+theme_override_colors/font_color = Color(0.54, 0.61, 0.72, 1)
+theme_override_fonts/font = ExtResource("3")
+theme_override_font_sizes/font_size = 6
+text = "ROUTE UPDATED BY FIELD COMMAND"
+horizontal_alignment = 1
+
+[node name="MapOpenSFX" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4")
+bus = &"SFX"
+volume_db = -7.0
+
+[node name="TravelSFX" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5")
+bus = &"SFX"
+volume_db = -10.0
+pitch_scale = 0.82
+
+[node name="ArriveSFX" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6")
+bus = &"SFX"
+volume_db = -5.0

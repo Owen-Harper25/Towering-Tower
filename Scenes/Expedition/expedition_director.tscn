@@ -1,0 +1,210 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://Scripts/expedition_director.gd" id="1"]
+[ext_resource type="Script" path="res://Scripts/expedition_branch_node.gd" id="2"]
+[ext_resource type="PackedScene" path="res://Scenes/tree_guardian_sap.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://Scenes/tree_guardian_marrow.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://Scenes/tree_guardian_choir.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://Scenes/tree_guardian_prism.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://Scenes/tree_guardian_apostle.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://Scenes/tree_guardian_seraph.tscn" id="8"]
+[ext_resource type="Script" path="res://Scripts/expedition_room_node.gd" id="9"]
+
+[node name="ExpeditionDirector" type="Node"]
+script = ExtResource("1")
+
+[node name="WeepingRoot" type="Node" parent="."]
+script = ExtResource("2")
+display_name = "THE WEEPING ROOT"
+short_name = "WEEPING ROOT"
+briefing = "A drowned limb where the Tree first learned to imitate blood."
+guardian_name = "THE SAP-BEARER"
+room_names = Array[String](["SPLIT ROOT", "SPORE HOLLOW", "SUNKEN VEIN"])
+guardian_scene = ExtResource("3")
+attack_profile = 0
+base_color = Color(0.3059, 0.5608, 0.7216, 1)
+dark_color = Color(0.0627, 0.102, 0.2078, 1)
+accent_color = Color(0.6235, 0.8627, 1, 1)
+map_path_node = NodePath("../TreeTraversalMap/MapPanel/BranchPaths/WeepingRootPath")
+
+[node name="OssifiedBough" type="Node" parent="."]
+script = ExtResource("2")
+display_name = "THE OSSIFIED BOUGH"
+short_name = "OSSIFIED BOUGH"
+briefing = "A pale branch armored in the memories of everything it consumed."
+guardian_name = "MARROW STAG"
+room_names = Array[String](["BONE ORCHARD", "HUSK GALLERY", "CALCIUM KNOT"])
+guardian_scene = ExtResource("4")
+attack_profile = 1
+base_color = Color(0.8471, 0.8353, 0.7412, 1)
+dark_color = Color(0.1608, 0.1412, 0.2471, 1)
+accent_color = Color(0.9569, 0.9333, 0.8078, 1)
+map_path_node = NodePath("../TreeTraversalMap/MapPanel/BranchPaths/OssifiedBoughPath")
+
+[node name="VermilionVein" type="Node" parent="."]
+script = ExtResource("2")
+display_name = "THE VERMILION VEIN"
+short_name = "VERMILION VEIN"
+briefing = "Warm wood pulses here, manufacturing predators from stolen instinct."
+guardian_name = "CHOIR OF TEETH"
+room_names = Array[String](["PULSE CHAMBER", "RED NURSERY", "THORN ARTERY"])
+guardian_scene = ExtResource("5")
+attack_profile = 2
+base_color = Color(0.7412, 0.298, 0.3804, 1)
+dark_color = Color(0.1961, 0.0824, 0.1569, 1)
+accent_color = Color(1, 0.6039, 0.5137, 1)
+map_path_node = NodePath("../TreeTraversalMap/MapPanel/BranchPaths/VermilionVeinPath")
+
+[node name="AzureCrown" type="Node" parent="."]
+script = ExtResource("2")
+display_name = "THE AZURE CROWN"
+short_name = "AZURE CROWN"
+briefing = "Crystallized characteristics think in chorus beneath its bark."
+guardian_name = "THE PRISM WIDOW"
+room_names = Array[String](["CRYSTAL SYNAPSE", "STAR-SAP WELL", "PRISM SCAR"])
+guardian_scene = ExtResource("6")
+attack_profile = 3
+base_color = Color(0.3216, 0.4196, 0.8314, 1)
+dark_color = Color(0.0824, 0.0824, 0.2078, 1)
+accent_color = Color(0.4549, 0.8941, 0.9098, 1)
+map_path_node = NodePath("../TreeTraversalMap/MapPanel/BranchPaths/AzureCrownPath")
+
+[node name="EclipsedLimb" type="Node" parent="."]
+script = ExtResource("2")
+display_name = "THE ECLIPSED LIMB"
+short_name = "ECLIPSED LIMB"
+briefing = "The oldest branch. Even agency instruments refuse to remember it."
+guardian_name = "THE HOLLOW APOSTLE"
+room_names = Array[String](["BLIND CANOPY", "NULL KNOT", "MOURNING RING"])
+guardian_scene = ExtResource("7")
+attack_profile = 4
+base_color = Color(0.4627, 0.3216, 0.6118, 1)
+dark_color = Color(0.0627, 0.051, 0.1255, 1)
+accent_color = Color(0.7961, 0.651, 1, 1)
+map_path_node = NodePath("../TreeTraversalMap/MapPanel/BranchPaths/EclipsedLimbPath")
+
+[node name="CrownNest" type="Node" parent="."]
+script = ExtResource("2")
+display_name = "THE CROWN NEST"
+short_name = "CROWN NEST"
+briefing = "At the peak, something with too many wings is waiting to hatch."
+guardian_name = "SERAPH OF THE LAST NEST"
+floor_count = 1
+room_names = Array[String](["THE LAST ASCENT"])
+guardian_scene = ExtResource("8")
+attack_profile = 5
+base_color = Color(0.9098, 0.8118, 0.5216, 1)
+dark_color = Color(0.0902, 0.0745, 0.1569, 1)
+accent_color = Color(1, 0.9569, 0.7608, 1)
+map_path_node = NodePath("../TreeTraversalMap/MapPanel/BranchPaths/CrownNestPath")
+
+[node name="Rooms" type="Node" parent="WeepingRoot"]
+[node name="SplitRoot" type="Node" parent="WeepingRoot/Rooms"]
+script = ExtResource("9")
+display_name = "SPLIT ROOT"
+layout_type = 1
+rusher_bonus = 2
+[node name="SporeHollow" type="Node" parent="WeepingRoot/Rooms"]
+script = ExtResource("9")
+display_name = "SPORE HOLLOW"
+layout_type = 2
+turret_bonus = 2
+characteristic_drop_multiplier = 1.2
+[node name="SunkenVein" type="Node" parent="WeepingRoot/Rooms"]
+script = ExtResource("9")
+display_name = "SUNKEN VEIN"
+layout_type = 3
+sniper_bonus = 2
+
+[node name="Rooms" type="Node" parent="OssifiedBough"]
+[node name="BoneOrchard" type="Node" parent="OssifiedBough/Rooms"]
+script = ExtResource("9")
+display_name = "BONE ORCHARD"
+layout_type = 0
+rusher_bonus = 1
+enemy_health_multiplier = 1.25
+enemy_speed_multiplier = 0.85
+[node name="HuskGallery" type="Node" parent="OssifiedBough/Rooms"]
+script = ExtResource("9")
+display_name = "HUSK GALLERY"
+layout_type = 1
+turret_bonus = 2
+enemy_health_multiplier = 1.15
+[node name="CalciumKnot" type="Node" parent="OssifiedBough/Rooms"]
+script = ExtResource("9")
+display_name = "CALCIUM KNOT"
+layout_type = 2
+sniper_bonus = 1
+turret_bonus = 1
+
+[node name="Rooms" type="Node" parent="VermilionVein"]
+[node name="PulseChamber" type="Node" parent="VermilionVein/Rooms"]
+script = ExtResource("9")
+display_name = "PULSE CHAMBER"
+layout_type = 2
+rusher_bonus = 3
+enemy_speed_multiplier = 1.2
+[node name="RedNursery" type="Node" parent="VermilionVein/Rooms"]
+script = ExtResource("9")
+display_name = "RED NURSERY"
+layout_type = 0
+rusher_bonus = 1
+turret_bonus = 2
+characteristic_drop_multiplier = 1.25
+[node name="ThornArtery" type="Node" parent="VermilionVein/Rooms"]
+script = ExtResource("9")
+display_name = "THORN ARTERY"
+layout_type = 3
+sniper_bonus = 3
+enemy_speed_multiplier = 1.1
+
+[node name="Rooms" type="Node" parent="AzureCrown"]
+[node name="CrystalSynapse" type="Node" parent="AzureCrown/Rooms"]
+script = ExtResource("9")
+display_name = "CRYSTAL SYNAPSE"
+layout_type = 1
+sniper_bonus = 2
+enemy_health_multiplier = 1.15
+[node name="StarSapWell" type="Node" parent="AzureCrown/Rooms"]
+script = ExtResource("9")
+display_name = "STAR-SAP WELL"
+layout_type = 2
+turret_bonus = 3
+characteristic_drop_multiplier = 1.35
+[node name="PrismScar" type="Node" parent="AzureCrown/Rooms"]
+script = ExtResource("9")
+display_name = "PRISM SCAR"
+layout_type = 3
+rusher_bonus = 1
+sniper_bonus = 2
+enemy_speed_multiplier = 1.1
+
+[node name="Rooms" type="Node" parent="EclipsedLimb"]
+[node name="BlindCanopy" type="Node" parent="EclipsedLimb/Rooms"]
+script = ExtResource("9")
+display_name = "BLIND CANOPY"
+layout_type = 0
+rusher_bonus = 2
+sniper_bonus = 2
+enemy_speed_multiplier = 1.15
+[node name="NullKnot" type="Node" parent="EclipsedLimb/Rooms"]
+script = ExtResource("9")
+display_name = "NULL KNOT"
+layout_type = 1
+turret_bonus = 3
+enemy_health_multiplier = 1.25
+[node name="MourningRing" type="Node" parent="EclipsedLimb/Rooms"]
+script = ExtResource("9")
+display_name = "MOURNING RING"
+layout_type = 2
+rusher_bonus = 2
+sniper_bonus = 2
+turret_bonus = 1
+
+[node name="Rooms" type="Node" parent="CrownNest"]
+[node name="LastAscent" type="Node" parent="CrownNest/Rooms"]
+script = ExtResource("9")
+display_name = "THE LAST ASCENT"
+layout_type = 4
+enemy_health_multiplier = 1.5
+enemy_speed_multiplier = 1.25

@@ -3,6 +3,7 @@ extends Node2D
 const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 const TREE_ENVIRONMENT := preload("res://Scripts/alien_tree_environment.gd")
+const TREE_REFERENCE := preload("res://Assets/Expedition/tree_concept_reference.png")
 
 @onready var shop_interactable: Area2D = $ShopKeeper/Interactable
 @onready var tree_interactable: Area2D = $SkillTree/Interactable
@@ -53,6 +54,28 @@ func create_agency_briefing_ui() -> void:
 	title.modulate = Color("bcecff")
 	plaque.add_child(title)
 	layer.add_child(plaque)
+	var evidence_frame := ColorRect.new()
+	evidence_frame.color = Color(0.025, 0.045, 0.07, 0.92)
+	evidence_frame.position = Vector2(354.0, 8.0)
+	evidence_frame.size = Vector2(118.0, 62.0)
+	var evidence_photo := TextureRect.new()
+	evidence_photo.texture = TREE_REFERENCE
+	evidence_photo.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	evidence_photo.position = Vector2(4.0, 4.0)
+	evidence_photo.size = Vector2(110.0, 43.0)
+	evidence_photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	evidence_photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	evidence_frame.add_child(evidence_photo)
+	var evidence_label := Label.new()
+	evidence_label.text = "FIRST CONTACT // DAY 0"
+	evidence_label.position = Vector2(4.0, 48.0)
+	evidence_label.size = Vector2(110.0, 10.0)
+	evidence_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	evidence_label.add_theme_font_override("font", CAPITAL_BOLD_FONT)
+	evidence_label.add_theme_font_size_override("font_size", 5)
+	evidence_label.modulate = Color("9fe7f5")
+	evidence_frame.add_child(evidence_label)
+	layer.add_child(evidence_frame)
 	add_child(layer)
 
 func _unhandled_input(event: InputEvent) -> void:

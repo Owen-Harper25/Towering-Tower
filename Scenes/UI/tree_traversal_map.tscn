@@ -1,38 +1,34 @@
 [gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://Scripts/tree_traversal_map.gd" id="1"]
-[ext_resource type="Texture2D" path="res://Assets/Expedition/tree_concept_reference.png" id="2"]
+[ext_resource type="Texture2D" path="res://Assets/Tree Map.png" id="2"]
 [ext_resource type="FontFile" path="res://Assets/Capital Bold - Normal.ttf" id="3"]
 [ext_resource type="AudioStream" path="res://SFX/openMenu.wav" id="4"]
 [ext_resource type="AudioStream" path="res://SFX/oxidvideos-placing-playing-card-522514.mp3" id="5"]
 [ext_resource type="AudioStream" path="res://SFX/Confirm.wav" id="6"]
 
-[sub_resource type="AtlasTexture" id="TreeCrop"]
-atlas = ExtResource("2")
-region = Rect2(0, 0, 76, 57)
-
 [sub_resource type="Curve2D" id="WeepingCurve"]
-_data = {"points": PackedVector2Array(0, 0, 0, 0, 34, 174, 0, 0, 0, 0, 72, 143, 0, 0, 0, 0, 111, 115, 0, 0, 0, 0, 148, 72)}
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 78, 178, 0, 0, 0, 0, 80, 68, 0, 0, 0, 0, 44, 52, 0, 0, 0, 0, 16, 56)}
 point_count = 4
 
 [sub_resource type="Curve2D" id="MarrowCurve"]
-_data = {"points": PackedVector2Array(0, 0, 0, 0, 46, 180, 0, 0, 0, 0, 79, 141, 0, 0, 0, 0, 128, 103, 0, 0, 0, 0, 195, 82)}
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 78, 178, 0, 0, 0, 0, 80, 68, 0, 0, 0, 0, 42, 40, 0, 0, 0, 0, 16, 28)}
 point_count = 4
 
 [sub_resource type="Curve2D" id="VermilionCurve"]
-_data = {"points": PackedVector2Array(0, 0, 0, 0, 66, 183, 0, 0, 0, 0, 93, 130, 0, 0, 0, 0, 171, 111, 0, 0, 0, 0, 236, 54)}
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 78, 178, 0, 0, 0, 0, 80, 68, 0, 0, 0, 0, 76, 28, 0, 0, 0, 0, 80, 4)}
 point_count = 4
 
 [sub_resource type="Curve2D" id="AzureCurve"]
-_data = {"points": PackedVector2Array(0, 0, 0, 0, 65, 183, 0, 0, 0, 0, 102, 139, 0, 0, 0, 0, 182, 136, 0, 0, 0, 0, 260, 108)}
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 78, 178, 0, 0, 0, 0, 80, 68, 0, 0, 0, 0, 108, 48, 0, 0, 0, 0, 114, 26)}
 point_count = 4
 
 [sub_resource type="Curve2D" id="EclipsedCurve"]
-_data = {"points": PackedVector2Array(0, 0, 0, 0, 63, 183, 0, 0, 0, 0, 111, 150, 0, 0, 0, 0, 198, 158, 0, 0, 0, 0, 287, 151)}
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 78, 178, 0, 0, 0, 0, 80, 68, 0, 0, 0, 0, 122, 56, 0, 0, 0, 0, 148, 40)}
 point_count = 4
 
 [sub_resource type="Curve2D" id="NestCurve"]
-_data = {"points": PackedVector2Array(0, 0, 0, 0, 62, 184, 0, 0, 0, 0, 105, 124, 0, 0, 0, 0, 162, 70, 0, 0, 0, 0, 224, 30)}
+_data = {"points": PackedVector2Array(0, 0, 0, 0, 78, 178, 0, 0, 0, 0, 80, 68, 0, 0, 0, 0, 80, 20, 0, 0, 0, 0, 80, 0)}
 point_count = 4
 
 [node name="TreeTraversalMap" type="CanvasLayer"]
@@ -64,14 +60,15 @@ offset_left = 8.0
 offset_top = 8.0
 offset_right = 306.0
 offset_bottom = 192.0
-texture = SubResource("TreeCrop")
+texture = ExtResource("2")
 expand_mode = 1
-stretch_mode = 6
-modulate = Color(0.72, 0.86, 1, 0.72)
+stretch_mode = 5
+modulate = Color(0.82, 0.9, 1, 0.88)
 mouse_filter = 2
 
 [node name="BranchPaths" type="Node2D" parent="Shade/MapPanel"]
-position = Vector2(26, 44)
+position = Vector2(93.222, 45)
+scale = Vector2(1.02222, 1.02222)
 
 [node name="WeepingRootPath" type="Path2D" parent="Shade/MapPanel/BranchPaths"]
 curve = SubResource("WeepingCurve")

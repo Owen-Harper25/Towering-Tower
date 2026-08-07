@@ -41,6 +41,14 @@ func build_visible_paths() -> void:
 		line.points = path.curve.get_baked_points()
 		line.z_index = -1
 		path.add_child(line)
+		for marker_index in range(1, 11):
+			var marker := Polygon2D.new()
+			marker.name = "FloorMarker%02d" % marker_index
+			marker.polygon = PackedVector2Array([Vector2(0, -2), Vector2(2, 0), Vector2(0, 2), Vector2(-2, 0)])
+			marker.position = path.curve.sample_baked(path.curve.get_baked_length() * float(marker_index) / 10.0)
+			marker.color = Color(0.35, 0.52, 0.68, 0.72)
+			marker.z_index = 1
+			path.add_child(marker)
 
 func show_floor_transition(from_floor: int, to_floor: int, branch_index: int, floor_in_branch: int, branch_name: String, room_name: String, guardian_floor: bool) -> void:
 	if active_tween and active_tween.is_valid():
@@ -52,6 +60,7 @@ func show_floor_transition(from_floor: int, to_floor: int, branch_index: int, fl
 		return
 	var selected_index := clampi(branch_index, 0, paths.size() - 1)
 	var selected_path := paths[selected_index]
+	selected_path.set_meta("current_floor", floor_in_branch)
 	set_path_highlight(selected_path)
 	title_label.text = "AGENCY EXPEDITION MAP"
 	destination_label.text = branch_name
@@ -97,11 +106,19 @@ func get_editable_paths() -> Array[Path2D]:
 	return paths
 
 func set_path_highlight(selected_path: Path2D) -> void:
-	for path in get_editable_paths():
+	var paths := get_editable_paths()
+	var selected_index := paths.find(selected_path)
+	for path_index in range(paths.size()):
+		var path := paths[path_index]
 		var line := path.get_node_or_null("RouteLine") as Line2D
 		if line:
-			line.default_color = Color(0.52, 0.86, 1.0, 0.95) if path == selected_path else Color(0.19, 0.27, 0.42, 0.32)
+			line.default_color = Color(0.52, 0.86, 1.0, 0.95) if path == selected_path else Color(0.38, 0.18, 0.26, 0.42) if path_index < selected_index else Color(0.19, 0.27, 0.42, 0.28)
 			line.width = path_width + 1.0 if path == selected_path else path_width
+		for child in path.get_children():
+			if child is Polygon2D and child.name.begins_with("FloorMarker"):
+				var marker_number := int(str(child.name).trim_prefix("FloorMarker"))
+				var current_floor := int(path.get_meta("current_floor", 0)) if path == selected_path else 0
+				child.color = Color("fff0a8") if path == selected_path and marker_number <= current_floor else Color(0.34, 0.58, 0.76, 0.82) if path == selected_path else Color(0.25, 0.30, 0.42, 0.35)
 
 func create_agent_marker() -> Polygon2D:
 	var marker := Polygon2D.new()

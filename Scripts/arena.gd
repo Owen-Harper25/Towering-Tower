@@ -3,6 +3,8 @@ extends Node2D
 const RUSHER_SCENE := preload("res://Scenes/standard_bullet_enemy.tscn")
 const SNIPER_SCENE := preload("res://Scenes/sniper_bullet_enemy.tscn")
 const TURRET_SCENE := preload("res://Scenes/turret_enemy.tscn")
+const GATLING_SCENE := preload("res://Scenes/gatling_enemy.tscn")
+const TWIRLER_SCENE := preload("res://Scenes/twirler_enemy.tscn")
 const ASCENSION_BOSS_SCENE := preload("res://Scenes/ascension_popcorn_boss.tscn")
 const BOONS := preload("res://Scripts/boon_catalog.gd")
 const TREE_ENVIRONMENT := preload("res://Scripts/alien_tree_environment.gd")
@@ -53,8 +55,7 @@ var characteristic_level := 1
 var characteristic_xp := 0
 var pending_characteristic_draws := 0
 var campaign_completed := false
-var characteristic_label: Label
-var characteristic_bar: ProgressBar
+@onready var characteristic_hud: CharacteristicHud = $CharacteristicHud
 var environment: Node2D
 var expedition_director: ExpeditionDirector
 var traversal_map: TreeTraversalMap
@@ -497,34 +498,13 @@ func update_expedition_environment(floor_number: int) -> void:
 	environment.call("configure", context_value, visual_data, floor_number)
 
 func create_characteristic_hud() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 12
-	var panel := ColorRect.new()
-	panel.color = Color(0.025, 0.04, 0.075, 0.90)
-	panel.position = Vector2(8.0, 8.0)
-	panel.size = Vector2(154.0, 32.0)
-	characteristic_label = Label.new()
-	characteristic_label.position = Vector2(7.0, 3.0)
-	characteristic_label.size = Vector2(140.0, 12.0)
-	characteristic_label.add_theme_font_override("font", CAPITAL_BOLD_FONT)
-	characteristic_label.add_theme_font_size_override("font_size", 7)
-	panel.add_child(characteristic_label)
-	characteristic_bar = ProgressBar.new()
-	characteristic_bar.position = Vector2(7.0, 18.0)
-	characteristic_bar.size = Vector2(140.0, 7.0)
-	characteristic_bar.show_percentage = false
-	panel.add_child(characteristic_bar)
-	layer.add_child(panel)
-	add_child(layer)
 	update_characteristic_hud()
 
 func update_characteristic_hud() -> void:
-	if not characteristic_label or not characteristic_bar:
+	if not characteristic_hud:
 		return
 	var threshold: int = get_characteristic_threshold(characteristic_level)
-	characteristic_label.text = "SOUL CHARACTERISTICS  LV.%d  %d/%d" % [characteristic_level, characteristic_xp, threshold]
-	characteristic_bar.max_value = float(threshold)
-	characteristic_bar.value = float(characteristic_xp)
+	characteristic_hud.set_values(characteristic_level, characteristic_xp, threshold)
 
 func collect_characteristic(amount: int) -> void:
 	if not multiplayer.is_server() or campaign_completed or amount <= 0:
@@ -625,6 +605,8 @@ func start_floor_encounter(target_floor: int) -> void:
 	var rusher_count: int = 2 + floori(float(floor_in_branch) * 0.55) + branch_index
 	var sniper_count: int = maxi(0, floori(float(floor_in_branch + branch_index) * 0.32))
 	var turret_count: int = maxi(0, floori(float(floor_in_branch - 2) * 0.24) + floori(float(branch_index) * 0.5))
+	var gatling_count := int(current_room_definition.get("gatling_bonus", 0))
+	var twirler_count := int(current_room_definition.get("twirler_bonus", 0))
 	rusher_count += int(current_room_definition.get("rusher_bonus", 0))
 	sniper_count += int(current_room_definition.get("sniper_bonus", 0))
 	turret_count += int(current_room_definition.get("turret_bonus", 0))
@@ -632,11 +614,15 @@ func start_floor_encounter(target_floor: int) -> void:
 	spawn_group(RUSHER_SCENE, rusher_count)
 	spawn_group(SNIPER_SCENE, sniper_count)
 	spawn_group(TURRET_SCENE, turret_count)
+	spawn_group(GATLING_SCENE, gatling_count)
+	spawn_group(TWIRLER_SCENE, twirler_count)
 
 @rpc("authority", "call_local", "reliable")
 func show_floor_traversal_rpc(from_floor: int, target_floor: int) -> void:
 	floor_transition_active = true
 	wave_active = false
+	if target_floor >= get_expedition_final_floor():
+		SteamAchievements.unlock(SteamAchievements.CROWN_REACHED)
 	var branch := get_expedition_branch(target_floor)
 	if traversal_map:
 		traversal_map.show_floor_transition(
@@ -659,12 +645,31 @@ func begin_boon_draft(is_starting_draw: bool = false) -> void:
 	starting_boon_draft = is_starting_draw
 	boon_choices_by_peer.clear()
 	rpc("sync_wave_state_rpc", wave, false)
-	var boon_ids := BOONS.get_ids()
+	for peer_id in get_expected_boon_peer_ids():
+		var player := get_player_for_peer(peer_id)
+		var options := create_boon_options_for_player(player)
+		if peer_id == multiplayer.get_unique_id():
+			show_boon_draft_rpc(options, is_starting_draw)
+		else:
+			rpc_id(peer_id, "show_boon_draft_rpc", options, is_starting_draw)
+
+func get_player_for_peer(peer_id: int) -> CharacterBody2D:
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.get_multiplayer_authority() == peer_id:
+			return player
+	return null
+
+func create_boon_options_for_player(player: CharacterBody2D) -> Array[Dictionary]:
+	var uses_melee := false
+	if player and player.has_method("is_melee_weapon"):
+		uses_melee = bool(player.call("is_melee_weapon"))
+	var boon_ids := BOONS.get_ids_for_weapon(uses_melee)
 	boon_ids.shuffle()
 	var options: Array[Dictionary] = []
 	for option_index in range(mini(3, boon_ids.size())):
 		options.append({"id": boon_ids[option_index], "rarity": BOONS.roll_rarity()})
-	rpc("show_boon_draft_rpc", options, is_starting_draw)
+	return options
 
 func get_expected_boon_peer_ids() -> Array[int]:
 	var peer_ids: Array[int] = []
@@ -1131,6 +1136,7 @@ func complete_expedition() -> void:
 
 @rpc("authority", "call_local", "reliable")
 func show_expedition_complete_rpc() -> void:
+	SteamAchievements.unlock(SteamAchievements.WORLD_SAVED)
 	var layer := CanvasLayer.new()
 	layer.layer = 90
 	var shade := ColorRect.new()
@@ -1150,6 +1156,9 @@ func show_expedition_complete_rpc() -> void:
 
 @rpc("authority", "call_local", "reliable")
 func announce_severed_branch_rpc(branch_name: String) -> void:
+	SteamAchievements.unlock(SteamAchievements.BRANCH_SEVERED)
+	if get_expedition_branch_index(wave) >= 4:
+		SteamAchievements.unlock(SteamAchievements.FIVE_BRANCHES)
 	var layer := CanvasLayer.new()
 	layer.layer = 30
 	var message := Label.new()

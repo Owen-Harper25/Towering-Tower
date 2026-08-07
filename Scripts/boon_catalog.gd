@@ -22,11 +22,23 @@ const BOONS := {
 	"returning_comet": {"name": "RETURNING COMET", "effect": "fall_grace", "base": 0.18, "text": "+%ss fall grace", "sigil": 9},
 	"chariot": {"name": "THE CHARIOT", "effect": "roll_speed", "base": 0.09, "text": "%s%% dodge speed", "sigil": 10},
 	"crooked_moon": {"name": "CROOKED MOON", "effect": "critical", "base": 0.06, "text": "%s%% critical chance", "sigil": 11},
+	"hungry_edge": {"name": "THE HUNGRY EDGE", "effect": "melee_damage", "base": 0.16, "text": "%s%% soul-blade damage", "sigil": 12, "requires": "melee"},
+	"long_reach": {"name": "THE LONG REACH", "effect": "melee_range", "base": 0.12, "text": "%s%% soul-blade reach", "sigil": 13, "requires": "melee"},
+	"quick_silver": {"name": "QUICKSILVER RITE", "effect": "melee_speed", "base": 0.10, "text": "%s%% faster soul-blade strikes", "sigil": 14, "requires": "melee"},
 }
 
 static func get_ids() -> Array[String]:
 	var ids: Array[String] = []
 	for boon_id in BOONS:
+		ids.append(str(boon_id))
+	return ids
+
+static func get_ids_for_weapon(is_melee: bool) -> Array[String]:
+	var ids: Array[String] = []
+	for boon_id in BOONS:
+		var boon := get_boon(str(boon_id))
+		if str(boon.get("requires", "")) == "melee" and not is_melee:
+			continue
 		ids.append(str(boon_id))
 	return ids
 

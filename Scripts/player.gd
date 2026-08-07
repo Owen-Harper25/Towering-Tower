@@ -6,6 +6,8 @@ const SURVIVAL_DEATH_SFX := preload("res://SFX/game over.mp3")
 const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
 const BOONS := preload("res://Scripts/boon_catalog.gd")
 
+enum WeaponType { SIDEARM, SCATTERGUN, SOUL_BLADE }
+
 # --- Signals ---
 signal health_changed(new_health: int, max_health: int)
 signal player_died()
@@ -53,6 +55,11 @@ signal player_revived()
 @onready var menusfx: AudioStreamPlayer2D = get_node_or_null("/root/Main/SFX/Menu")
 @export var sync_velocity: Vector2 = Vector2.ZERO
 @export var sync_aim_direction: Vector2 = Vector2.RIGHT
+@export var equipped_weapon: WeaponType = WeaponType.SIDEARM:
+	set(value):
+		equipped_weapon = value
+		if is_node_ready():
+			apply_weapon_visuals()
 @export var equipped_head_cosmetic := "":
 	set(value):
 		equipped_head_cosmetic = value
@@ -119,6 +126,9 @@ var boon_invulnerability_bonus := 0.0
 var boon_fall_grace_bonus := 0.0
 var boon_roll_speed_bonus := 0.0
 var boon_critical_chance := 0.0
+var boon_melee_damage_bonus := 0.0
+var boon_melee_range_bonus := 0.0
+var boon_melee_speed_bonus := 0.0
 var acquired_boons: Array[String] = []
 var ui_input_locked := false
 var in_survival_mode := false
@@ -172,6 +182,7 @@ func _ready() -> void:
 	base_invincibility_duration = invincibility_duration
 	base_fall_recovery_time = fall_recovery_time
 	apply_cosmetic_visuals()
+	apply_weapon_visuals()
 	apply_meta_upgrades(false)
 	current_health = max_health
 	if is_multiplayer_authority():
@@ -691,22 +702,105 @@ func force_hide_survival_weapon() -> void:
 func shoot() -> void:
 	if in_survival_mode or is_downed or not is_wave_active() or not bullet_scene or Time.get_ticks_msec() / 1000.0 < next_shot_time:
 		return
-	next_shot_time = Time.get_ticks_msec() / 1000.0 + fire_cooldown
+	if equipped_weapon == WeaponType.SOUL_BLADE:
+		perform_melee_attack()
+		return
+	var weapon_cooldown := fire_cooldown * (3.0 if equipped_weapon == WeaponType.SCATTERGUN else 1.0)
+	next_shot_time = Time.get_ticks_msec() / 1000.0 + weapon_cooldown
 		
 	var spawn_pos = muzzle.global_position if muzzle else global_position
 	var adjusted_spread := bullet_spread_degrees * maxf(0.18, 1.0 - boon_accuracy_bonus)
 	var spread_radians := deg_to_rad(randf_range(-adjusted_spread, adjusted_spread))
 	var fire_angle := aim_direction.angle() + spread_radians
-	firing_recoil_velocity -= aim_direction * firing_recoil_force
+	var recoil_multiplier := 1.85 if equipped_weapon == WeaponType.SCATTERGUN else 1.0
+	firing_recoil_velocity -= aim_direction * firing_recoil_force * recoil_multiplier
 	rpc("play_firing_feedback_rpc", aim_direction)
 
 	var bullet_damage := 2 + MetaProgression.get_level("damage") + boon_damage_bonus
 	if randf() < boon_critical_chance:
 		bullet_damage *= 2
-	rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id(), bullet_damage, 1.0 + boon_bullet_speed_bonus, 1.0 + boon_knockback_bonus)
+	if equipped_weapon == WeaponType.SCATTERGUN:
+		for pellet_index in range(5):
+			var pellet_offset := deg_to_rad(float(pellet_index - 2) * 4.5 + randf_range(-1.5, 1.5))
+			rpc("spawn_bullet_rpc", spawn_pos, fire_angle + pellet_offset, multiplayer.get_unique_id(), maxi(1, roundi(float(bullet_damage) * 0.65)), 0.88 + boon_bullet_speed_bonus, 1.8 + boon_knockback_bonus)
+	else:
+		rpc("spawn_bullet_rpc", spawn_pos, fire_angle, multiplayer.get_unique_id(), bullet_damage, 1.0 + boon_bullet_speed_bonus, 1.0 + boon_knockback_bonus)
 	if randf() < boon_multishot_chance:
 		var echo_angle := fire_angle + deg_to_rad(5.0 if randf() > 0.5 else -5.0)
 		rpc("spawn_bullet_rpc", spawn_pos, echo_angle, multiplayer.get_unique_id(), bullet_damage, 1.0 + boon_bullet_speed_bonus, 1.0 + boon_knockback_bonus)
+
+func is_melee_weapon() -> bool:
+	return equipped_weapon == WeaponType.SOUL_BLADE
+
+func equip_weapon(weapon_id: int) -> void:
+	if not is_multiplayer_authority():
+		return
+	var safe_weapon := clampi(weapon_id, WeaponType.SIDEARM, WeaponType.SOUL_BLADE) as WeaponType
+	rpc("sync_weapon_rpc", int(safe_weapon))
+
+@rpc("any_peer", "call_local", "reliable")
+func sync_weapon_rpc(weapon_id: int) -> void:
+	equipped_weapon = clampi(weapon_id, WeaponType.SIDEARM, WeaponType.SOUL_BLADE) as WeaponType
+	apply_weapon_visuals()
+
+func apply_weapon_visuals() -> void:
+	if not weapon_pivot:
+		return
+	for child in weapon_pivot.get_children():
+		var visual := child as CanvasItem
+		if not visual or child == muzzle:
+			continue
+		var child_name := str(child.name)
+		if child_name.begins_with("Gun"):
+			visual.visible = equipped_weapon == WeaponType.SIDEARM
+		elif child_name.begins_with("Scatter"):
+			visual.visible = equipped_weapon == WeaponType.SCATTERGUN
+		elif child_name.begins_with("Blade"):
+			visual.visible = equipped_weapon == WeaponType.SOUL_BLADE
+	muzzle.position.x = 15.0 if equipped_weapon == WeaponType.SCATTERGUN else 12.0
+
+func perform_melee_attack() -> void:
+	next_shot_time = Time.get_ticks_msec() / 1000.0 + maxf(0.12, 0.38 * (1.0 - minf(0.65, boon_melee_speed_bonus)))
+	firing_recoil_velocity -= aim_direction * firing_recoil_force * 0.35
+	var melee_damage := roundi((5.0 + float(MetaProgression.get_level("damage")) + float(boon_damage_bonus)) * (1.0 + boon_melee_damage_bonus))
+	var melee_range := 42.0 * (1.0 + boon_melee_range_bonus)
+	if multiplayer.is_server():
+		server_apply_melee(global_position, aim_direction, melee_damage, melee_range)
+	else:
+		rpc_id(1, "request_melee_attack_rpc", global_position, aim_direction, melee_damage, melee_range)
+
+@rpc("any_peer", "reliable")
+func request_melee_attack_rpc(origin: Vector2, direction: Vector2, damage: int, attack_range: float) -> void:
+	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != get_multiplayer_authority():
+		return
+	server_apply_melee(origin, direction, damage, attack_range)
+
+func server_apply_melee(origin: Vector2, direction: Vector2, damage: int, attack_range: float) -> void:
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Node2D
+		if not enemy or not enemy.has_method("take_damage"):
+			continue
+		var offset := enemy.global_position - origin
+		if offset.length() > attack_range or direction.dot(offset.normalized()) < 0.2:
+			continue
+		enemy.call("take_damage", damage)
+		if enemy.has_method("apply_knockback"):
+			enemy.call("apply_knockback", offset.normalized() * (390.0 + boon_knockback_bonus * 180.0))
+	rpc("play_melee_feedback_rpc", origin, direction, attack_range)
+
+@rpc("authority", "call_local", "reliable")
+func play_melee_feedback_rpc(origin: Vector2, direction: Vector2, attack_range: float) -> void:
+	play_firing_feedback_rpc(direction)
+	var slash := Line2D.new()
+	slash.width = 5.0
+	slash.default_color = Color(0.62, 0.93, 1.0, 0.9)
+	slash.global_position = origin
+	var perpendicular := direction.orthogonal()
+	slash.points = PackedVector2Array([direction * 10.0 - perpendicular * 13.0, direction * attack_range, direction * 10.0 + perpendicular * 13.0])
+	get_parent().add_child(slash)
+	var tween := slash.create_tween()
+	tween.tween_property(slash, "modulate:a", 0.0, 0.14)
+	tween.tween_callback(slash.queue_free)
 
 @rpc("any_peer", "call_local", "unreliable")
 func play_firing_feedback_rpc(fire_direction: Vector2) -> void:
@@ -857,7 +951,12 @@ func apply_ascension_boon(boon_id: String, rarity: int) -> void:
 		"fall_grace": boon_fall_grace_bonus += value
 		"roll_speed": boon_roll_speed_bonus += value
 		"critical": boon_critical_chance += value
+		"melee_damage": boon_melee_damage_bonus += value
+		"melee_range": boon_melee_range_bonus += value
+		"melee_speed": boon_melee_speed_bonus += value
 	acquired_boons.append("%s:%d" % [boon_id, rarity])
+	if acquired_boons.size() >= 10:
+		SteamAchievements.unlock(SteamAchievements.TEN_CHARACTERISTICS)
 	apply_meta_upgrades(true)
 
 func clear_ascension_boons() -> void:
@@ -873,6 +972,9 @@ func clear_ascension_boons() -> void:
 	boon_fall_grace_bonus = 0.0
 	boon_roll_speed_bonus = 0.0
 	boon_critical_chance = 0.0
+	boon_melee_damage_bonus = 0.0
+	boon_melee_range_bonus = 0.0
+	boon_melee_speed_bonus = 0.0
 	acquired_boons.clear()
 	apply_meta_upgrades(false)
 

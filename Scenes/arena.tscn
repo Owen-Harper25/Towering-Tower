@@ -7,13 +7,17 @@
 [ext_resource type="Script" uid="uid://dgrtj4vk4jjfv" path="res://Scripts/arena.gd" id="7_arena"]
 [ext_resource type="PackedScene" path="res://Scenes/Expedition/expedition_director.tscn" id="8_director"]
 [ext_resource type="PackedScene" path="res://Scenes/UI/tree_traversal_map.tscn" id="9_map"]
+[ext_resource type="PackedScene" path="res://Scenes/UI/characteristic_hud.tscn" id="10_xp_hud"]
 
 [node name="Arena" type="Node2D" unique_id=101048953]
 script = ExtResource("7_arena")
 
-[node name="ExpeditionDirector" parent="." instance=ExtResource("8_director")]
+[node name="ExpeditionDirector" parent="." unique_id=778096420 instance=ExtResource("8_director")]
 
-[node name="TreeTraversalMap" parent="." instance=ExtResource("9_map")]
+[node name="TreeTraversalMap" parent="." unique_id=1671597499 instance=ExtResource("9_map")]
+visible = false
+
+[node name="CharacteristicHud" parent="." unique_id=821316500 instance=ExtResource("10_xp_hud")]
 
 [node name="Ground" type="Parallax2D" parent="." unique_id=395445077]
 scroll_scale = Vector2(0.05, 0.05)

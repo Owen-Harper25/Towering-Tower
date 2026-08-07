@@ -1,0 +1,165 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://Scripts/characteristic_hud.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://Assets/Capital Bold - Normal.ttf" id="2_font"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.018, 0.04, 0.065, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.258824, 0.537255, 0.603922, 1)
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+shadow_color = Color(0.1, 0.75, 0.9, 0.2)
+shadow_size = 3
+
+[sub_resource type="StyleBoxFlat" id="BarBackground"]
+bg_color = Color(0.027451, 0.066667, 0.101961, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.141176, 0.294118, 0.34902, 1)
+
+[sub_resource type="StyleBoxFlat" id="BarFill"]
+bg_color = Color(0.270588, 0.819608, 0.87451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.662745, 0.956863, 1, 1)
+
+[node name="CharacteristicHud" type="CanvasLayer"]
+layer = 12
+script = ExtResource("1_script")
+
+[node name="Panel" type="Panel" parent="."]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 150.0
+offset_bottom = 40.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="AgencyMark" type="Polygon2D" parent="Panel"]
+position = Vector2(11, 16)
+color = Color(0.45098, 0.85098, 0.913725, 1)
+polygon = PackedVector2Array(0, -6, 5, 0, 0, 6, -5, 0)
+
+[node name="MarkCore" type="Polygon2D" parent="Panel"]
+position = Vector2(11, 16)
+color = Color(0.031373, 0.070588, 0.109804, 1)
+polygon = PackedVector2Array(0, -3, 3, 0, 0, 3, -3, 0)
+
+[node name="ReservoirLabel" type="Label" parent="Panel"]
+offset_left = 20.0
+offset_top = 3.0
+offset_right = 114.0
+offset_bottom = 12.0
+theme_override_colors/font_color = Color(0.737255, 0.92549, 0.956863, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 4
+text = "SOUL RESERVOIR  0/6"
+
+[node name="RankLabel" type="Label" parent="Panel"]
+offset_left = 114.0
+offset_top = 3.0
+offset_right = 135.0
+offset_bottom = 12.0
+theme_override_colors/font_color = Color(1, 0.815686, 0.415686, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 5
+text = "LV.01"
+horizontal_alignment = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="Panel"]
+offset_left = 20.0
+offset_top = 14.0
+offset_right = 134.0
+offset_bottom = 21.0
+theme_override_styles/background = SubResource("BarBackground")
+theme_override_styles/fill = SubResource("BarFill")
+show_percentage = false
+
+[node name="Tick01" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 11.4
+offset_top = 1.0
+offset_right = 12.4
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick02" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 22.8
+offset_top = 1.0
+offset_right = 23.8
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick03" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 34.2
+offset_top = 1.0
+offset_right = 35.2
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick04" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 45.6
+offset_top = 1.0
+offset_right = 46.6
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick05" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 57.0
+offset_top = 1.0
+offset_right = 58.0
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick06" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 68.4
+offset_top = 1.0
+offset_right = 69.4
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick07" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 79.8
+offset_top = 1.0
+offset_right = 80.8
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick08" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 91.2
+offset_top = 1.0
+offset_right = 92.2
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="Tick09" type="ColorRect" parent="Panel/ProgressBar"]
+offset_left = 102.6
+offset_top = 1.0
+offset_right = 103.6
+offset_bottom = 6.0
+mouse_filter = 2
+color = Color(0.04, 0.12, 0.16, 0.75)
+
+[node name="StatusLabel" type="Label" parent="Panel"]
+offset_left = 20.0
+offset_top = 23.0
+offset_right = 134.0
+offset_bottom = 29.0
+theme_override_colors/font_color = Color(0.298039, 0.537255, 0.584314, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 3
+text = "AEB // RECOVERY LINK ACTIVE"

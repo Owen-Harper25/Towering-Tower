@@ -129,6 +129,7 @@ script = ExtResource("9")
 display_name = "HUSK GALLERY"
 layout_type = 1
 turret_bonus = 2
+gatling_bonus = 1
 enemy_health_multiplier = 1.15
 [node name="CalciumKnot" type="Node" parent="OssifiedBough/Rooms"]
 script = ExtResource("9")
@@ -143,6 +144,7 @@ script = ExtResource("9")
 display_name = "PULSE CHAMBER"
 layout_type = 2
 rusher_bonus = 3
+gatling_bonus = 1
 enemy_speed_multiplier = 1.2
 [node name="RedNursery" type="Node" parent="VermilionVein/Rooms"]
 script = ExtResource("9")
@@ -150,12 +152,14 @@ display_name = "RED NURSERY"
 layout_type = 0
 rusher_bonus = 1
 turret_bonus = 2
+gatling_bonus = 2
 characteristic_drop_multiplier = 1.25
 [node name="ThornArtery" type="Node" parent="VermilionVein/Rooms"]
 script = ExtResource("9")
 display_name = "THORN ARTERY"
 layout_type = 3
 sniper_bonus = 3
+gatling_bonus = 1
 enemy_speed_multiplier = 1.1
 
 [node name="Rooms" type="Node" parent="AzureCrown"]
@@ -164,12 +168,14 @@ script = ExtResource("9")
 display_name = "CRYSTAL SYNAPSE"
 layout_type = 1
 sniper_bonus = 2
+twirler_bonus = 1
 enemy_health_multiplier = 1.15
 [node name="StarSapWell" type="Node" parent="AzureCrown/Rooms"]
 script = ExtResource("9")
 display_name = "STAR-SAP WELL"
 layout_type = 2
 turret_bonus = 3
+twirler_bonus = 2
 characteristic_drop_multiplier = 1.35
 [node name="PrismScar" type="Node" parent="AzureCrown/Rooms"]
 script = ExtResource("9")
@@ -177,6 +183,8 @@ display_name = "PRISM SCAR"
 layout_type = 3
 rusher_bonus = 1
 sniper_bonus = 2
+gatling_bonus = 1
+twirler_bonus = 1
 enemy_speed_multiplier = 1.1
 
 [node name="Rooms" type="Node" parent="EclipsedLimb"]
@@ -186,12 +194,15 @@ display_name = "BLIND CANOPY"
 layout_type = 0
 rusher_bonus = 2
 sniper_bonus = 2
+gatling_bonus = 1
+twirler_bonus = 1
 enemy_speed_multiplier = 1.15
 [node name="NullKnot" type="Node" parent="EclipsedLimb/Rooms"]
 script = ExtResource("9")
 display_name = "NULL KNOT"
 layout_type = 1
 turret_bonus = 3
+twirler_bonus = 2
 enemy_health_multiplier = 1.25
 [node name="MourningRing" type="Node" parent="EclipsedLimb/Rooms"]
 script = ExtResource("9")
@@ -200,6 +211,8 @@ layout_type = 2
 rusher_bonus = 2
 sniper_bonus = 2
 turret_bonus = 1
+gatling_bonus = 2
+twirler_bonus = 2
 
 [node name="Rooms" type="Node" parent="CrownNest"]
 [node name="LastAscent" type="Node" parent="CrownNest/Rooms"]

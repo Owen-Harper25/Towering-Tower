@@ -3,13 +3,16 @@ extends Node2D
 const COSMETICS := preload("res://Scripts/cosmetic_catalog.gd")
 const CAPITAL_BOLD_FONT := preload("res://Assets/Capital Bold - Normal.ttf")
 const TREE_ENVIRONMENT := preload("res://Scripts/alien_tree_environment.gd")
-const TREE_REFERENCE := preload("res://Assets/Expedition/tree_concept_reference.png")
+const TREE_REFERENCE := preload("res://Assets/Tree Map.png")
 
 @onready var shop_interactable: Area2D = $ShopKeeper/Interactable
 @onready var tree_interactable: Area2D = $SkillTree/Interactable
 @onready var teleporter_interactable: Area2D = $Teleporter/Interactable
 @onready var survival_interactable: Area2D = $SurvivalTeleporter/Interactable
 @onready var mirror_interactable: Area2D = $WardrobeMirror/Interactable
+@onready var armory_interactable: Area2D = $Armory/Interactable
+@onready var archivist_interactable: Area2D = $Archivist/Interactable
+@onready var scientist_interactable: Area2D = $FieldScientist/Interactable
 
 var panel: Panel
 var panel_content: VBoxContainer
@@ -23,6 +26,9 @@ func _ready() -> void:
 	configure_interactable(teleporter_interactable, "E - BEGIN TREE EXPEDITION", enter_tower)
 	configure_interactable(survival_interactable, "E - RETURN TO THE ROOTS", enter_survival)
 	configure_interactable(mirror_interactable, "E - CHANGE OUTFIT", open_wardrobe)
+	configure_interactable(armory_interactable, "E - OPEN FIELD ARMORY", open_armory)
+	configure_lore_npc($Archivist, archivist_interactable)
+	configure_lore_npc($FieldScientist, scientist_interactable)
 	create_overlay()
 	create_headquarters_environment()
 	create_agency_briefing_ui()
@@ -94,6 +100,67 @@ func _exit_tree() -> void:
 func configure_interactable(interactable: Area2D, prompt: String, action: Callable) -> void:
 	interactable.interact_name = prompt
 	interactable.interact = action
+
+func configure_lore_npc(npc: Node, interactable: Area2D) -> void:
+	var title := str(npc.call("get_lore_title"))
+	var body := str(npc.call("get_lore_text"))
+	configure_interactable(interactable, "E - SPEAK WITH %s" % title, func(): open_lore_entry(title, body))
+
+func open_lore_entry(title: String, body: String) -> void:
+	clear_panel()
+	set_panel_size(Vector2(390.0, 244.0))
+	add_title(title)
+	var classification := Label.new()
+	classification.text = "AGENCY ARCHIVE // FIELD TESTIMONY"
+	classification.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	classification.modulate = Color("6fc9dc")
+	panel_content.add_child(classification)
+	var report := Label.new()
+	report.text = body
+	report.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	report.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_content.add_child(report)
+	add_close_button()
+	show_panel()
+
+func get_local_player() -> CharacterBody2D:
+	for player_node in get_tree().get_nodes_in_group("players"):
+		var player := player_node as CharacterBody2D
+		if player and player.is_multiplayer_authority():
+			return player
+	return null
+
+func open_armory() -> void:
+	clear_panel()
+	set_panel_size(Vector2(420.0, 286.0))
+	add_title("AGENCY FIELD ARMORY")
+	var local_player := get_local_player()
+	var current_weapon := int(local_player.get("equipped_weapon")) if local_player else 0
+	var orders := Label.new()
+	orders.text = "SELECT ONE ISSUED WEAPON. LOADOUT CHANGES APPLY IMMEDIATELY."
+	orders.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	orders.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel_content.add_child(orders)
+	for weapon_data: Dictionary in [
+		{"id": 0, "name": "SERVICE SIDEARM", "detail": "BALANCED // PRECISE // RELIABLE"},
+		{"id": 1, "name": "BREACH SCATTERGUN", "detail": "FIVE-ROUND SPREAD // HEAVY RECOIL"},
+		{"id": 2, "name": "SOUL-CUTTER BLADE", "detail": "MELEE ARC // HIGH KNOCKBACK // UNIQUE BOONS"},
+	]:
+		var button := Button.new()
+		var weapon_id := int(weapon_data["id"])
+		var issue_state := "  //  ISSUED" if weapon_id == current_weapon else ""
+		button.text = "%s%s\n%s" % [weapon_data["name"], issue_state, weapon_data["detail"]]
+		button.custom_minimum_size = Vector2(0.0, 44.0)
+		button.disabled = weapon_id == current_weapon
+		button.pressed.connect(func():
+			var player := get_local_player()
+			if player and player.has_method("equip_weapon"):
+				player.call("equip_weapon", weapon_id)
+			open_armory()
+		)
+		panel_content.add_child(button)
+	add_close_button()
+	show_panel()
 
 func create_overlay() -> void:
 	var layer := CanvasLayer.new()

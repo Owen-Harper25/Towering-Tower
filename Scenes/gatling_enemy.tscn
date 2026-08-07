@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/standard_bullet_enemy.tscn" id="1"]
+[ext_resource type="Script" path="res://Scripts/gatling_enemy.gd" id="2"]
+
+[node name="GatlingEnemy" instance=ExtResource("1")]
+script = ExtResource("2")
+speed = 82.0
+stopping_distance = 176.0
+max_health = 22
+attack_cooldown = 1.7
+projectile_count = 1
+
+[node name="GatlingHousing" type="Polygon2D" parent="." index="6"]
+position = Vector2(0, -8)
+color = Color(0.76, 0.42, 0.28, 1)
+polygon = PackedVector2Array(-9, -3, 7, -3, 11, 0, 7, 3, -9, 3)
+
+[node name="GatlingBarrels" type="Polygon2D" parent="." index="7"]
+position = Vector2(10, -8)
+color = Color(0.92, 0.72, 0.42, 1)
+polygon = PackedVector2Array(-2, -3, 9, -3, 9, -1, -2, -1, -2, 1, 9, 1, 9, 3, -2, 3)

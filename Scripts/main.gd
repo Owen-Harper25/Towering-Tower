@@ -254,6 +254,8 @@ func on_client_joined() -> void:
 func spawn_player(peer_id: int) -> void:
 	if not multiplayer.is_server():
 		return
+	if peer_id != multiplayer.get_unique_id() and not single_player_pause_reasons.is_empty():
+		clear_single_player_menu_pauses()
 
 	if not current_level:
 		load_level(default_level_scene)
@@ -346,7 +348,13 @@ func set_single_player_menu_paused(reason: String, should_pause: bool) -> void:
 	get_tree().paused = not single_player_pause_reasons.is_empty()
 
 func is_offline_single_player_session() -> bool:
-	return current_level != null and multiplayer.multiplayer_peer is OfflineMultiplayerPeer
+	if current_level == null or not multiplayer.get_peers().is_empty():
+		return false
+	var active_player_count := 0
+	for player in players:
+		if is_instance_valid(player):
+			active_player_count += 1
+	return active_player_count <= 1
 
 func clear_single_player_menu_pauses() -> void:
 	single_player_pause_reasons.clear()
@@ -418,6 +426,7 @@ func start_combat_rpc() -> void:
 	if mode_transition_in_progress or (current_level and current_level.is_in_group("tower_arena")):
 		return
 	mode_transition_in_progress = true
+	SteamAchievements.unlock(SteamAchievements.FIRST_DEPLOYMENT)
 	if multiplayer.is_server() and Networking.has_method("set_lobby_joinable"):
 		Networking.set_lobby_joinable(false)
 	play_party_teleport_effect()

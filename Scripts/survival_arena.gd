@@ -563,6 +563,9 @@ func finish_boss_rpc(finished_boss_index: int, reward: int, next_time: float) ->
 		boss_visual.modulate.a = 1.0
 	)
 	if award_local_kernel_currency(reward):
+		SteamAchievements.unlock(SteamAchievements.ROOTS_TRAINING)
+		if finished_boss_index >= 5:
+			SteamAchievements.unlock(SteamAchievements.ROOTS_VETERAN)
 		show_kernel_reward(reward)
 	update_mode_ui()
 

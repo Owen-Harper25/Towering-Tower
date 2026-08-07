@@ -1,0 +1,44 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/lore_npc.gd" id="1_lore"]
+[ext_resource type="PackedScene" path="res://Scenes/interactable.tscn" id="2_interact"]
+
+[sub_resource type="CircleShape2D" id="Circle_lore"]
+radius = 18.0
+
+[node name="LoreNpc" type="Node2D"]
+script = ExtResource("1_lore")
+
+[node name="Shadow" type="Polygon2D" parent="."]
+position = Vector2(0, 10)
+color = Color(0.02, 0.035, 0.055, 0.55)
+polygon = PackedVector2Array(-10, 0, -6, -3, 6, -3, 10, 0, 6, 3, -6, 3)
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.48, 0.66, 0.73, 1)
+polygon = PackedVector2Array(-7, -7, 7, -7, 9, 9, -9, 9)
+
+[node name="Coat" type="Polygon2D" parent="."]
+position = Vector2(0, 2)
+color = Color(0.08, 0.16, 0.23, 1)
+polygon = PackedVector2Array(-8, -3, 8, -3, 7, 8, -7, 8)
+
+[node name="Head" type="Polygon2D" parent="."]
+position = Vector2(0, -12)
+color = Color(0.82, 0.72, 0.63, 1)
+polygon = PackedVector2Array(-6, -5, 5, -5, 7, -2, 5, 6, -5, 6, -7, -2)
+
+[node name="Visor" type="Polygon2D" parent="."]
+position = Vector2(0, -13)
+color = Color(0.26, 0.86, 1, 1)
+polygon = PackedVector2Array(-6, -2, 6, -2, 5, 1, -5, 1)
+
+[node name="Badge" type="Polygon2D" parent="."]
+position = Vector2(3, 1)
+color = Color(1, 0.74, 0.28, 1)
+polygon = PackedVector2Array(0, -2, 2, 0, 0, 2, -2, 0)
+
+[node name="Interactable" parent="." instance=ExtResource("2_interact")]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactable"]
+shape = SubResource("Circle_lore")

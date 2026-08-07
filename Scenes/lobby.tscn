@@ -9,6 +9,11 @@
 [ext_resource type="Texture2D" uid="uid://crhacpd3g0ybc" path="res://Assets/Lobby.png" id="5_bvheq"]
 [ext_resource type="Texture2D" uid="uid://cqadh4fllxamd" path="res://Assets/Shop Man.png" id="7_aghey"]
 [ext_resource type="Texture2D" uid="uid://h4o1ow5gonto" path="res://Assets/Mirror.png" id="9_aghey"]
+[ext_resource type="PackedScene" path="res://Scenes/Lobby/agency_hq_dressing.tscn" id="10_hq"]
+[ext_resource type="PackedScene" path="res://Scenes/Lobby/lore_npc.tscn" id="11_lore"]
+
+[sub_resource type="CircleShape2D" id="InteractShape"]
+radius = 22.090721
 
 [sub_resource type="ShaderMaterial" id="ShopOutline"]
 resource_local_to_scene = true
@@ -18,9 +23,6 @@ shader_parameter/outline_thickness = 2.0000000475
 shader_parameter/outline_enabled = false
 shader_parameter/enabled = false
 shader_parameter/tint = Color(1, 1, 1, 1)
-
-[sub_resource type="CircleShape2D" id="InteractShape"]
-radius = 22.090721
 
 [sub_resource type="ShaderMaterial" id="TreeOutline"]
 resource_local_to_scene = true
@@ -60,6 +62,30 @@ shader_parameter/tint = Color(1, 1, 1, 1)
 
 [node name="Lobby" type="Node2D" unique_id=1887785168]
 script = ExtResource("1_lobby")
+
+[node name="AgencyHQDressing" parent="." unique_id=1382706224 instance=ExtResource("10_hq")]
+
+[node name="Archivist" parent="." unique_id=452730382 instance=ExtResource("11_lore")]
+position = Vector2(70, 164)
+speaker_name = "ARCHIVIST VELL"
+lore_text = "THE TREE DID NOT ARRIVE AS A SEED. IT APPEARED FULLY ROOTED AFTER THE NORTHERN SKY WENT WHITE. EVERY MONSTER CARRIES A MEMORY THAT IS NOT ITS OWN."
+
+[node name="FieldScientist" parent="." unique_id=1446688916 instance=ExtResource("11_lore")]
+position = Vector2(420, 190)
+speaker_name = "DR. ORISON"
+lore_text = "ELEMENTAL CONSERVATION HOLDS: A SOUL CANNOT BE DESTROYED, ONLY CRYSTALLIZED, RECOVERED, OR RETURNED TO THE ROOTS. DO NOT DIE WITH A FULL RESERVOIR."
+
+[node name="Armory" type="Node2D" parent="." unique_id=298554534]
+position = Vector2(355, 218)
+
+[node name="Terminal" type="Polygon2D" parent="Armory" unique_id=555420306]
+color = Color(0.19, 0.83, 0.92, 0.85)
+polygon = PackedVector2Array(-44, -29, 44, -29, 48, -23, 48, 27, 42, 31, -42, 31, -48, 27, -48, -23)
+
+[node name="Interactable" parent="Armory" unique_id=1164597782 instance=ExtResource("4_interactable")]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Armory/Interactable" unique_id=1135880113]
+shape = SubResource("InteractShape")
 
 [node name="Ground" type="Parallax2D" parent="." unique_id=32740265]
 scroll_scale = Vector2(0.05, 0.05)
@@ -110,6 +136,7 @@ texture_filter = 2
 texture = ExtResource("4_aghey")
 
 [node name="Island" type="Sprite2D" parent="." unique_id=2096325283]
+visible = false
 position = Vector2(194, 181)
 texture = ExtResource("5_bvheq")
 region_enabled = true
@@ -121,7 +148,7 @@ position = Vector2(139, 133)
 [node name="Shop Man" type="Sprite2D" parent="ShopKeeper" unique_id=1485181601]
 texture_filter = 1
 material = SubResource("ShopOutline")
-position = Vector2(14, -23)
+position = Vector2(10, 79)
 texture = ExtResource("7_aghey")
 region_enabled = true
 region_rect = Rect2(29.9651, 65.88595, 36.511356, 30.935722)
@@ -137,7 +164,7 @@ region_rect = Rect2(65.62607, 64.6369, 27.158691, 14.208855)
 position = Vector2(7, -34)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ShopKeeper/Interactable" unique_id=893784772]
-position = Vector2(7, 15)
+position = Vector2(5, 113)
 shape = SubResource("InteractShape")
 
 [node name="SkillTree" type="Node2D" parent="." unique_id=629580029]
@@ -146,7 +173,7 @@ position = Vector2(87, 92)
 [node name="Sprite2D" type="Sprite2D" parent="SkillTree" unique_id=580550904]
 texture_filter = 1
 material = SubResource("TreeOutline")
-position = Vector2(235.99998, -50)
+position = Vector2(297, -63)
 texture = ExtResource("5_bvheq")
 region_enabled = true
 region_rect = Rect2(324.78058, 45.419724, 155.43741, 160.52068)
@@ -155,7 +182,7 @@ region_rect = Rect2(324.78058, 45.419724, 155.43741, 160.52068)
 position = Vector2(66, -20)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SkillTree/Interactable" unique_id=227387350]
-position = Vector2(159, 7)
+position = Vector2(214, 2)
 shape = SubResource("InteractShape")
 
 [node name="Teleporter" type="Node2D" parent="." unique_id=1875814642]
@@ -165,7 +192,7 @@ scale = Vector2(0.75, 0.75)
 [node name="Sprite2D" type="Sprite2D" parent="Teleporter" unique_id=1367823541]
 texture_filter = 1
 material = SubResource("TeleportOutline")
-position = Vector2(4.3333435, -77.66666)
+position = Vector2(-179.99998, -247.99998)
 texture = ExtResource("5_bvheq")
 region_enabled = true
 region_rect = Rect2(324.3832, -10.423645, 180.46982, 56.52887)
@@ -174,7 +201,7 @@ region_rect = Rect2(324.3832, -10.423645, 180.46982, 56.52887)
 position = Vector2(-2, -69)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Teleporter/Interactable" unique_id=1188656516]
-position = Vector2(0.6666565, -7.3333282)
+position = Vector2(-187.33333, -179)
 shape = SubResource("InteractShape")
 
 [node name="SurvivalTeleporter" type="Node2D" parent="." unique_id=177130636]
@@ -184,7 +211,7 @@ position = Vector2(410, 166)
 modulate = Color(1, 0.72, 0.22, 1)
 texture_filter = 1
 material = SubResource("SurvivalTeleportOutline")
-position = Vector2(-180.00002, -100.00001)
+position = Vector2(-339, -112)
 scale = Vector2(0.72, 0.72)
 texture = ExtResource("5_bvheq")
 region_enabled = true
@@ -194,7 +221,7 @@ region_rect = Rect2(324.3832, -10.423645, 180.46982, 56.52887)
 position = Vector2(0, -22)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SurvivalTeleporter/Interactable" unique_id=1916183749]
-position = Vector2(-184, -78)
+position = Vector2(-345, -90)
 shape = SubResource("InteractShape")
 
 [node name="WardrobeMirror" type="Node2D" parent="." unique_id=1485376983]
@@ -203,12 +230,12 @@ position = Vector2(383, 111)
 [node name="Sprite2D" type="Sprite2D" parent="WardrobeMirror" unique_id=2128849674]
 texture_filter = 1
 material = SubResource("MirrorOutline")
-position = Vector2(-249, 62.000008)
+position = Vector2(-314, 102.00001)
 scale = Vector2(1.5, 1.5)
 texture = ExtResource("9_aghey")
 
 [node name="Interactable" parent="WardrobeMirror" unique_id=332687209 instance=ExtResource("4_interactable")]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WardrobeMirror/Interactable" unique_id=823921247]
-position = Vector2(-249, 62)
+position = Vector2(-313, 101)
 shape = SubResource("InteractShape")

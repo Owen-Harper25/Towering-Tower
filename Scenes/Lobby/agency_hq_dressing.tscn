@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[node name="AgencyHQDressing" type="Node2D"]
+z_index = -2
+
+[node name="OperationsDeck" type="Polygon2D" parent="."]
+color = Color(0.055, 0.105, 0.145, 1)
+polygon = PackedVector2Array(18, 48, 462, 48, 478, 72, 468, 244, 444, 260, 36, 260, 12, 242, 4, 75)
+
+[node name="FloorInset" type="Polygon2D" parent="."]
+color = Color(0.09, 0.18, 0.22, 1)
+polygon = PackedVector2Array(33, 84, 447, 84, 454, 224, 430, 244, 48, 244, 25, 222)
+
+[node name="WalkwayStripe" type="Polygon2D" parent="."]
+color = Color(0.25, 0.7, 0.76, 0.32)
+polygon = PackedVector2Array(30, 180, 450, 180, 450, 185, 30, 185)
+
+[node name="CommandDesk" type="Polygon2D" parent="."]
+position = Vector2(238, 78)
+color = Color(0.035, 0.07, 0.11, 1)
+polygon = PackedVector2Array(-51, -15, 51, -15, 62, 3, 48, 17, -48, 17, -62, 3)
+
+[node name="CommandScreen" type="Polygon2D" parent="."]
+position = Vector2(238, 68)
+color = Color(0.18, 0.82, 0.93, 0.8)
+polygon = PackedVector2Array(-37, -7, 37, -7, 42, 5, -42, 5)
+
+[node name="SpecimenTank" type="Polygon2D" parent="."]
+position = Vector2(438, 116)
+color = Color(0.15, 0.61, 0.67, 0.55)
+polygon = PackedVector2Array(-18, -29, 18, -29, 22, -22, 22, 27, 17, 32, -17, 32, -22, 27, -22, -22)
+
+[node name="Specimen" type="Polygon2D" parent="."]
+position = Vector2(438, 119)
+color = Color(0.37, 0.22, 0.67, 1)
+polygon = PackedVector2Array(0, -18, 5, -8, 15, -5, 7, 1, 12, 13, 2, 7, -5, 17, -7, 4, -15, -1, -5, -8)
+
+[node name="EvidenceWall" type="Polygon2D" parent="."]
+position = Vector2(54, 112)
+color = Color(0.12, 0.08, 0.1, 1)
+polygon = PackedVector2Array(-31, -28, 31, -28, 31, 28, -31, 28)
+
+[node name="EvidenceLines" type="Line2D" parent="."]
+position = Vector2(54, 112)
+points = PackedVector2Array(-20, -14, 7, 4, 20, -17, -5, 17, -20, -14)
+width = 1.0
+default_color = Color(0.94, 0.31, 0.38, 0.8)
+
+[node name="AgencySealOuter" type="Polygon2D" parent="."]
+position = Vector2(238, 205)
+color = Color(0.13, 0.48, 0.58, 0.45)
+polygon = PackedVector2Array(0, -24, 17, -17, 24, 0, 17, 17, 0, 24, -17, 17, -24, 0, -17, -17)
+
+[node name="AgencySealInner" type="Polygon2D" parent="."]
+position = Vector2(238, 205)
+color = Color(0.035, 0.08, 0.12, 1)
+polygon = PackedVector2Array(0, -15, 11, -11, 15, 0, 11, 11, 0, 15, -11, 11, -15, 0, -11, -11)
+
+[node name="SealCore" type="Polygon2D" parent="."]
+position = Vector2(238, 205)
+color = Color(1, 0.72, 0.25, 1)
+polygon = PackedVector2Array(0, -5, 5, 0, 0, 5, -5, 0)
+
+[node name="ArmoryRack" type="Node2D" parent="."]
+position = Vector2(355, 218)
+
+[node name="Cabinet" type="Polygon2D" parent="ArmoryRack"]
+color = Color(0.035, 0.07, 0.1, 1)
+polygon = PackedVector2Array(-42, -27, 42, -27, 42, 25, -42, 25)
+
+[node name="RackGlow" type="Polygon2D" parent="ArmoryRack"]
+color = Color(0.18, 0.72, 0.82, 0.35)
+polygon = PackedVector2Array(-37, -22, 37, -22, 37, 20, -37, 20)
+
+[node name="SidearmIcon" type="Polygon2D" parent="ArmoryRack"]
+position = Vector2(-24, -4)
+color = Color(0.83, 0.86, 0.84, 1)
+polygon = PackedVector2Array(-8, -4, 8, -4, 8, 0, 1, 0, 0, 8, -5, 8, -3, 0, -8, 0)
+
+[node name="ScatterIcon" type="Polygon2D" parent="ArmoryRack"]
+position = Vector2(3, -4)
+color = Color(0.92, 0.63, 0.3, 1)
+polygon = PackedVector2Array(-12, -3, 12, -3, 12, 1, -2, 1, -5, 8, -10, 8, -7, 1, -12, 1)
+
+[node name="BladeIcon" type="Polygon2D" parent="ArmoryRack"]
+position = Vector2(27, -3)
+color = Color(0.56, 0.9, 1, 1)
+polygon = PackedVector2Array(-2, -14, 3, -14, 3, 6, 8, 6, 8, 9, -7, 9, -7, 6, -2, 6)
